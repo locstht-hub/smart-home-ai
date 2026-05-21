@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+from hmac import compare_digest
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -184,13 +186,33 @@ def create_app() -> Flask:
     s7 = S7Client(config)
 
     app = Flask(__name__)
+    api_token = str(os.environ.get("SMART_HOME_API_TOKEN") or config.get("security", {}).get("apiToken", "")).strip()
 
     @app.after_request
     def add_cors_headers(response: Any) -> Any:
         response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Token"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         return response
+
+    def extract_token() -> str:
+        auth_header = request.headers.get("Authorization", "").strip()
+        if auth_header.lower().startswith("bearer "):
+            return auth_header[7:].strip()
+        return request.headers.get("X-API-Token", "").strip()
+
+    @app.before_request
+    def require_api_token() -> Any:
+        if request.method == "OPTIONS" or not request.path.startswith("/api/"):
+            return None
+
+        if not api_token:
+            return None
+
+        if not compare_digest(extract_token(), api_token):
+            return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+        return None
 
     def read_states() -> dict[str, bool]:
         if mode == "plc-real":
@@ -207,6 +229,10 @@ def create_app() -> Flask:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
+
+    @app.get("/api/auth/check")
+    def auth_check() -> Any:
+        return jsonify({"ok": True, "service": "smart-home-server", "auth": "ok"})
 
     @app.get("/api/power/current")
     def power_current() -> Any:

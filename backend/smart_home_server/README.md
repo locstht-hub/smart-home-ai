@@ -48,6 +48,7 @@ https://api-tenmiencuaban.com
 
 ```text
 GET  /health
+GET  /api/auth/check
 GET  /api/power/current
 GET  /api/devices
 POST /api/devices/<device_id>/turn-on
@@ -55,6 +56,29 @@ POST /api/devices/<device_id>/turn-off
 POST /api/scenes/<scene>
 POST /api/assistant/chat
 ```
+
+## Bao mat API bang token
+
+`/health` de public de kiem tra server con song. Tat ca endpoint `/api/...` se yeu cau token neu cau hinh `security.apiToken` trong `config.json` hoac bien moi truong `SMART_HOME_API_TOKEN`.
+
+Vi du `config.json`:
+
+```json
+{
+  "security": {
+    "apiToken": "doi-thanh-token-dai-ngau-nhien"
+  }
+}
+```
+
+App gui token bang header:
+
+```text
+Authorization: Bearer <token>
+X-API-Token: <token>
+```
+
+Trong app vao `Cai dat -> Server API rieng -> API token` va nhap dung token tren server. Bam `Luu & kiem tra`; neu token sai server se tra `401 Unauthorized`.
 
 ## Tag cong suat dang cau hinh
 

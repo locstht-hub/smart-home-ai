@@ -28,6 +28,10 @@ export class SmartHomeApiClient {
         return this.request('/health');
     }
 
+    async checkAuth(): Promise<{ ok: boolean; service?: string; auth?: string }> {
+        return this.request('/api/auth/check');
+    }
+
     async getPowerCurrent(): Promise<PowerCurrentResponse> {
         return this.request('/api/power/current');
     }
@@ -54,7 +58,7 @@ export class SmartHomeApiClient {
             method: 'POST',
             body: JSON.stringify({ text }),
         });
-        return response.reply || response.text || response.message || 'Server da nhan lenh cua ban.';
+        return response.reply || response.text || response.message || 'Server đã nhận lệnh của bạn.';
     }
 
     private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -74,6 +78,7 @@ export class SmartHomeApiClient {
 
             if (this.config.apiToken?.trim()) {
                 headers.Authorization = `Bearer ${this.config.apiToken.trim()}`;
+                headers['X-API-Token'] = this.config.apiToken.trim();
             }
 
             const response = await fetch(`${baseUrl}${path}`, {
@@ -84,7 +89,10 @@ export class SmartHomeApiClient {
 
             if (!response.ok) {
                 const body = await response.text();
-                throw new Error(body || `Server API tra ve ma ${response.status}`);
+                if (response.status === 401) {
+                    throw new Error('API token không đúng hoặc chưa được nhập.');
+                }
+                throw new Error(body || `Server API trả về mã ${response.status}`);
             }
 
             return response.json() as Promise<T>;

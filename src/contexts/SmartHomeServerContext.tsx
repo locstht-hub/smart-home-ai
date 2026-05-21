@@ -72,7 +72,7 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
         setStatus('connecting');
         setError(null);
         try {
-            await effectiveClient.health();
+            await effectiveClient.checkAuth();
             setStatus('connected');
             return { success: true, message: 'Kết nối Server API thành công' };
         } catch (connectionError) {
