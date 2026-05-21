@@ -279,6 +279,136 @@ class AuthStore:
             rows = conn.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()
             return [self.public_user(row) for row in rows]
 
+    def create_owner_with_home(
+        self,
+        *,
+        owner_name: str,
+        username: str,
+        phone: str | None,
+        password: str,
+        home_name: str,
+    ) -> dict[str, Any]:
+        now = utc_now()
+        user_id = f"owner-{secrets.token_hex(8)}"
+        home_id = f"home-{secrets.token_hex(8)}"
+        member_id = f"member-link-{secrets.token_hex(8)}"
+
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO users (id, username, phone, name, password_hash, role, status, created_at)
+                VALUES (?, ?, ?, ?, ?, 'owner', 'active', ?)
+                """,
+                (user_id, username, phone or None, owner_name, hash_password(password), now),
+            )
+            conn.execute(
+                """
+                INSERT INTO homes (id, name, owner_id, status, created_at)
+                VALUES (?, ?, ?, 'active', ?)
+                """,
+                (home_id, home_name, user_id, now),
+            )
+            conn.execute(
+                """
+                INSERT INTO home_members (
+                    id, home_id, user_id, role_in_home,
+                    can_manage_members, can_manage_devices, created_at
+                )
+                VALUES (?, ?, ?, 'owner', 1, 1, ?)
+                """,
+                (member_id, home_id, user_id, now),
+            )
+
+            user_row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            home_row = conn.execute(
+                """
+                SELECT homes.*, users.name AS owner_name, users.username AS owner_username,
+                       COUNT(home_members.user_id) AS member_count
+                FROM homes
+                JOIN users ON users.id = homes.owner_id
+                LEFT JOIN home_members ON home_members.home_id = homes.id
+                WHERE homes.id = ?
+                GROUP BY homes.id
+                """,
+                (home_id,),
+            ).fetchone()
+
+            return {
+                "user": self.public_user(user_row),
+                "home": {
+                    "id": home_row["id"],
+                    "name": home_row["name"],
+                    "ownerId": home_row["owner_id"],
+                    "ownerName": home_row["owner_name"],
+                    "ownerUsername": home_row["owner_username"],
+                    "status": home_row["status"],
+                    "memberCount": home_row["member_count"],
+                    "createdAt": home_row["created_at"],
+                },
+            }
+
+    def set_user_status(self, user_id: str, status: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            if row is None:
+                return None
+            if row["role"] == "system_admin":
+                raise ValueError("Cannot change system admin status")
+
+            conn.execute("UPDATE users SET status = ? WHERE id = ?", (status, user_id))
+            if status == "suspended":
+                conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+
+            updated = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            return self.public_user(updated)
+
+    def reset_user_password(self, user_id: str, new_password: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            if row is None:
+                return None
+            if row["role"] == "system_admin":
+                raise ValueError("Cannot reset system admin password here")
+
+            conn.execute(
+                "UPDATE users SET password_hash = ? WHERE id = ?",
+                (hash_password(new_password), user_id),
+            )
+            conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+            updated = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            return self.public_user(updated)
+
+    def set_home_status(self, home_id: str, status: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM homes WHERE id = ?", (home_id,)).fetchone()
+            if row is None:
+                return None
+
+            conn.execute("UPDATE homes SET status = ? WHERE id = ?", (status, home_id))
+            updated = conn.execute(
+                """
+                SELECT homes.*, users.name AS owner_name, users.username AS owner_username,
+                       COUNT(home_members.user_id) AS member_count
+                FROM homes
+                JOIN users ON users.id = homes.owner_id
+                LEFT JOIN home_members ON home_members.home_id = homes.id
+                WHERE homes.id = ?
+                GROUP BY homes.id
+                """,
+                (home_id,),
+            ).fetchone()
+
+            return {
+                "id": updated["id"],
+                "name": updated["name"],
+                "ownerId": updated["owner_id"],
+                "ownerName": updated["owner_name"],
+                "ownerUsername": updated["owner_username"],
+                "status": updated["status"],
+                "memberCount": updated["member_count"],
+                "createdAt": updated["created_at"],
+            }
+
     def record_audit_log(
         self,
         *,

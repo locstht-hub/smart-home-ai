@@ -20,6 +20,8 @@ const els = {
   sessionName: document.getElementById('sessionName'),
   logoutBtn: document.getElementById('logoutBtn'),
   refreshAllBtn: document.getElementById('refreshAllBtn'),
+  createOwnerTopBtn: document.getElementById('createOwnerTopBtn'),
+  createOwnerHomeBtn: document.getElementById('createOwnerHomeBtn'),
   apiStatus: document.getElementById('apiStatus'),
   pageTitle: document.getElementById('pageTitle'),
   navItems: Array.from(document.querySelectorAll('.nav-item')),
@@ -38,6 +40,16 @@ const els = {
   homesBody: document.getElementById('homesBody'),
   usersBody: document.getElementById('usersBody'),
   logsBody: document.getElementById('logsBody'),
+  ownerModal: document.getElementById('ownerModal'),
+  ownerForm: document.getElementById('ownerForm'),
+  ownerFormMessage: document.getElementById('ownerFormMessage'),
+  ownerNameInput: document.getElementById('ownerNameInput'),
+  ownerUsernameInput: document.getElementById('ownerUsernameInput'),
+  ownerPhoneInput: document.getElementById('ownerPhoneInput'),
+  ownerPasswordInput: document.getElementById('ownerPasswordInput'),
+  homeNameInput: document.getElementById('homeNameInput'),
+  closeOwnerModalBtn: document.getElementById('closeOwnerModalBtn'),
+  cancelOwnerModalBtn: document.getElementById('cancelOwnerModalBtn'),
 };
 
 const titles = {
@@ -115,6 +127,7 @@ function setAuthenticated(isAuthenticated) {
   els.loginPanel.classList.toggle('hidden', isAuthenticated);
   els.workspace.classList.toggle('hidden', !isAuthenticated);
   els.refreshAllBtn.classList.toggle('hidden', !isAuthenticated);
+  els.createOwnerTopBtn.classList.toggle('hidden', !isAuthenticated);
   els.sessionName.textContent = state.user
     ? `${state.user.name} (${roleLabels[state.user.role] || state.user.role})`
     : 'Chưa đăng nhập';
@@ -136,6 +149,43 @@ function emptyRow(colspan, text) {
   return `<tr><td class="empty-row" colspan="${colspan}">${escapeHtml(text)}</td></tr>`;
 }
 
+function isSystemAdmin(user) {
+  return user.role === 'system_admin';
+}
+
+function homeActions(home) {
+  const action = home.status === 'suspended' ? 'activate' : 'suspend';
+  const label = home.status === 'suspended' ? 'Mở nhà' : 'Khóa nhà';
+  const mode = home.status === 'suspended' ? 'ok' : 'warn';
+  return `
+    <div class="row-actions">
+      <button class="action-btn ${mode}" data-home-action="${action}" data-home-id="${escapeHtml(home.id)}" type="button">
+        ${label}
+      </button>
+    </div>
+  `;
+}
+
+function userActions(user) {
+  if (isSystemAdmin(user)) {
+    return '<span class="empty-row">Không áp dụng</span>';
+  }
+
+  const statusAction = user.status === 'suspended' ? 'activate' : 'suspend';
+  const statusLabel = user.status === 'suspended' ? 'Mở khóa' : 'Khóa';
+  const statusMode = user.status === 'suspended' ? 'ok' : 'warn';
+  return `
+    <div class="row-actions">
+      <button class="action-btn ${statusMode}" data-user-action="${statusAction}" data-user-id="${escapeHtml(user.id)}" type="button">
+        ${statusLabel}
+      </button>
+      <button class="action-btn" data-user-action="reset-password" data-user-id="${escapeHtml(user.id)}" type="button">
+        Reset mật khẩu
+      </button>
+    </div>
+  `;
+}
+
 function renderHomes() {
   const rows = state.homes.map((home) => `
     <tr>
@@ -145,10 +195,11 @@ function renderHomes() {
       <td>${escapeHtml(home.memberCount ?? 0)}</td>
       <td>${formatDate(home.createdAt)}</td>
       <td>${statusBadge(home.status)}</td>
+      <td>${homeActions(home)}</td>
     </tr>
   `).join('');
 
-  els.homesBody.innerHTML = rows || emptyRow(6, 'Chưa có nhà nào trong hệ thống.');
+  els.homesBody.innerHTML = rows || emptyRow(7, 'Chưa có nhà nào trong hệ thống.');
   els.recentHomesBody.innerHTML = state.homes.slice(0, 5).map((home) => `
     <tr>
       <td><strong>${escapeHtml(home.name)}</strong></td>
@@ -168,8 +219,9 @@ function renderUsers() {
       <td>${roleBadge(user.role)}</td>
       <td>${formatDate(user.lastActive)}</td>
       <td>${statusBadge(user.status)}</td>
+      <td>${userActions(user)}</td>
     </tr>
-  `).join('') || emptyRow(6, 'Chưa có tài khoản nào trong hệ thống.');
+  `).join('') || emptyRow(7, 'Chưa có tài khoản nào trong hệ thống.');
 }
 
 function renderLogs() {
@@ -267,6 +319,90 @@ function refreshDashboard() {
   });
 }
 
+function openOwnerModal() {
+  els.ownerForm.reset();
+  els.ownerFormMessage.textContent = '';
+  els.ownerModal.classList.remove('hidden');
+  els.ownerNameInput.focus();
+}
+
+function closeOwnerModal() {
+  els.ownerModal.classList.add('hidden');
+}
+
+async function createOwnerHome(event) {
+  event.preventDefault();
+  els.ownerFormMessage.textContent = '';
+
+  try {
+    await apiFetch('/api/admin/owners', {
+      method: 'POST',
+      body: JSON.stringify({
+        ownerName: els.ownerNameInput.value.trim(),
+        username: els.ownerUsernameInput.value.trim(),
+        phone: els.ownerPhoneInput.value.trim(),
+        password: els.ownerPasswordInput.value,
+        homeName: els.homeNameInput.value.trim(),
+      }),
+    });
+    closeOwnerModal();
+    await loadDashboard();
+    switchView('homes');
+    setApiStatus('API: đã tạo chủ nhà mới', 'ok');
+  } catch (error) {
+    els.ownerFormMessage.textContent = error.message || 'Không thể tạo chủ nhà';
+    setApiStatus(`API: ${error.message}`, 'error');
+  }
+}
+
+async function updateUserAction(userId, action) {
+  if (action === 'reset-password') {
+    const password = window.prompt('Nhập mật khẩu mới cho tài khoản này:');
+    if (!password) return;
+    if (password.length < 6) {
+      setApiStatus('API: mật khẩu cần ít nhất 6 ký tự', 'error');
+      return;
+    }
+    await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/reset-password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ password }),
+    });
+    setApiStatus('API: đã reset mật khẩu', 'ok');
+    return;
+  }
+
+  await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/${action}`, {
+    method: 'PATCH',
+  });
+  setApiStatus(action === 'suspend' ? 'API: đã khóa tài khoản' : 'API: đã mở khóa tài khoản', 'ok');
+}
+
+async function updateHomeAction(homeId, action) {
+  await apiFetch(`/api/admin/homes/${encodeURIComponent(homeId)}/${action}`, {
+    method: 'PATCH',
+  });
+  setApiStatus(action === 'suspend' ? 'API: đã khóa nhà' : 'API: đã mở nhà', 'ok');
+}
+
+async function handleAdminTableAction(event) {
+  const button = event.target.closest('button[data-user-action], button[data-home-action]');
+  if (!button) return;
+
+  try {
+    const userAction = button.dataset.userAction;
+    const homeAction = button.dataset.homeAction;
+    if (userAction) {
+      await updateUserAction(button.dataset.userId, userAction);
+    }
+    if (homeAction) {
+      await updateHomeAction(button.dataset.homeId, homeAction);
+    }
+    await loadDashboard();
+  } catch (error) {
+    setApiStatus(`API: ${error.message}`, 'error');
+  }
+}
+
 els.loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   els.loginMessage.textContent = '';
@@ -280,6 +416,16 @@ els.loginForm.addEventListener('submit', async (event) => {
 
 els.logoutBtn.addEventListener('click', logout);
 els.refreshAllBtn.addEventListener('click', refreshDashboard);
+els.createOwnerTopBtn.addEventListener('click', openOwnerModal);
+els.createOwnerHomeBtn.addEventListener('click', openOwnerModal);
+els.closeOwnerModalBtn.addEventListener('click', closeOwnerModal);
+els.cancelOwnerModalBtn.addEventListener('click', closeOwnerModal);
+els.ownerForm.addEventListener('submit', createOwnerHome);
+els.homesBody.addEventListener('click', handleAdminTableAction);
+els.usersBody.addEventListener('click', handleAdminTableAction);
+els.ownerModal.addEventListener('click', (event) => {
+  if (event.target === els.ownerModal) closeOwnerModal();
+});
 
 els.navItems.forEach((item) => {
   item.addEventListener('click', () => switchView(item.dataset.view));

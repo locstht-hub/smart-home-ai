@@ -17,6 +17,17 @@
 
 ---
 
+## 0.21. ADMIN ACTIONS (22/05/2026 - Session 17)
+
+- [x] Them API system admin de tao tai khoan cha kem nha moi
+- [x] Them API khoa/mo tai khoan, reset mat khau va khoa/mo nha
+- [x] Tat ca thao tac admin moi deu ghi audit log backend
+- [x] Them form/nut tren `admin-site/` de thuc hien thao tac quan tri
+- [x] Kiem tra `python -m py_compile`, `node --check`, test `AuthStore` va Flask test client
+- [ ] Buoc tiep theo: them quan ly thanh vien con trong tung nha va phan quyen chi tiet
+
+---
+
 ## 1. TỔNG QUAN DỰ ÁN
 
 | Thông tin | Chi tiết |

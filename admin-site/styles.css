@@ -149,7 +149,10 @@ button {
 
 .session-box button,
 .ghost-btn,
+.primary-btn,
 .refresh-btn,
+.action-btn,
+.icon-btn,
 .login-form button {
   min-height: 40px;
   border-radius: 8px;
@@ -257,6 +260,7 @@ h2 {
 }
 
 .ghost-btn,
+.primary-btn,
 .refresh-btn,
 .login-form button {
   padding: 0 14px;
@@ -268,10 +272,44 @@ h2 {
   color: var(--ink);
 }
 
+.primary-btn,
 .refresh-btn,
 .login-form button {
   background: var(--primary);
   color: #ffffff;
+}
+
+.panel-actions,
+.row-actions,
+.modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  min-height: 32px;
+  padding: 0 10px;
+  background: #eef2f6;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.action-btn.warn {
+  background: #fff7ed;
+  color: var(--warn);
+}
+
+.action-btn.ok {
+  background: #ecfdf3;
+  color: var(--ok);
+}
+
+.action-btn.danger {
+  background: #fee4e2;
+  color: var(--danger);
 }
 
 .login-panel {
@@ -319,6 +357,86 @@ h2 {
   border-radius: 8px;
   background: #ffffff;
   color: var(--ink);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(16, 24, 40, 0.5);
+}
+
+.modal {
+  display: grid;
+  gap: 18px;
+  width: min(720px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 22px;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-head p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  padding: 0;
+  background: #f2f4f7;
+  color: #344054;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 7px;
+  color: #475467;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.form-grid input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+}
+
+.form-grid input:focus {
+  border-color: var(--primary);
+  outline: 3px solid rgba(15, 118, 110, 0.14);
+}
+
+.form-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.modal-actions {
+  justify-content: flex-end;
 }
 
 .login-form input:focus {
@@ -550,5 +668,9 @@ tbody tr:hover {
 
   .metric {
     min-height: 116px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 }

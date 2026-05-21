@@ -201,7 +201,7 @@ def create_app() -> Flask:
     def add_cors_headers(response: Any) -> Any:
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Token"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, OPTIONS"
         return response
 
     def extract_token() -> str:
@@ -355,6 +355,136 @@ def create_app() -> Flask:
 
         audit("admin.view_audit_logs", actor=admin, target_type="audit_logs", metadata={"limit": safe_limit})
         return jsonify({"ok": True, "logs": auth_store.list_audit_logs(safe_limit)})
+
+    @app.post("/api/admin/owners")
+    def admin_create_owner() -> Any:
+        admin = require_system_admin()
+        if not isinstance(admin, dict):
+            return admin
+
+        payload = request.get_json(silent=True) or {}
+        owner_name = str(payload.get("ownerName") or payload.get("name") or "").strip()
+        username = str(payload.get("username") or "").strip()
+        phone = str(payload.get("phone") or "").strip() or None
+        password = str(payload.get("password") or "")
+        home_name = str(payload.get("homeName") or "").strip()
+
+        if not owner_name or not username or not password or not home_name:
+            return jsonify({"ok": False, "error": "ownerName, username, password and homeName are required"}), 400
+        if len(password) < 6:
+            return jsonify({"ok": False, "error": "Password must be at least 6 characters"}), 400
+
+        try:
+            result = auth_store.create_owner_with_home(
+                owner_name=owner_name,
+                username=username,
+                phone=phone,
+                password=password,
+                home_name=home_name,
+            )
+        except Exception as exc:
+            message = str(exc)
+            if "UNIQUE constraint failed" in message:
+                return jsonify({"ok": False, "error": "Username or phone already exists"}), 409
+            return jsonify({"ok": False, "error": message}), 500
+
+        audit(
+            "admin.create_owner_home",
+            actor=admin,
+            target_type="home",
+            target_id=result["home"]["id"],
+            target_name=result["home"]["name"],
+            home_id=result["home"]["id"],
+            metadata={"ownerId": result["user"]["id"], "ownerUsername": result["user"]["username"]},
+        )
+        return jsonify({"ok": True, **result}), 201
+
+    @app.patch("/api/admin/users/<user_id>/suspend")
+    def admin_suspend_user(user_id: str) -> Any:
+        return update_admin_user_status(user_id, "suspended")
+
+    @app.patch("/api/admin/users/<user_id>/activate")
+    def admin_activate_user(user_id: str) -> Any:
+        return update_admin_user_status(user_id, "active")
+
+    def update_admin_user_status(user_id: str, status: str) -> Any:
+        admin = require_system_admin()
+        if not isinstance(admin, dict):
+            return admin
+
+        try:
+            user = auth_store.set_user_status(user_id, status)
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+
+        if user is None:
+            return jsonify({"ok": False, "error": "User not found"}), 404
+
+        audit(
+            "admin.suspend_user" if status == "suspended" else "admin.activate_user",
+            actor=admin,
+            target_type="user",
+            target_id=user["id"],
+            target_name=user["username"],
+            metadata={"status": status},
+        )
+        return jsonify({"ok": True, "user": user})
+
+    @app.patch("/api/admin/users/<user_id>/reset-password")
+    def admin_reset_user_password(user_id: str) -> Any:
+        admin = require_system_admin()
+        if not isinstance(admin, dict):
+            return admin
+
+        payload = request.get_json(silent=True) or {}
+        new_password = str(payload.get("password") or "")
+        if len(new_password) < 6:
+            return jsonify({"ok": False, "error": "Password must be at least 6 characters"}), 400
+
+        try:
+            user = auth_store.reset_user_password(user_id, new_password)
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+
+        if user is None:
+            return jsonify({"ok": False, "error": "User not found"}), 404
+
+        audit(
+            "admin.reset_user_password",
+            actor=admin,
+            target_type="user",
+            target_id=user["id"],
+            target_name=user["username"],
+        )
+        return jsonify({"ok": True, "user": user})
+
+    @app.patch("/api/admin/homes/<home_id>/suspend")
+    def admin_suspend_home(home_id: str) -> Any:
+        return update_admin_home_status(home_id, "suspended")
+
+    @app.patch("/api/admin/homes/<home_id>/activate")
+    def admin_activate_home(home_id: str) -> Any:
+        return update_admin_home_status(home_id, "active")
+
+    def update_admin_home_status(home_id: str, status: str) -> Any:
+        admin = require_system_admin()
+        if not isinstance(admin, dict):
+            return admin
+
+        home = auth_store.set_home_status(home_id, status)
+        if home is None:
+            return jsonify({"ok": False, "error": "Home not found"}), 404
+
+        audit(
+            "admin.suspend_home" if status == "suspended" else "admin.activate_home",
+            actor=admin,
+            target_type="home",
+            target_id=home["id"],
+            target_name=home["name"],
+            home_id=home["id"],
+            metadata={"status": status},
+        )
+        return jsonify({"ok": True, "home": home})
 
     @app.get("/api/power/current")
     def power_current() -> Any:

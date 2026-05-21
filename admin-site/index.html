@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Smart Home AI Admin</title>
-  <link rel="stylesheet" href="./styles.css?v=20260522-ui2">
+  <link rel="stylesheet" href="./styles.css?v=20260522-admin-actions">
 </head>
 <body>
   <main class="shell">
@@ -53,6 +53,7 @@
         <div class="topbar-actions">
           <div class="version-pill">Bản UI mới 22/05</div>
           <div class="api-status" id="apiStatus">API: chưa kiểm tra</div>
+          <button class="primary-btn hidden" id="createOwnerTopBtn" type="button">Tạo chủ nhà</button>
           <button class="ghost-btn" id="refreshAllBtn" type="button">Làm mới</button>
         </div>
       </header>
@@ -144,7 +145,10 @@
                 <h2>Danh sách nhà</h2>
                 <p>Theo dõi owner, số thành viên và trạng thái từng nhà.</p>
               </div>
-              <button class="refresh-btn" data-refresh="homes" type="button">Làm mới</button>
+              <div class="panel-actions">
+                <button class="primary-btn" id="createOwnerHomeBtn" type="button">Tạo chủ nhà</button>
+                <button class="refresh-btn" data-refresh="homes" type="button">Làm mới</button>
+              </div>
             </div>
             <div class="table-wrap">
               <table>
@@ -156,6 +160,7 @@
                     <th>Thành viên</th>
                     <th>Ngày tạo</th>
                     <th>Trạng thái</th>
+                    <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody id="homesBody"></tbody>
@@ -183,6 +188,7 @@
                     <th>Role</th>
                     <th>Hoạt động cuối</th>
                     <th>Trạng thái</th>
+                    <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody id="usersBody"></tbody>
@@ -220,6 +226,44 @@
       </section>
     </section>
   </main>
-  <script src="./app.js?v=20260522-ui2"></script>
+  <div class="modal-backdrop hidden" id="ownerModal" role="dialog" aria-modal="true" aria-labelledby="ownerModalTitle">
+    <form class="modal" id="ownerForm">
+      <div class="modal-head">
+        <div>
+          <h2 id="ownerModalTitle">Tạo chủ nhà mới</h2>
+          <p>Tạo tài khoản cha và nhà tương ứng trong một bước.</p>
+        </div>
+        <button class="icon-btn" id="closeOwnerModalBtn" type="button" aria-label="Đóng">×</button>
+      </div>
+      <div class="form-grid">
+        <label>
+          Tên chủ nhà
+          <input id="ownerNameInput" name="ownerName" required placeholder="Ví dụ: Nguyễn Văn A">
+        </label>
+        <label>
+          Username
+          <input id="ownerUsernameInput" name="username" required placeholder="vd: nguyenvana">
+        </label>
+        <label>
+          SĐT
+          <input id="ownerPhoneInput" name="phone" placeholder="vd: 0900000000">
+        </label>
+        <label>
+          Mật khẩu tạm
+          <input id="ownerPasswordInput" name="password" required minlength="6" placeholder="Ít nhất 6 ký tự">
+        </label>
+        <label class="wide">
+          Tên nhà
+          <input id="homeNameInput" name="homeName" required placeholder="Ví dụ: Nhà anh A">
+        </label>
+      </div>
+      <p class="form-message" id="ownerFormMessage"></p>
+      <div class="modal-actions">
+        <button class="ghost-btn" id="cancelOwnerModalBtn" type="button">Hủy</button>
+        <button class="primary-btn" type="submit">Tạo tài khoản</button>
+      </div>
+    </form>
+  </div>
+  <script src="./app.js?v=20260522-admin-actions"></script>
 </body>
 </html>
