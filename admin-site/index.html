@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Home AI Admin</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="../assets/smart-home-logo.png" alt="Smart Home AI">
+        <div>
+          <strong>Smart Home AI</strong>
+          <span>System Admin</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-view="overview">Tổng quan</button>
+        <button class="nav-item" data-view="homes">Nhà</button>
+        <button class="nav-item" data-view="users">Tài khoản</button>
+        <button class="nav-item" data-view="logs">Lịch sử</button>
+      </nav>
+      <div class="session-box">
+        <span id="sessionName">Chưa đăng nhập</span>
+        <button id="logoutBtn" type="button">Đăng xuất</button>
+      </div>
+    </aside>
+
+    <section class="content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Admin Console</p>
+          <h1 id="pageTitle">Tổng quan hệ thống</h1>
+        </div>
+        <div class="api-status" id="apiStatus">API: chưa kiểm tra</div>
+      </header>
+
+      <section class="login-panel" id="loginPanel">
+        <form id="loginForm" class="login-form">
+          <h2>Đăng nhập quản trị</h2>
+          <label>
+            Username
+            <input id="usernameInput" name="username" autocomplete="username" value="admin">
+          </label>
+          <label>
+            Password
+            <input id="passwordInput" name="password" type="password" autocomplete="current-password" value="admin123">
+          </label>
+          <button type="submit">Đăng nhập</button>
+          <p id="loginMessage" class="form-message"></p>
+        </form>
+      </section>
+
+      <section class="workspace hidden" id="workspace">
+        <section class="view" id="overviewView">
+          <div class="metrics">
+            <div class="metric">
+              <span>Nhà đang quản lý</span>
+              <strong id="homeCount">0</strong>
+            </div>
+            <div class="metric">
+              <span>Tài khoản</span>
+              <strong id="userCount">0</strong>
+            </div>
+            <div class="metric">
+              <span>Owner</span>
+              <strong id="ownerCount">0</strong>
+            </div>
+            <div class="metric">
+              <span>Log gần đây</span>
+              <strong id="logCount">0</strong>
+            </div>
+          </div>
+          <div class="split">
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Nhà mới nhất</h2>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Tên nhà</th><th>Chủ nhà</th><th>Thành viên</th><th>Trạng thái</th></tr>
+                  </thead>
+                  <tbody id="recentHomesBody"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Hoạt động mới</h2>
+              </div>
+              <div class="log-list" id="recentLogsList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view hidden" id="homesView">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Danh sách nhà</h2>
+              <button class="refresh-btn" data-refresh="homes" type="button">Làm mới</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Tên nhà</th><th>Owner</th><th>Username</th><th>Thành viên</th><th>Ngày tạo</th><th>Trạng thái</th></tr>
+                </thead>
+                <tbody id="homesBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view hidden" id="usersView">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Danh sách tài khoản</h2>
+              <button class="refresh-btn" data-refresh="users" type="button">Làm mới</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Tên</th><th>Username</th><th>SĐT</th><th>Role</th><th>Hoạt động cuối</th><th>Trạng thái</th></tr>
+                </thead>
+                <tbody id="usersBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view hidden" id="logsView">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Lịch sử hoạt động</h2>
+              <button class="refresh-btn" data-refresh="logs" type="button">Làm mới</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Thời gian</th><th>Người thực hiện</th><th>Role</th><th>Hành động</th><th>Đối tượng</th><th>IP</th></tr>
+                </thead>
+                <tbody id="logsBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

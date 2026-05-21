@@ -1,8 +1,8 @@
 # 📋 TIẾN TRÌNH DỰ ÁN - SMART HOME APP
 
-> **Cập nhật lần cuối:** 17/04/2026 — Session 7  
-> **Trạng thái:** ✅ Đã thêm LSTM + CNN-LSTM training pipeline + Flask API hỗ trợ chuyển đổi model  
-> **APK mới nhất:** `C:\Users\ADMIN\.gemini\antigravity\scratch\smart-home-app\android\app\build\outputs\apk\release\app-release.apk` (~32.12 MB)
+> **Cập nhật lần cuối:** 21/05/2026 — Session 16  
+> **Trạng thái:** ✅ Đã có domain API, Cloudflare Tunnel, APK local, auth nhiều nhà, audit log backend và admin-site tĩnh  
+> **APK mới nhất:** `C:\Users\ADMIN\.gemini\antigravity\scratch\smart-home-app\dist\smart-home-ai-release.apk` (~45.6 MB)
 
 ---
 
@@ -372,6 +372,106 @@ Flask API (tương lai) → ForecastProvider → AnalysisScreen
 | 6 | 02/04/2026 | Thêm folder train cho Google Colab, chọn UCI cho V1 24h forecast, thêm RandomForest + XGBoost pipeline |
 | 7 | 17/04/2026 | Thêm LSTM + CNN-LSTM training pipeline, lstm_predictor backend, Flask API model switch ?model=lstm, endpoint /model-compare |
 | 8 | 22/04/2026 | Cài Flutter SDK/Dart, tạo `flutter_app/` song song, port UI + logic HA/PLC/Forecast lần 1, analyze/test/build APK debug thành công |
+| 12 | 21/05/2026 | Khôi phục/dọn dự án, deploy website giới thiệu lên Cloudflare Pages, trỏ `smarthomeai.id.vn` |
+| 13 | 21/05/2026 | Cấu hình Cloudflare Tunnel cho API `api.smarthomeai.id.vn`, thêm runner auto-start trên laptop |
+| 14 | 21/05/2026 | Thêm API token protection, build APK local, kiểm tra API domain thật |
+| 15 | 21/05/2026 | Thêm nền móng auth nhiều nhà: `system_admin`, `owner`, `member`, `viewer`, SQLite backend |
+| 16 | 21/05/2026 | Thêm audit log backend và tạo `admin-site/` tĩnh cho system admin xem nhà, users, logs |
+
+---
+
+## 0.5. DOMAIN, API, APK, AUTH VA ADMIN SITE (21/05/2026 - Session 12-16)
+
+### Domain va deploy
+- [x] GitHub repo: `https://github.com/locstht-hub/smart-home-ai`
+- [x] Website gioi thieu: `https://smarthomeai.id.vn`
+- [x] Cloudflare Pages preview: `https://smart-home-ai.pages.dev`
+- [x] API domain: `https://api.smarthomeai.id.vn`
+- [x] API domain di qua Cloudflare Tunnel `smart-home-api` ve laptop local port `5001`
+
+### API security
+- [x] `/health` public de kiem tra server song
+- [x] Tat ca `/api/...` can token neu server co cau hinh `security.apiToken`
+- [x] App gui token qua `Authorization: Bearer <token>` va `X-API-Token`
+- [x] Endpoint auth check: `GET /api/auth/check`
+- [x] Da test domain that:
+  - Khong token -> `401`
+  - Token dung -> `ok=true`
+
+### APK local
+- [x] Build APK local bang Android Studio/JDK/Gradle tren may
+- [x] Do loi path Windows >260 ky tu, build trong duong dan ngan `C:\tmp\sha`
+- [x] APK da copy ve:
+  ```text
+  dist/smart-home-ai-release.apk
+  ```
+- [x] APK dung de cai test tren dien thoai Android
+
+### Multi-home auth backend
+- [x] Them SQLite auth store: `backend/smart_home_server/auth_store.py`
+- [x] Database runtime: `backend/smart_home_server/smart_home_auth.db` (da ignore Git)
+- [x] Role he thong:
+  ```text
+  system_admin -> web admin quan ly cac nha/tai khoan cha
+  owner        -> tai khoan cha trong app, quan ly thanh vien trong nha
+  member       -> tai khoan con
+  viewer       -> chi xem
+  ```
+- [x] Tai khoan mau:
+  ```text
+  admin  / admin123  -> system_admin
+  owner  / owner123  -> owner
+  member / member123 -> member
+  ```
+- [x] Endpoint da co:
+  ```text
+  POST /api/auth/login
+  GET  /api/me
+  GET  /api/admin/homes
+  GET  /api/admin/users
+  ```
+- [x] Quyen da test:
+  - owner login duoc va xem `/api/me`
+  - owner bi chan `403` khi vao `/api/admin/homes`
+  - system_admin xem duoc homes/users
+
+### Audit log backend
+- [x] Them bang `audit_logs`
+- [x] Endpoint xem log: `GET /api/admin/audit-logs?limit=100`
+- [x] Chi `system_admin` doc duoc audit log toan he thong
+- [x] Dang ghi log cac hanh dong:
+  ```text
+  auth.login_success
+  auth.login_failed
+  admin.view_homes
+  admin.view_users
+  admin.view_audit_logs
+  device.turn_on
+  device.turn_off
+  scene.apply
+  assistant.chat
+  ```
+
+### Admin site tinh
+- [x] Tao `admin-site/`
+- [x] Web tinh goi API domain that `https://api.smarthomeai.id.vn`
+- [x] Man hinh dang nhap system admin
+- [x] Dashboard tong quan: so nha, so tai khoan, so owner, so log
+- [x] Bang danh sach nha
+- [x] Bang danh sach tai khoan
+- [x] Bang audit log
+- [x] Da test JS syntax va API:
+  ```text
+  login=True homes=1 users=3 logs=5
+  ```
+
+### Viec tiep theo
+- [ ] Deploy `admin-site/` len Cloudflare Pages
+- [ ] Tro domain `admin.smarthomeai.id.vn`
+- [ ] Them API tao owner/home tu web admin
+- [ ] Them API khoa/mo user va nha
+- [ ] Them API reset mat khau owner
+- [ ] Lam man quan ly thanh vien trong app cho owner
 ## 0. CAP NHAT FLUTTER SONG SONG (22/04/2026 - Session 8)
 
 ### Trang thai moi
