@@ -9,6 +9,7 @@ from typing import Any
 
 from flask import Flask, jsonify, request
 from assistant_intents import parse_intent
+from auth_store import AuthStore
 
 try:
     import snap7
@@ -24,6 +25,7 @@ except Exception:  # pragma: no cover
 BASE_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = BASE_DIR / "config.json"
 STATE_PATH = BASE_DIR / "device_state.json"
+AUTH_DB_PATH = BASE_DIR / "smart_home_auth.db"
 
 
 def load_config() -> dict[str, Any]:
@@ -63,9 +65,12 @@ class StateStore:
 
     def load(self) -> dict[str, bool]:
         if STATE_PATH.exists():
-            with STATE_PATH.open("r", encoding="utf-8") as f:
-                raw = json.load(f)
-            return {str(k): bool(v) for k, v in raw.items()}
+            try:
+                with STATE_PATH.open("r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                return {str(k): bool(v) for k, v in raw.items()}
+            except json.JSONDecodeError:
+                pass
 
         initial = {str(item["id"]): False for item in self.devices}
         self.save(initial)
@@ -184,6 +189,10 @@ def create_app() -> Flask:
     mode = str(config.get("mode", "mock")).strip().lower()
     state_store = StateStore(devices)
     s7 = S7Client(config)
+    configured_db_path = Path(str(config.get("database", {}).get("path", AUTH_DB_PATH)))
+    if not configured_db_path.is_absolute():
+        configured_db_path = BASE_DIR / configured_db_path
+    auth_store = AuthStore(configured_db_path)
 
     app = Flask(__name__)
     api_token = str(os.environ.get("SMART_HOME_API_TOKEN") or config.get("security", {}).get("apiToken", "")).strip()
@@ -201,18 +210,32 @@ def create_app() -> Flask:
             return auth_header[7:].strip()
         return request.headers.get("X-API-Token", "").strip()
 
+    def get_current_user() -> dict[str, Any] | None:
+        token = extract_token()
+        if api_token and compare_digest(token, api_token):
+            return {"id": "api-token", "role": "system_admin", "name": "API Token"}
+        return auth_store.get_user_by_session(token)
+
     @app.before_request
     def require_api_token() -> Any:
-        if request.method == "OPTIONS" or not request.path.startswith("/api/"):
+        if request.method == "OPTIONS" or not request.path.startswith("/api/") or request.path == "/api/auth/login":
             return None
 
-        if not api_token:
+        if not api_token and get_current_user() is None:
             return None
 
-        if not compare_digest(extract_token(), api_token):
+        if get_current_user() is None:
             return jsonify({"ok": False, "error": "Unauthorized"}), 401
 
         return None
+
+    def require_system_admin() -> dict[str, Any] | tuple[Any, int]:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        if current_user.get("role") != "system_admin":
+            return jsonify({"ok": False, "error": "Forbidden"}), 403
+        return current_user
 
     def read_states() -> dict[str, bool]:
         if mode == "plc-real":
@@ -232,7 +255,50 @@ def create_app() -> Flask:
 
     @app.get("/api/auth/check")
     def auth_check() -> Any:
-        return jsonify({"ok": True, "service": "smart-home-server", "auth": "ok"})
+        current_user = get_current_user()
+        return jsonify({"ok": True, "service": "smart-home-server", "auth": "ok", "user": current_user})
+
+    @app.post("/api/auth/login")
+    def login() -> Any:
+        payload = request.get_json(silent=True) or {}
+        username = str(payload.get("username") or payload.get("phone") or "").strip()
+        password = str(payload.get("password") or "")
+
+        if not username or not password:
+            return jsonify({"ok": False, "error": "Username/phone and password are required"}), 400
+
+        session = auth_store.login(username, password)
+        if not session:
+            return jsonify({"ok": False, "error": "Sai tài khoản hoặc mật khẩu"}), 401
+
+        return jsonify({"ok": True, **session})
+
+    @app.get("/api/me")
+    def me() -> Any:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        if current_user["id"] == "api-token":
+            return jsonify({"ok": True, "user": current_user, "homes": []})
+
+        profile = auth_store.get_me(str(current_user["id"]))
+        if not profile:
+            return jsonify({"ok": False, "error": "User not found"}), 404
+        return jsonify({"ok": True, **profile})
+
+    @app.get("/api/admin/homes")
+    def admin_homes() -> Any:
+        admin = require_system_admin()
+        if not isinstance(admin, dict):
+            return admin
+        return jsonify({"ok": True, "homes": auth_store.list_admin_homes()})
+
+    @app.get("/api/admin/users")
+    def admin_users() -> Any:
+        admin = require_system_admin()
+        if not isinstance(admin, dict):
+            return admin
+        return jsonify({"ok": True, "users": auth_store.list_admin_users()})
 
     @app.get("/api/power/current")
     def power_current() -> Any:

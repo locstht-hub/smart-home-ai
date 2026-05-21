@@ -56,6 +56,9 @@ venv/
 backend/**/config.json
 backend/**/power_config.json
 backend/**/device_state.json
+backend/**/*.db
+backend/**/*.sqlite
+backend/**/*.sqlite3
 
 # Local agent/tool scratch
 .codex-temp/

@@ -8,6 +8,9 @@
   "security": {
     "apiToken": "change-this-long-random-token"
   },
+  "database": {
+    "path": "smart_home_auth.db"
+  },
   "plc": {
     "host": "192.168.0.1",
     "rack": 0,

@@ -57,6 +57,55 @@ POST /api/scenes/<scene>
 POST /api/assistant/chat
 ```
 
+## Tai khoan va phan quyen
+
+Backend da co nen mong SQLite cho 2 tang quan tri:
+
+```text
+system_admin -> dung cho web admin quan ly cac nha/tai khoan cha
+owner        -> tai khoan cha trong tung nha, quan ly thanh vien bang app
+member       -> tai khoan con, dieu khien theo quyen duoc cap
+viewer       -> chi xem trang thai
+```
+
+File database mac dinh:
+
+```text
+backend/smart_home_server/smart_home_auth.db
+```
+
+Lan dau chay server se tu tao tai khoan mau:
+
+```text
+system admin: admin / admin123
+owner mau:    owner / owner123
+member mau:   member / member123
+```
+
+Endpoint auth:
+
+```text
+POST /api/auth/login
+GET  /api/me
+GET  /api/admin/homes
+GET  /api/admin/users
+```
+
+Vi du login:
+
+```json
+{
+  "username": "owner",
+  "password": "owner123"
+}
+```
+
+Sau khi login, app/web dung token tra ve trong header:
+
+```text
+Authorization: Bearer <session-token>
+```
+
 ## Bao mat API bang token
 
 `/health` de public de kiem tra server con song. Tat ca endpoint `/api/...` se yeu cau token neu cau hinh `security.apiToken` trong `config.json` hoac bien moi truong `SMART_HOME_API_TOKEN`.
