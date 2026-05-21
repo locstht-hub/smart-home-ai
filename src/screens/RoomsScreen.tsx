@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useData } from '../contexts/DataContext';
@@ -123,8 +123,8 @@ export default function RoomsScreen({ route }: any) {
 
                 {isServerControlled && (
                     <View style={styles.haHintCard}>
-                        <Text style={styles.haHintTitle}>Thiet bi dang dong bo tu server rieng</Text>
-                        <Text style={styles.haHintText}>Muon them hoac xoa thiet bi, hay cap nhat tren server/PLC roi de app dong bo lai.</Text>
+                        <Text style={styles.haHintTitle}>Thiết bị đang đồng bộ từ server riêng</Text>
+                        <Text style={styles.haHintText}>Muốn thêm hoặc xóa thiết bị, hãy cập nhật trên server/PLC rồi để app đồng bộ lại.</Text>
                     </View>
                 )}
 
@@ -196,7 +196,7 @@ export default function RoomsScreen({ route }: any) {
             {user?.role === 'admin' && (
                 <View style={styles.adminHintCard}>
                     <Text style={styles.adminHintTitle}>Quản trị viên</Text>
-                    <Text style={styles.adminHintText}>He thong dang dung server rieng lam trung tam. Quan ly user van nam o tab Quan ly.</Text>
+                    <Text style={styles.adminHintText}>Hệ thống đang dùng server riêng làm trung tâm. Quản lý user vẫn nằm ở tab Quản lý.</Text>
                 </View>
             )}
 

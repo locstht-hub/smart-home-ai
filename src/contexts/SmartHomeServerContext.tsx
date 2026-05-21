@@ -63,7 +63,7 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
         const effectiveClient = new SmartHomeApiClient(effectiveConfig);
 
         if (!effectiveConfig.apiBaseUrl.trim()) {
-            const message = 'Chua cau hinh Server API';
+            const message = 'Chưa cấu hình Server API';
             setStatus('error');
             setError(message);
             return { success: false, message };
@@ -74,9 +74,9 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
         try {
             await effectiveClient.health();
             setStatus('connected');
-            return { success: true, message: 'Ket noi Server API thanh cong' };
+            return { success: true, message: 'Kết nối Server API thành công' };
         } catch (connectionError) {
-            const message = connectionError instanceof Error ? connectionError.message : 'Khong the ket noi Server API';
+            const message = connectionError instanceof Error ? connectionError.message : 'Không thể kết nối Server API';
             setStatus('error');
             setError(message);
             return { success: false, message };

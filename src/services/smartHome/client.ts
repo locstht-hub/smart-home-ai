@@ -60,7 +60,7 @@ export class SmartHomeApiClient {
     private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
         const baseUrl = this.config.apiBaseUrl.trim().replace(/\/+$/, '');
         if (!baseUrl) {
-            throw new Error('Server API chua duoc cau hinh');
+            throw new Error('Server API chưa được cấu hình');
         }
 
         const controller = new AbortController();
@@ -93,4 +93,3 @@ export class SmartHomeApiClient {
         }
     }
 }
-

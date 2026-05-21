@@ -70,7 +70,7 @@ export const ForecastProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
             applyMockFallback();
         } catch (providerError) {
-            const message = providerError instanceof Error ? providerError.message : 'Khong the doc forecast provider';
+            const message = providerError instanceof Error ? providerError.message : 'Không thể đọc forecast provider';
             setError(message);
             applyMockFallback();
         } finally {

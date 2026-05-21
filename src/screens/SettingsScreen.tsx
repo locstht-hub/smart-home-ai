@@ -33,22 +33,22 @@ export default function SettingsScreen() {
     }, [config.apiBaseUrl, config.apiToken, config.forecastApiUrl, config.forecastModel]);
 
     const connectionLabel = status === 'connected'
-        ? 'Da ket noi'
+        ? 'Đã kết nối'
         : status === 'connecting'
-            ? 'Dang kiem tra'
-            : config.apiBaseUrl ? 'Chua ket noi' : 'Chua cau hinh';
+            ? 'Đang kiểm tra'
+            : config.apiBaseUrl ? 'Chưa kết nối' : 'Chưa cấu hình';
 
     const handleChangePassword = async () => {
         if (!currentPw || !newPw || !confirmPw) {
-            Alert.alert('Loi', 'Vui long nhap day du thong tin');
+            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
             return;
         }
         if (newPw !== confirmPw) {
-            Alert.alert('Loi', 'Mat khau moi khong khop');
+            Alert.alert('Lỗi', 'Mật khẩu mới không khớp');
             return;
         }
         const result = await changePassword(currentPw, newPw);
-        Alert.alert(result.success ? 'Thanh cong' : 'Loi', result.message);
+        Alert.alert(result.success ? 'Thành công' : 'Lỗi', result.message);
         if (result.success) {
             setShowPasswordModal(false);
             setCurrentPw('');
@@ -58,9 +58,9 @@ export default function SettingsScreen() {
     };
 
     const handleLogout = () => {
-        Alert.alert('Dang xuat', 'Ban co chac muon dang xuat?', [
-            { text: 'Huy', style: 'cancel' },
-            { text: 'Dang xuat', style: 'destructive', onPress: logout },
+        Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
+            { text: 'Hủy', style: 'cancel' },
+            { text: 'Đăng xuất', style: 'destructive', onPress: logout },
         ]);
     };
 
@@ -76,8 +76,8 @@ export default function SettingsScreen() {
         await saveConfig(nextConfig);
         const result = await testConnection(nextConfig);
         Alert.alert(
-            result.success ? 'Ket noi thanh cong' : 'Khong the ket noi',
-            result.success ? 'App da luu cau hinh Server API rieng.' : result.message,
+            result.success ? 'Kết nối thành công' : 'Không thể kết nối',
+            result.success ? 'App đã lưu cấu hình Server API riêng.' : result.message,
         );
         if (result.success) {
             setShowServerModal(false);
@@ -87,18 +87,18 @@ export default function SettingsScreen() {
     const handleConnectPlc = () => {
         if (!plcAddress.trim()) {
             setPlcConnected(false);
-            Alert.alert('Thong bao', 'Chua nhap dia chi PLC.');
+            Alert.alert('Thông báo', 'Chưa nhập địa chỉ PLC.');
             return;
         }
         setPlcConnected(true);
         setShowPlcModal(false);
-        Alert.alert('Luu cau hinh', `Da luu PLC ${plcAddress.trim()}:${plcPort || '102'}`);
+        Alert.alert('Lưu cấu hình', `Đã lưu PLC ${plcAddress.trim()}:${plcPort || '102'}`);
     };
 
     const handleShowPlcMapping = () => {
         Alert.alert(
             'Mapping PLC -> Server -> App',
-            `${buildPlcMappingSummary()}\n\nHuong dan nhanh:\n1) PLC luu trang thai vao tag status.\n2) Server rieng doc/ghi PLC qua Ethernet.\n3) App goi REST API cua server.\n4) Lenh dieu khien duoc server ghi vao tag command de PLC xu ly.`,
+            `${buildPlcMappingSummary()}\n\nHướng dẫn nhanh:\n1) PLC lưu trạng thái vào tag status.\n2) Server riêng đọc/ghi PLC qua Ethernet.\n3) App gọi REST API của server.\n4) Lệnh điều khiển được server ghi vào tag command để PLC xử lý.`,
         );
     };
 
@@ -115,44 +115,44 @@ export default function SettingsScreen() {
                 </View>
             </LinearGradient>
 
-            <Text style={styles.sectionLabel}>TAI KHOAN</Text>
+            <Text style={styles.sectionLabel}>TÀI KHOẢN</Text>
             <View style={styles.menuCard}>
                 <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    Alert.alert('Thong tin ca nhan', `Ho ten: ${user?.name}\nSDT: ${user?.phone}\nVai tro: ${user?.role === 'admin' ? 'Quan tri vien' : 'Nguoi dung'}\nTrang thai: Dang hoat dong`);
+                    Alert.alert('Thông tin cá nhân', `Họ tên: ${user?.name}\nSĐT: ${user?.phone}\nVai trò: ${user?.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}\nTrạng thái: Đang hoạt động`);
                 }}>
                     <View style={styles.menuLeft}>
                         <View style={styles.menuIcon}><Text>U</Text></View>
-                        <Text style={styles.menuText}>Thong tin ca nhan</Text>
+                        <Text style={styles.menuText}>Thông tin cá nhân</Text>
                     </View>
                     <Text style={styles.menuArrow}>›</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.menuItem} onPress={() => {
                     setNotifEnabled(!notifEnabled);
-                    Alert.alert(notifEnabled ? 'Da tat thong bao' : 'Da bat thong bao');
+                    Alert.alert(notifEnabled ? 'Đã tắt thông báo' : 'Đã bật thông báo');
                 }}>
                     <View style={styles.menuLeft}>
                         <View style={styles.menuIcon}><Text>!</Text></View>
-                        <Text style={styles.menuText}>Thong bao</Text>
+                        <Text style={styles.menuText}>Thông báo</Text>
                     </View>
                     <View style={[styles.toggle, notifEnabled && styles.toggleActive]}><View style={[styles.toggleCircle, notifEnabled && styles.toggleCircleActive]} /></View>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => setShowPasswordModal(true)}>
                     <View style={styles.menuLeft}>
                         <View style={styles.menuIcon}><Text>*</Text></View>
-                        <Text style={styles.menuText}>Bao mat</Text>
+                        <Text style={styles.menuText}>Bảo mật</Text>
                     </View>
                     <Text style={styles.menuArrow}>›</Text>
                 </TouchableOpacity>
             </View>
 
-            <Text style={styles.sectionLabel}>KET NOI</Text>
+            <Text style={styles.sectionLabel}>KẾT NỐI</Text>
             <View style={styles.menuCard}>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setShowServerModal(true)}>
                     <View style={styles.menuLeft}>
                         <View style={styles.menuIcon}><Text>API</Text></View>
                         <View>
-                            <Text style={styles.menuText}>Server API rieng</Text>
-                            <Text style={styles.menuSubText}>{apiBaseUrl || 'Chua cau hinh API URL'}</Text>
+                            <Text style={styles.menuText}>Server API riêng</Text>
+                            <Text style={styles.menuSubText}>{apiBaseUrl || 'Chưa cấu hình API URL'}</Text>
                         </View>
                     </View>
                     <Text style={styles.menuValue}>{connectionLabel}</Text>
@@ -162,34 +162,34 @@ export default function SettingsScreen() {
                         <View style={styles.menuIcon}><Text>PLC</Text></View>
                         <View>
                             <Text style={styles.menuText}>PLC S7-1200</Text>
-                            <Text style={styles.menuSubText}>Laptop/server doc PLC qua Ethernet</Text>
+                            <Text style={styles.menuSubText}>Laptop/server đọc PLC qua Ethernet</Text>
                         </View>
                     </View>
-                    <Text style={styles.menuValue}>{plcConnected ? `${plcAddress}:${plcPort}` : 'Chua ket noi'}</Text>
+                    <Text style={styles.menuValue}>{plcConnected ? `${plcAddress}:${plcPort}` : 'Chưa kết nối'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.menuItem} onPress={handleShowPlcMapping}>
                     <View style={styles.menuLeft}>
                         <View style={styles.menuIcon}><Text>MAP</Text></View>
                         <View>
-                            <Text style={styles.menuText}>Bang mapping PLC</Text>
-                            <Text style={styles.menuSubText}>PLC tag {'->'} API device {'->'} ten tren app</Text>
+                            <Text style={styles.menuText}>Bảng mapping PLC</Text>
+                            <Text style={styles.menuSubText}>PLC tag {'->'} API device {'->'} tên trên app</Text>
                         </View>
                     </View>
                     <Text style={styles.menuArrow}>›</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => {
                     setCloudSyncEnabled(!cloudSyncEnabled);
-                    Alert.alert(cloudSyncEnabled ? 'Da tat dong bo Cloud' : 'Da bat dong bo Cloud');
+                    Alert.alert(cloudSyncEnabled ? 'Đã tắt đồng bộ Cloud' : 'Đã bật đồng bộ Cloud');
                 }}>
                     <View style={styles.menuLeft}>
                         <View style={styles.menuIcon}><Text>CL</Text></View>
-                        <Text style={styles.menuText}>Dong bo Cloud</Text>
+                        <Text style={styles.menuText}>Đồng bộ Cloud</Text>
                     </View>
                     <View style={[styles.toggle, cloudSyncEnabled && styles.toggleActive]}><View style={[styles.toggleCircle, cloudSyncEnabled && styles.toggleCircleActive]} /></View>
                 </TouchableOpacity>
             </View>
 
-            <Text style={styles.sectionLabel}>TRANG THAI HE THONG</Text>
+            <Text style={styles.sectionLabel}>TRẠNG THÁI HỆ THỐNG</Text>
             <View style={styles.statusGrid}>
                 <View style={[styles.statusCard, { backgroundColor: status === 'connected' ? Colors.green[50] : Colors.amber[50] }]}>
                     <View style={[styles.statusDot, { backgroundColor: status === 'connected' ? Colors.green[500] : Colors.amber[500] }]} />
@@ -199,41 +199,41 @@ export default function SettingsScreen() {
                 <View style={[styles.statusCard, { backgroundColor: Colors.blue[50] }]}>
                     <View style={[styles.statusDot, { backgroundColor: Colors.blue[500] }]} />
                     <Text style={[styles.statusLabel, { color: Colors.blue[700] }]}>Cloud Sync</Text>
-                    <Text style={[styles.statusSub, { color: Colors.blue[600] }]}>{cloudSyncEnabled ? 'Bat' : 'Tat'}</Text>
+                    <Text style={[styles.statusSub, { color: Colors.blue[600] }]}>{cloudSyncEnabled ? 'Bật' : 'Tắt'}</Text>
                 </View>
                 <View style={[styles.statusCard, { backgroundColor: Colors.purple[50] }]}>
                     <View style={[styles.statusDot, { backgroundColor: Colors.purple[500] }]} />
                     <Text style={[styles.statusLabel, { color: Colors.purple[600] }]}>AI Model</Text>
-                    <Text style={[styles.statusSub, { color: Colors.purple[600] }]}>{config.forecastApiUrl ? config.forecastModel?.toUpperCase() || 'XGBOOST' : 'Mo phong'}</Text>
+                    <Text style={[styles.statusSub, { color: Colors.purple[600] }]}>{config.forecastApiUrl ? config.forecastModel?.toUpperCase() || 'XGBOOST' : 'Mô phỏng'}</Text>
                 </View>
                 <View style={[styles.statusCard, { backgroundColor: Colors.amber[50] }]}>
                     <View style={[styles.statusDot, { backgroundColor: Colors.amber[500] }]} />
                     <Text style={[styles.statusLabel, { color: Colors.amber[700] }]}>PLC</Text>
-                    <Text style={[styles.statusSub, { color: Colors.amber[600] }]}>{plcConnected ? 'Da cau hinh' : 'Chua ket noi'}</Text>
+                    <Text style={[styles.statusSub, { color: Colors.amber[600] }]}>{plcConnected ? 'Đã cấu hình' : 'Chưa kết nối'}</Text>
                 </View>
             </View>
 
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                <Text style={styles.logoutText}>Dang xuat</Text>
+                <Text style={styles.logoutText}>Đăng xuất</Text>
             </TouchableOpacity>
 
             <Text style={styles.version}>Smart Home Control v3.0.0</Text>
-            <Text style={styles.copyright}>Server rieng + PLC S7-1200 + MFM384</Text>
+            <Text style={styles.copyright}>Server riêng + PLC S7-1200 + MFM384</Text>
             <View style={{ height: 30 }} />
 
             <Modal visible={showPasswordModal} transparent animationType="slide">
                 <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Doi mat khau</Text>
-                        <TextInput style={styles.modalInput} placeholder="Mat khau hien tai" value={currentPw} onChangeText={setCurrentPw} secureTextEntry placeholderTextColor={Colors.slate[400]} />
-                        <TextInput style={styles.modalInput} placeholder="Mat khau moi" value={newPw} onChangeText={setNewPw} secureTextEntry placeholderTextColor={Colors.slate[400]} />
-                        <TextInput style={styles.modalInput} placeholder="Xac nhan mat khau moi" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry placeholderTextColor={Colors.slate[400]} />
+                        <Text style={styles.modalTitle}>Đổi mật khẩu</Text>
+                        <TextInput style={styles.modalInput} placeholder="Mật khẩu hiện tại" value={currentPw} onChangeText={setCurrentPw} secureTextEntry placeholderTextColor={Colors.slate[400]} />
+                        <TextInput style={styles.modalInput} placeholder="Mật khẩu mới" value={newPw} onChangeText={setNewPw} secureTextEntry placeholderTextColor={Colors.slate[400]} />
+                        <TextInput style={styles.modalInput} placeholder="Xác nhận mật khẩu mới" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry placeholderTextColor={Colors.slate[400]} />
                         <View style={styles.modalBtnRow}>
                             <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowPasswordModal(false)}>
-                                <Text style={styles.modalCancelText}>Huy</Text>
+                                <Text style={styles.modalCancelText}>Hủy</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.modalSaveBtn} onPress={() => { void handleChangePassword(); }}>
-                                <Text style={styles.modalSaveText}>Luu</Text>
+                                <Text style={styles.modalSaveText}>Lưu</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -243,16 +243,16 @@ export default function SettingsScreen() {
             <Modal visible={showPlcModal} transparent animationType="slide">
                 <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Cau hinh PLC</Text>
-                        <Text style={styles.modalHint}>PLC S7-1200 CPU 1215C. Server doc tag MD qua snap7, app khong doc PLC truc tiep.</Text>
+                        <Text style={styles.modalTitle}>Cấu hình PLC</Text>
+                        <Text style={styles.modalHint}>PLC S7-1200 CPU 1215C. Server đọc tag MD qua snap7, app không đọc PLC trực tiếp.</Text>
                         <TextInput style={styles.modalInput} placeholder="PLC IP" value={plcAddress} onChangeText={setPlcAddress} keyboardType="numbers-and-punctuation" autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
                         <TextInput style={styles.modalInput} placeholder="S7 port" value={plcPort} onChangeText={setPlcPort} keyboardType="number-pad" autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
                         <View style={styles.modalBtnRow}>
                             <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowPlcModal(false)}>
-                                <Text style={styles.modalCancelText}>Huy</Text>
+                                <Text style={styles.modalCancelText}>Hủy</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.modalSaveBtn} onPress={handleConnectPlc}>
-                                <Text style={styles.modalSaveText}>Luu</Text>
+                                <Text style={styles.modalSaveText}>Lưu</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -262,12 +262,12 @@ export default function SettingsScreen() {
             <Modal visible={showServerModal} transparent animationType="slide">
                 <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Cau hinh Server API</Text>
-                        <Text style={styles.modalHint}>Khuyen nghi: https://api.smarthomeai.id.vn. Emulator local: http://10.0.2.2:5001. Dien thoai that local: http://IP-LAPTOP:5001.</Text>
+                        <Text style={styles.modalTitle}>Cấu hình Server API</Text>
+                        <Text style={styles.modalHint}>Khuyến nghị: https://api.smarthomeai.id.vn. Emulator local: http://10.0.2.2:5001. Điện thoại thật local: http://IP-LAPTOP:5001.</Text>
                         <TextInput style={styles.modalInput} placeholder="Server API URL" value={apiBaseUrl} onChangeText={setApiBaseUrl} autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
-                        <TextInput style={styles.modalInput} placeholder="API token (neu co)" value={apiToken} onChangeText={setApiToken} autoCorrect={false} autoCapitalize="none" secureTextEntry placeholderTextColor={Colors.slate[400]} />
+                        <TextInput style={styles.modalInput} placeholder="API token (nếu có)" value={apiToken} onChangeText={setApiToken} autoCorrect={false} autoCapitalize="none" secureTextEntry placeholderTextColor={Colors.slate[400]} />
                         <TextInput style={styles.modalInput} placeholder="Forecast API URL" value={forecastApiUrl} onChangeText={setForecastApiUrl} autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
-                        <Text style={styles.modalLabel}>Mo hinh du bao AI</Text>
+                        <Text style={styles.modalLabel}>Mô hình dự báo AI</Text>
                         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
                             <TouchableOpacity style={[styles.modelOption, forecastModel === 'xgboost' && styles.modelOptionActive]} onPress={() => setForecastModel('xgboost')}>
                                 <Text style={[styles.modelOptionText, forecastModel === 'xgboost' && styles.modelOptionTextActive]}>XGBoost</Text>
@@ -276,13 +276,13 @@ export default function SettingsScreen() {
                                 <Text style={[styles.modelOptionText, forecastModel === 'lstm' && styles.modelOptionTextActive]}>LSTM</Text>
                             </TouchableOpacity>
                         </View>
-                        <Text style={styles.statusHint}>Trang thai: {connectionLabel}{error ? `\n${error}` : ''}</Text>
+                        <Text style={styles.statusHint}>Trạng thái: {connectionLabel}{error ? `\n${error}` : ''}</Text>
                         <View style={styles.modalBtnRow}>
                             <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowServerModal(false)}>
-                                <Text style={styles.modalCancelText}>Huy</Text>
+                                <Text style={styles.modalCancelText}>Hủy</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.modalSaveBtn} onPress={() => { void handleSaveServer(); }}>
-                                <Text style={styles.modalSaveText}>Luu & kiem tra</Text>
+                                <Text style={styles.modalSaveText}>Lưu & kiểm tra</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

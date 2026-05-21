@@ -20,10 +20,10 @@ import { Colors } from '../constants/colors';
 const APP_AVATAR = require('../../assets/icon.png');
 
 const QUICK_REPLIES = [
-    'Bat den phong khach',
-    'Tat tat ca thiet bi',
-    'Muc tieu thu dien hom nay',
-    'Bat che do ngu',
+    'Bật đèn phòng khách',
+    'Tắt tất cả thiết bị',
+    'Mức tiêu thụ điện hôm nay',
+    'Bật chế độ ngủ',
 ];
 
 export default function ChatScreen() {
@@ -35,7 +35,7 @@ export default function ChatScreen() {
     const initialMessages = useMemo<IMessage[]>(() => [
         {
             _id: 'welcome-1',
-            text: `Xin chao ${user?.name || 'ban'}! Minh la tro ly Smart Home. Ban can ho tro dieu khien gi hom nay?`,
+            text: `Xin chào ${user?.name || 'bạn'}! Mình là trợ lý Smart Home. Bạn cần hỗ trợ điều khiển gì hôm nay?`,
             createdAt: new Date(),
             user: {
                 _id: 'assistant',
@@ -84,7 +84,7 @@ export default function ChatScreen() {
         createdAt: new Date(),
         user: {
             _id: user?.id || 'guest',
-            name: user?.name || 'Ban',
+            name: user?.name || 'Bạn',
             avatar: APP_AVATAR,
         },
     }), [user?.id, user?.name]);
@@ -95,16 +95,16 @@ export default function ChatScreen() {
         }
 
         if (!isConfigured) {
-            pushBotReply(`Server API chua duoc cau hinh. Minh da ghi nhan "${userMessage}" va hien dang dung phan hoi du phong.`);
+            pushBotReply(`Server API chưa được cấu hình. Mình đã ghi nhận "${userMessage}" và hiện đang dùng phản hồi dự phòng.`);
             return;
         }
 
         try {
             const reply = await client.chat(userMessage);
-            pushBotReply(reply || `Minh da chuyen cau lenh "${userMessage}" toi server rieng.`);
+            pushBotReply(reply || `Mình đã chuyển câu lệnh "${userMessage}" tới server riêng.`);
         } catch (error) {
             console.error('Error processing Smart Home server chat:', error);
-            pushBotReply('Khong the goi Server API luc nay. Ban hay thu lai khi ket noi on dinh hon.');
+            pushBotReply('Không thể gọi Server API lúc này. Bạn hãy thử lại khi kết nối ổn định hơn.');
         }
     }, [client, isConfigured, pushBotReply]);
 
@@ -139,7 +139,7 @@ export default function ChatScreen() {
 
     useEffect(() => {
         const handleVoiceError = (error: { message?: string }) => {
-            const message = error?.message || 'Khong the nhan dien giong noi luc nay.';
+            const message = error?.message || 'Không thể nhận diện giọng nói lúc này.';
             setVoiceError(message);
             setIsVoiceStarting(false);
             pushBotReply(`Mic gap su co: ${message}`);
@@ -166,7 +166,7 @@ export default function ChatScreen() {
         setVoiceError(null);
 
         if (!isVoiceAvailable) {
-            pushBotReply('Thiet bi nay chua san sang cho speech-to-text. Ban can rebuild development build sau khi them native module va cap quyen microphone.');
+            pushBotReply('Thiết bị này chưa sẵn sàng cho speech-to-text. Bạn cần rebuild development build sau khi thêm native module và cấp quyền microphone.');
             return;
         }
 
@@ -182,15 +182,15 @@ export default function ChatScreen() {
                     const granted = await PermissionsAndroid.request(
                         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
                         {
-                            title: 'Cho phep microphone',
-                            message: 'Ung dung can microphone de nghe lenh giong noi va gui sang server rieng.',
-                            buttonPositive: 'Cho phep',
-                            buttonNegative: 'Tu choi',
+                            title: 'Cho phép microphone',
+                            message: 'Ứng dụng cần microphone để nghe lệnh giọng nói và gửi sang server riêng.',
+                            buttonPositive: 'Cho phép',
+                            buttonNegative: 'Từ chối',
                         },
                     );
 
                     if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-                        pushBotReply('Ban chua cap quyen microphone, nen minh chua the nghe lenh giong noi.');
+                        pushBotReply('Bạn chưa cấp quyền microphone, nên mình chưa thể nghe lệnh giọng nói.');
                         return;
                     }
                 }
@@ -202,23 +202,23 @@ export default function ChatScreen() {
             await startListening();
         } catch (error) {
             setIsVoiceStarting(false);
-            const message = error instanceof Error ? error.message : 'Khong the bat microphone luc nay.';
+            const message = error instanceof Error ? error.message : 'Không thể bật microphone lúc này.';
             setVoiceError(message);
-            pushBotReply(`Khong the bat mic: ${message}`);
+            pushBotReply(`Không thể bật mic: ${message}`);
         }
     }, [isListening, isVoiceAvailable, pushBotReply, resetTranscript, startListening, stopListening]);
 
     const voiceHint = useMemo(() => {
         if (!isVoiceAvailable) {
-            return 'Mic chua san sang tren development build hien tai.';
+            return 'Mic chưa sẵn sàng trên development build hiện tại.';
         }
         if (isListening) {
-            return transcript.trim() || 'Dang nghe... hay noi lenh cua ban';
+            return transcript.trim() || 'Đang nghe... hãy nói lệnh của bạn';
         }
         if (voiceError) {
             return voiceError;
         }
-        return 'Nhan mic, noi lenh, app se gui transcript sang Server API.';
+        return 'Nhấn mic, nói lệnh, app sẽ gửi transcript sang Server API.';
     }, [isListening, isVoiceAvailable, transcript, voiceError]);
 
     return (
@@ -231,8 +231,8 @@ export default function ChatScreen() {
                         <View style={styles.statusDot} />
                         <Text style={styles.headerSubtitle}>
                             {isConfigured
-                                ? (status === 'connected' ? 'Dang noi voi Server API' : 'Da cau hinh Server API')
-                                : 'Can cau hinh Server API de dieu khien thiet bi that'}
+                                ? (status === 'connected' ? 'Đang nối với Server API' : 'Đã cấu hình Server API')
+                                : 'Cần cấu hình Server API để điều khiển thiết bị thật'}
                         </Text>
                     </View>
                 </View>
@@ -254,7 +254,7 @@ export default function ChatScreen() {
             <View style={styles.voiceBanner}>
                 <View style={styles.voiceBannerTextWrap}>
                     <Text style={styles.voiceBannerTitle}>
-                        {isListening ? 'Dang nhan dien giong noi' : 'Lenh giong noi'}
+                        {isListening ? 'Đang nhận diện giọng nói' : 'Lệnh giọng nói'}
                     </Text>
                     <Text style={styles.voiceBannerSubtitle}>{voiceHint}</Text>
                 </View>
@@ -281,10 +281,10 @@ export default function ChatScreen() {
                 onSend={onSend}
                 user={{
                     _id: user?.id || 'guest',
-                    name: user?.name || 'Ban',
+                    name: user?.name || 'Bạn',
                     avatar: APP_AVATAR,
                 }}
-                placeholder="Nhap noi dung chat o day..."
+                placeholder="Nhập nội dung chat ở đây..."
                 alwaysShowSend
                 minInputToolbarHeight={108}
                 minComposerHeight={74}
@@ -357,7 +357,7 @@ export default function ChatScreen() {
                 renderSend={(props) => (
                     <Send {...props} containerStyle={styles.sendContainer}>
                         <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.sendPill}>
-                            <Text style={styles.sendText}>Gui</Text>
+                            <Text style={styles.sendText}>Gửi</Text>
                         </LinearGradient>
                     </Send>
                 )}

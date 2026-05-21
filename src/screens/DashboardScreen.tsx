@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,8 +6,8 @@ import { useData } from '../contexts/DataContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { PowerCurrentResponse } from '../types/smartHomeServer';
 import { Colors } from '../constants/colors';
-const POWER_REFRESH_MS = 30000;
 
+const POWER_REFRESH_MS = 30000;
 const DAY_NAMES = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
 
 export default function DashboardScreen({ navigation }: any) {
@@ -60,7 +60,6 @@ export default function DashboardScreen({ navigation }: any) {
 
     return (
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-            {/* Welcome */}
             <View style={styles.welcomeRow}>
                 <View>
                     <Text style={styles.welcomeLabel}>Xin chào, {user?.name}</Text>
@@ -72,7 +71,6 @@ export default function DashboardScreen({ navigation }: any) {
                 </TouchableOpacity>
             </View>
 
-            {/* Power Card */}
             <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.powerCard}>
                 <View style={styles.powerCardCircle1} />
                 <View style={styles.powerCardCircle2} />
@@ -92,7 +90,6 @@ export default function DashboardScreen({ navigation }: any) {
                 </View>
             </LinearGradient>
 
-            {/* Stats Grid */}
             <View style={styles.statsGrid}>
                 <View style={styles.statCard}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.blue[100] }]}>
@@ -117,7 +114,6 @@ export default function DashboardScreen({ navigation }: any) {
                 </View>
             </View>
 
-            {/* Quick Actions */}
             <Text style={styles.sectionTitle}>Thao tác nhanh</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActions}>
                 <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.red[200], backgroundColor: Colors.red[50] }]} onPress={() => { void turnAllOff(); }}>
@@ -141,7 +137,6 @@ export default function DashboardScreen({ navigation }: any) {
                 </TouchableOpacity>
             </ScrollView>
 
-            {/* Rooms */}
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Các phòng</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('RoomList')}>
@@ -166,7 +161,6 @@ export default function DashboardScreen({ navigation }: any) {
                 </TouchableOpacity>
             ))}
 
-            {/* Energy Tip */}
             <LinearGradient colors={[Colors.amber[50], Colors.orange[50]]} style={styles.tipCard}>
                 <Text style={{ fontSize: 20 }}>💡</Text>
                 <View style={{ flex: 1 }}>

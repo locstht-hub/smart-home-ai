@@ -170,16 +170,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }));
             }
 
-            addLog(currentDevice.isOn ? 'Tat thiet bi' : 'Bat thiet bi', currentDevice.name, getRoomName(roomId));
+            addLog(currentDevice.isOn ? 'Tắt thiết bị' : 'Bật thiết bị', currentDevice.name, getRoomName(roomId));
         } catch (error) {
             console.error('Error toggling device:', error);
-            addLog('Loi dieu khien thiet bi', currentDevice.name, getRoomName(roomId));
+            addLog('Lỗi điều khiển thiết bị', currentDevice.name, getRoomName(roomId));
         }
     }, [addLog, client, devices, getRoomName, isConfigured, isServerControlled, refresh, updateLocalHouse]);
 
     const addDevice = useCallback(async (roomId: string, device: Omit<Device, 'id' | 'ownerId'>) => {
         if (isServerControlled) {
-            addLog('Yeu cau them thiet bi tren server', device.name, getRoomName(roomId));
+            addLog('Yêu cầu thêm thiết bị trên server', device.name, getRoomName(roomId));
             return;
         }
 
@@ -195,7 +195,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             [roomId]: [...(house[roomId] || []), newDevice],
         }));
 
-        addLog('Them thiet bi moi', newDevice.name, getRoomName(roomId));
+        addLog('Thêm thiết bị mới', newDevice.name, getRoomName(roomId));
     }, [addLog, getRoomName, isServerControlled, updateLocalHouse]);
 
     const deleteDevice = useCallback(async (roomId: string, deviceId: string) => {
@@ -203,7 +203,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!currentDevice) return;
 
         if (isServerControlled && currentDevice.source === 'server') {
-            addLog('Yeu cau xoa thiet bi tren server', currentDevice.name, getRoomName(roomId));
+            addLog('Yêu cầu xóa thiết bị trên server', currentDevice.name, getRoomName(roomId));
             return;
         }
 
@@ -212,7 +212,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             [roomId]: house[roomId].filter(device => device.id !== deviceId),
         }));
 
-        addLog('Xoa thiet bi', currentDevice.name, getRoomName(roomId));
+        addLog('Xóa thiết bị', currentDevice.name, getRoomName(roomId));
     }, [addLog, devices, getRoomName, isServerControlled, updateLocalHouse]);
 
     const setAllDevicesState = useCallback(async (roomId: string | null, nextState: boolean): Promise<boolean> => {
@@ -249,17 +249,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const turnAllOff = useCallback(async () => {
         const success = await setAllDevicesState(null, false);
-        addLog(success ? 'Tat tat ca thiet bi' : 'Loi tat tat ca thiet bi');
+        addLog(success ? 'Tắt tất cả thiết bị' : 'Lỗi tắt tất cả thiết bị');
     }, [addLog, setAllDevicesState]);
 
     const turnAllOn = useCallback(async (roomId: string) => {
         const success = await setAllDevicesState(roomId, true);
-        addLog(success ? 'Bat tat ca thiet bi' : 'Loi bat tat ca thiet bi', undefined, getRoomName(roomId));
+        addLog(success ? 'Bật tất cả thiết bị' : 'Lỗi bật tất cả thiết bị', undefined, getRoomName(roomId));
     }, [addLog, getRoomName, setAllDevicesState]);
 
     const turnAllOffRoom = useCallback(async (roomId: string) => {
         const success = await setAllDevicesState(roomId, false);
-        addLog(success ? 'Tat tat ca thiet bi' : 'Loi tat tat ca thiet bi', undefined, getRoomName(roomId));
+        addLog(success ? 'Tắt tất cả thiết bị' : 'Lỗi tắt tất cả thiết bị', undefined, getRoomName(roomId));
     }, [addLog, getRoomName, setAllDevicesState]);
 
     const applyScene = useCallback(async (scene: 'morning' | 'work' | 'weekend' | 'sleep') => {
@@ -301,7 +301,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             weekend: 'Cuoi tuan',
             sleep: 'Che do ngu',
         };
-        addLog(`${success ? 'Kich hoat canh' : 'Loi kich hoat canh'}: ${sceneNames[scene]}`);
+        addLog(`${success ? 'Kích hoạt cảnh' : 'Lỗi kích hoạt cảnh'}: ${sceneNames[scene]}`);
     }, [addLog, client, isConfigured, isServerControlled, refresh, setAllDevicesState, updateLocalHouse]);
 
     const getTotalPower = useCallback(() => {

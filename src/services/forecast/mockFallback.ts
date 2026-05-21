@@ -14,7 +14,7 @@ export const mockAnomalies: AnomalyAlert[] = [
         roomName: 'Phòng ngủ',
         severity: 'warning',
         message: 'Phụ tải tăng hơn mức thông thường vào giờ cao điểm.',
-        detail: 'Day la du lieu demo khi server rieng chua tra du lieu du bao that.',
+        detail: 'Đây là dữ liệu demo khi server riêng chưa trả dữ liệu dự báo thật.',
         currentPower: 1120,
         normalPower: 900,
         detectedAt: new Date().toISOString(),
@@ -26,7 +26,7 @@ export const mockInsights: Insight[] = [
     {
         id: 'mock-insight-1',
         title: 'Chế độ demo đang hoạt động',
-        detail: 'App dang dung du lieu du bao du phong vi chua doc duoc Forecast API tren server rieng.',
+        detail: 'App đang dùng dữ liệu dự báo dự phòng vì chưa đọc được Forecast API trên server riêng.',
         value: 'Mock fallback',
         source: 'mock_fallback',
     },

@@ -182,7 +182,7 @@ export default function AnalysisScreen() {
 
         Alert.alert(
             'Bắt đầu Tái huấn luyện',
-            'He thong se tai du lieu 30 ngay gan nhat tu server rieng va chay luong Online Learning ngam o may chu bien (Edge Device). Vui long xac nhan?',
+            'Hệ thống sẽ tải dữ liệu 30 ngày gần nhất từ server riêng và chạy luồng Online Learning ngầm ở máy chủ biên (Edge Device). Vui lòng xác nhận?',
             [
                 { text: 'Hủy', style: 'cancel' },
                 {
@@ -213,7 +213,7 @@ export default function AnalysisScreen() {
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
             <Text style={styles.pageTitle}>Phân tích & Dự báo</Text>
             <Text style={styles.pageSubtitle}>
-                {isLoading ? 'Dang cap nhat tu server rieng...' : `Nguồn: ${modelInfo.name}`}
+                {isLoading ? 'Đang cập nhật từ server riêng...' : `Nguồn: ${modelInfo.name}`}
             </Text>
 
             {error && (
@@ -465,7 +465,7 @@ export default function AnalysisScreen() {
                                     </View>
 
                                     <Text style={styles.modalRecommendTitle}>Khuyến nghị xử lý:</Text>
-                                    <Text style={styles.modalRecommendItem}>1. Kiem tra lai trang thai thiet bi tren server/PLC.</Text>
+                                    <Text style={styles.modalRecommendItem}>1. Kiểm tra lại trạng thái thiết bị trên server/PLC.</Text>
                                     <Text style={styles.modalRecommendItem}>2. So sánh phụ tải hiện tại với mức nền của cùng khung giờ.</Text>
                                     <Text style={styles.modalRecommendItem}>3. Khi có model thật, giữ nguyên UI này và chỉ thay forecast provider.</Text>
 

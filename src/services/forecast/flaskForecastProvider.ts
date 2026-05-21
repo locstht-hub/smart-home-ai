@@ -81,7 +81,7 @@ export class FlaskForecastProvider implements ForecastProvider {
 
     private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
         if (!this.baseUrl) {
-            throw new Error('Forecast API chua duoc cau hinh');
+            throw new Error('Forecast API chưa được cấu hình');
         }
 
         const controller = new AbortController();
@@ -99,7 +99,7 @@ export class FlaskForecastProvider implements ForecastProvider {
 
             if (!response.ok) {
                 const body = await response.text();
-                throw new Error(body || `Forecast API tra ve ma ${response.status}`);
+                throw new Error(body || `Forecast API trả về mã ${response.status}`);
             }
 
             return response.json() as Promise<T>;
