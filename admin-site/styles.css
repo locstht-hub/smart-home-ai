@@ -225,6 +225,7 @@ h2 {
   justify-content: flex-end;
 }
 
+.version-pill,
 .api-status,
 .badge {
   display: inline-flex;
@@ -236,6 +237,11 @@ h2 {
   color: #344054;
   font-size: 12px;
   font-weight: 850;
+}
+
+.version-pill {
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .api-status.ok,
