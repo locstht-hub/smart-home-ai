@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import secrets
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -86,6 +87,26 @@ class AuthStore:
                     created_at TEXT NOT NULL,
                     expires_at TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id TEXT PRIMARY KEY,
+                    actor_user_id TEXT,
+                    actor_username TEXT,
+                    actor_role TEXT,
+                    action TEXT NOT NULL,
+                    target_type TEXT,
+                    target_id TEXT,
+                    target_name TEXT,
+                    home_id TEXT,
+                    ip_address TEXT,
+                    user_agent TEXT,
+                    metadata_json TEXT,
+                    created_at TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_user_id);
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_home ON audit_logs(home_id);
                 """
             )
             self.seed_defaults(conn)
@@ -257,3 +278,75 @@ class AuthStore:
         with self.connect() as conn:
             rows = conn.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()
             return [self.public_user(row) for row in rows]
+
+    def record_audit_log(
+        self,
+        *,
+        actor: dict[str, Any] | None,
+        action: str,
+        target_type: str | None = None,
+        target_id: str | None = None,
+        target_name: str | None = None,
+        home_id: str | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        actor = actor or {}
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO audit_logs (
+                    id, actor_user_id, actor_username, actor_role, action,
+                    target_type, target_id, target_name, home_id,
+                    ip_address, user_agent, metadata_json, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    f"audit-{secrets.token_hex(12)}",
+                    actor.get("id"),
+                    actor.get("username") or actor.get("name"),
+                    actor.get("role"),
+                    action,
+                    target_type,
+                    target_id,
+                    target_name,
+                    home_id,
+                    ip_address,
+                    user_agent,
+                    json.dumps(metadata or {}, ensure_ascii=False),
+                    utc_now(),
+                ),
+            )
+
+    def list_audit_logs(self, limit: int = 100) -> list[dict[str, Any]]:
+        safe_limit = min(max(limit, 1), 500)
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM audit_logs
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (safe_limit,),
+            ).fetchall()
+
+            return [
+                {
+                    "id": row["id"],
+                    "actorUserId": row["actor_user_id"],
+                    "actorUsername": row["actor_username"],
+                    "actorRole": row["actor_role"],
+                    "action": row["action"],
+                    "targetType": row["target_type"],
+                    "targetId": row["target_id"],
+                    "targetName": row["target_name"],
+                    "homeId": row["home_id"],
+                    "ipAddress": row["ip_address"],
+                    "userAgent": row["user_agent"],
+                    "metadata": json.loads(row["metadata_json"] or "{}"),
+                    "createdAt": row["created_at"],
+                }
+                for row in rows
+            ]

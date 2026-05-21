@@ -237,6 +237,31 @@ def create_app() -> Flask:
             return jsonify({"ok": False, "error": "Forbidden"}), 403
         return current_user
 
+    def audit(
+        action: str,
+        *,
+        actor: dict[str, Any] | None = None,
+        target_type: str | None = None,
+        target_id: str | None = None,
+        target_name: str | None = None,
+        home_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        try:
+            auth_store.record_audit_log(
+                actor=actor or get_current_user(),
+                action=action,
+                target_type=target_type,
+                target_id=target_id,
+                target_name=target_name,
+                home_id=home_id,
+                ip_address=request.headers.get("CF-Connecting-IP") or request.remote_addr,
+                user_agent=request.headers.get("User-Agent"),
+                metadata=metadata,
+            )
+        except Exception as exc:
+            app.logger.warning("Could not write audit log: %s", exc)
+
     def read_states() -> dict[str, bool]:
         if mode == "plc-real":
             return s7.read_device_states(devices)
@@ -269,8 +294,22 @@ def create_app() -> Flask:
 
         session = auth_store.login(username, password)
         if not session:
+            audit(
+                "auth.login_failed",
+                actor={"id": None, "username": username, "role": "anonymous"},
+                target_type="user",
+                target_name=username,
+                metadata={"reason": "invalid_credentials"},
+            )
             return jsonify({"ok": False, "error": "Sai tài khoản hoặc mật khẩu"}), 401
 
+        audit(
+            "auth.login_success",
+            actor=session["user"],
+            target_type="user",
+            target_id=session["user"]["id"],
+            target_name=session["user"]["username"],
+        )
         return jsonify({"ok": True, **session})
 
     @app.get("/api/me")
@@ -291,6 +330,7 @@ def create_app() -> Flask:
         admin = require_system_admin()
         if not isinstance(admin, dict):
             return admin
+        audit("admin.view_homes", actor=admin, target_type="homes")
         return jsonify({"ok": True, "homes": auth_store.list_admin_homes()})
 
     @app.get("/api/admin/users")
@@ -298,7 +338,23 @@ def create_app() -> Flask:
         admin = require_system_admin()
         if not isinstance(admin, dict):
             return admin
+        audit("admin.view_users", actor=admin, target_type="users")
         return jsonify({"ok": True, "users": auth_store.list_admin_users()})
+
+    @app.get("/api/admin/audit-logs")
+    def admin_audit_logs() -> Any:
+        admin = require_system_admin()
+        if not isinstance(admin, dict):
+            return admin
+
+        limit = request.args.get("limit", "100")
+        try:
+            safe_limit = int(limit)
+        except ValueError:
+            safe_limit = 100
+
+        audit("admin.view_audit_logs", actor=admin, target_type="audit_logs", metadata={"limit": safe_limit})
+        return jsonify({"ok": True, "logs": auth_store.list_audit_logs(safe_limit)})
 
     @app.get("/api/power/current")
     def power_current() -> Any:
@@ -355,6 +411,13 @@ def create_app() -> Flask:
                 s7.write_device_command(device, is_on)
 
             state_store.set_state(device_id, is_on)
+            audit(
+                "device.turn_on" if is_on else "device.turn_off",
+                target_type="device",
+                target_id=device_id,
+                target_name=str(device.get("name", device_id)),
+                metadata={"roomId": device.get("roomId"), "mode": mode},
+            )
             return jsonify({"ok": True, "device_id": device_id, "isOn": is_on})
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc)}), 500
@@ -379,12 +442,14 @@ def create_app() -> Flask:
             states[device_id] = is_on
 
         state_store.save(states)
+        audit("scene.apply", target_type="scene", target_id=scene, target_name=scene, metadata={"affected": len(target)})
         return jsonify({"ok": True, "scene": scene})
 
     @app.post("/api/assistant/chat")
     def assistant_chat() -> Any:
         payload = request.get_json(silent=True) or {}
         text = str(payload.get("text", "")).strip()
+        audit("assistant.chat", target_type="assistant", metadata={"text": text[:200]})
 
         if not text:
             return jsonify({"reply": "Ban hay nhap lenh can dieu khien hoac cau hoi ve dien nang."})

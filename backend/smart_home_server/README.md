@@ -89,6 +89,7 @@ POST /api/auth/login
 GET  /api/me
 GET  /api/admin/homes
 GET  /api/admin/users
+GET  /api/admin/audit-logs
 ```
 
 Vi du login:
@@ -105,6 +106,30 @@ Sau khi login, app/web dung token tra ve trong header:
 ```text
 Authorization: Bearer <session-token>
 ```
+
+## Audit log
+
+Backend ghi log cac hanh dong quan trong vao bang `audit_logs`:
+
+```text
+auth.login_success
+auth.login_failed
+admin.view_homes
+admin.view_users
+admin.view_audit_logs
+device.turn_on
+device.turn_off
+scene.apply
+assistant.chat
+```
+
+Web admin co the doc lich su bang:
+
+```text
+GET /api/admin/audit-logs?limit=100
+```
+
+Chi `system_admin` moi doc duoc audit log toan he thong.
 
 ## Bao mat API bang token
 
