@@ -10,20 +10,35 @@
   <main class="shell">
     <aside class="sidebar">
       <div class="brand">
-        <img src="../assets/smart-home-logo.png" alt="Smart Home AI">
+        <div class="brand-mark" aria-hidden="true">SH</div>
         <div>
           <strong>Smart Home AI</strong>
-          <span>System Admin</span>
+          <span>Admin Console</span>
         </div>
       </div>
-      <nav class="nav">
-        <button class="nav-item active" data-view="overview">Tổng quan</button>
-        <button class="nav-item" data-view="homes">Nhà</button>
-        <button class="nav-item" data-view="users">Tài khoản</button>
-        <button class="nav-item" data-view="logs">Lịch sử</button>
+
+      <nav class="nav" aria-label="Điều hướng quản trị">
+        <button class="nav-item active" data-view="overview" type="button">
+          <span class="nav-icon">01</span>
+          <span>Tổng quan</span>
+        </button>
+        <button class="nav-item" data-view="homes" type="button">
+          <span class="nav-icon">02</span>
+          <span>Nhà</span>
+        </button>
+        <button class="nav-item" data-view="users" type="button">
+          <span class="nav-icon">03</span>
+          <span>Tài khoản</span>
+        </button>
+        <button class="nav-item" data-view="logs" type="button">
+          <span class="nav-icon">04</span>
+          <span>Lịch sử</span>
+        </button>
       </nav>
+
       <div class="session-box">
-        <span id="sessionName">Chưa đăng nhập</span>
+        <span>Phiên đăng nhập</span>
+        <strong id="sessionName">Chưa đăng nhập</strong>
         <button id="logoutBtn" type="button">Đăng xuất</button>
       </div>
     </aside>
@@ -31,15 +46,23 @@
     <section class="content">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Admin Console</p>
+          <p class="eyebrow">Smart Home AI</p>
           <h1 id="pageTitle">Tổng quan hệ thống</h1>
+          <p class="page-subtitle">Theo dõi nhà, tài khoản cha và lịch sử thao tác trên hệ thống.</p>
         </div>
-        <div class="api-status" id="apiStatus">API: chưa kiểm tra</div>
+        <div class="topbar-actions">
+          <div class="api-status" id="apiStatus">API: chưa kiểm tra</div>
+          <button class="ghost-btn" id="refreshAllBtn" type="button">Làm mới</button>
+        </div>
       </header>
 
       <section class="login-panel" id="loginPanel">
+        <div class="login-copy">
+          <p class="eyebrow">Bảng quản trị</p>
+          <h2>Đăng nhập để quản lý hệ thống</h2>
+          <p>Trang này chỉ dành cho tài khoản system admin. Mọi thao tác quan trọng sẽ được lưu vào audit log.</p>
+        </div>
         <form id="loginForm" class="login-form">
-          <h2>Đăng nhập quản trị</h2>
           <label>
             Username
             <input id="usernameInput" name="username" autocomplete="username" value="admin">
@@ -56,40 +79,57 @@
       <section class="workspace hidden" id="workspace">
         <section class="view" id="overviewView">
           <div class="metrics">
-            <div class="metric">
+            <article class="metric">
               <span>Nhà đang quản lý</span>
               <strong id="homeCount">0</strong>
-            </div>
-            <div class="metric">
+              <small>Tổng số không gian đã tạo</small>
+            </article>
+            <article class="metric">
               <span>Tài khoản</span>
               <strong id="userCount">0</strong>
-            </div>
-            <div class="metric">
-              <span>Owner</span>
+              <small>Admin, owner và thành viên</small>
+            </article>
+            <article class="metric">
+              <span>Tài khoản cha</span>
               <strong id="ownerCount">0</strong>
-            </div>
-            <div class="metric">
+              <small>Người quản lý từng nhà</small>
+            </article>
+            <article class="metric">
               <span>Log gần đây</span>
               <strong id="logCount">0</strong>
-            </div>
+              <small>100 hoạt động mới nhất</small>
+            </article>
           </div>
+
           <div class="split">
             <section class="panel">
               <div class="panel-head">
-                <h2>Nhà mới nhất</h2>
+                <div>
+                  <h2>Nhà mới nhất</h2>
+                  <p>Danh sách các nhà vừa được ghi nhận.</p>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
-                    <tr><th>Tên nhà</th><th>Chủ nhà</th><th>Thành viên</th><th>Trạng thái</th></tr>
+                    <tr>
+                      <th>Tên nhà</th>
+                      <th>Chủ nhà</th>
+                      <th>Thành viên</th>
+                      <th>Trạng thái</th>
+                    </tr>
                   </thead>
                   <tbody id="recentHomesBody"></tbody>
                 </table>
               </div>
             </section>
-            <section class="panel">
+
+            <section class="panel activity-panel">
               <div class="panel-head">
-                <h2>Hoạt động mới</h2>
+                <div>
+                  <h2>Hoạt động mới</h2>
+                  <p>Các thao tác vừa diễn ra trên backend.</p>
+                </div>
               </div>
               <div class="log-list" id="recentLogsList"></div>
             </section>
@@ -99,13 +139,23 @@
         <section class="view hidden" id="homesView">
           <section class="panel">
             <div class="panel-head">
-              <h2>Danh sách nhà</h2>
+              <div>
+                <h2>Danh sách nhà</h2>
+                <p>Theo dõi owner, số thành viên và trạng thái từng nhà.</p>
+              </div>
               <button class="refresh-btn" data-refresh="homes" type="button">Làm mới</button>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Tên nhà</th><th>Owner</th><th>Username</th><th>Thành viên</th><th>Ngày tạo</th><th>Trạng thái</th></tr>
+                  <tr>
+                    <th>Tên nhà</th>
+                    <th>Owner</th>
+                    <th>Username</th>
+                    <th>Thành viên</th>
+                    <th>Ngày tạo</th>
+                    <th>Trạng thái</th>
+                  </tr>
                 </thead>
                 <tbody id="homesBody"></tbody>
               </table>
@@ -116,13 +166,23 @@
         <section class="view hidden" id="usersView">
           <section class="panel">
             <div class="panel-head">
-              <h2>Danh sách tài khoản</h2>
+              <div>
+                <h2>Danh sách tài khoản</h2>
+                <p>Kiểm tra vai trò, số điện thoại và lần hoạt động cuối.</p>
+              </div>
               <button class="refresh-btn" data-refresh="users" type="button">Làm mới</button>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Tên</th><th>Username</th><th>SĐT</th><th>Role</th><th>Hoạt động cuối</th><th>Trạng thái</th></tr>
+                  <tr>
+                    <th>Tên</th>
+                    <th>Username</th>
+                    <th>SĐT</th>
+                    <th>Role</th>
+                    <th>Hoạt động cuối</th>
+                    <th>Trạng thái</th>
+                  </tr>
                 </thead>
                 <tbody id="usersBody"></tbody>
               </table>
@@ -133,13 +193,23 @@
         <section class="view hidden" id="logsView">
           <section class="panel">
             <div class="panel-head">
-              <h2>Lịch sử hoạt động</h2>
+              <div>
+                <h2>Lịch sử hoạt động</h2>
+                <p>Audit log giúp truy vết ai đã làm gì và khi nào.</p>
+              </div>
               <button class="refresh-btn" data-refresh="logs" type="button">Làm mới</button>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Thời gian</th><th>Người thực hiện</th><th>Role</th><th>Hành động</th><th>Đối tượng</th><th>IP</th></tr>
+                  <tr>
+                    <th>Thời gian</th>
+                    <th>Người thực hiện</th>
+                    <th>Role</th>
+                    <th>Hành động</th>
+                    <th>Đối tượng</th>
+                    <th>IP</th>
+                  </tr>
                 </thead>
                 <tbody id="logsBody"></tbody>
               </table>

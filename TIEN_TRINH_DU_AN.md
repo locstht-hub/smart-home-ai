@@ -6,6 +6,17 @@
 
 ---
 
+## 0.20. ADMIN-SITE UI POLISH (21/05/2026 - Session 16)
+
+- [x] Lam moi giao dien `admin-site/` theo huong dashboard quan tri chuyen nghiep hon
+- [x] Sua text tieng Viet trong `admin-site/index.html` va `admin-site/app.js`
+- [x] Bo duong dan logo tu `../assets/` de tranh loi asset khi deploy rieng admin-site
+- [x] Them nut lam moi tong, status API ro rang, metric card, badge role/trang thai va empty state
+- [x] Kiem tra cu phap `admin-site/app.js` bang `node --check`
+- [ ] Buoc tiep theo: them thao tac quan tri that su nhu tao owner/home, khoa/mo tai khoan, reset mat khau va ghi audit log
+
+---
+
 ## 1. TỔNG QUAN DỰ ÁN
 
 | Thông tin | Chi tiết |

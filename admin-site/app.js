@@ -19,6 +19,7 @@ const els = {
   workspace: document.getElementById('workspace'),
   sessionName: document.getElementById('sessionName'),
   logoutBtn: document.getElementById('logoutBtn'),
+  refreshAllBtn: document.getElementById('refreshAllBtn'),
   apiStatus: document.getElementById('apiStatus'),
   pageTitle: document.getElementById('pageTitle'),
   navItems: Array.from(document.querySelectorAll('.nav-item')),
@@ -44,6 +45,18 @@ const titles = {
   homes: 'Danh sách nhà',
   users: 'Danh sách tài khoản',
   logs: 'Lịch sử hoạt động',
+};
+
+const roleLabels = {
+  system_admin: 'System admin',
+  owner: 'Tài khoản cha',
+  member: 'Thành viên',
+  viewer: 'Chỉ xem',
+};
+
+const statusLabels = {
+  active: 'Hoạt động',
+  suspended: 'Tạm khóa',
 };
 
 function escapeHtml(value) {
@@ -101,50 +114,62 @@ function setApiStatus(text, mode = '') {
 function setAuthenticated(isAuthenticated) {
   els.loginPanel.classList.toggle('hidden', isAuthenticated);
   els.workspace.classList.toggle('hidden', !isAuthenticated);
+  els.refreshAllBtn.classList.toggle('hidden', !isAuthenticated);
   els.sessionName.textContent = state.user
-    ? `${state.user.name} (${state.user.role})`
+    ? `${state.user.name} (${roleLabels[state.user.role] || state.user.role})`
     : 'Chưa đăng nhập';
 }
 
 function statusBadge(status) {
   const safe = escapeHtml(status || 'unknown');
-  return `<span class="badge ${safe}">${safe}</span>`;
+  const label = statusLabels[status] || safe;
+  return `<span class="badge ${safe}">${escapeHtml(label)}</span>`;
+}
+
+function roleBadge(role) {
+  const safe = escapeHtml(role || 'unknown');
+  const label = roleLabels[role] || safe;
+  return `<span class="role ${safe}">${escapeHtml(label)}</span>`;
+}
+
+function emptyRow(colspan, text) {
+  return `<tr><td class="empty-row" colspan="${colspan}">${escapeHtml(text)}</td></tr>`;
 }
 
 function renderHomes() {
   const rows = state.homes.map((home) => `
     <tr>
-      <td>${escapeHtml(home.name)}</td>
-      <td>${escapeHtml(home.ownerName)}</td>
-      <td>${escapeHtml(home.ownerUsername)}</td>
-      <td>${escapeHtml(home.memberCount)}</td>
+      <td><strong>${escapeHtml(home.name)}</strong></td>
+      <td>${escapeHtml(home.ownerName || '-')}</td>
+      <td>${escapeHtml(home.ownerUsername || '-')}</td>
+      <td>${escapeHtml(home.memberCount ?? 0)}</td>
       <td>${formatDate(home.createdAt)}</td>
       <td>${statusBadge(home.status)}</td>
     </tr>
   `).join('');
 
-  els.homesBody.innerHTML = rows || '<tr><td colspan="6">Chưa có nhà nào</td></tr>';
+  els.homesBody.innerHTML = rows || emptyRow(6, 'Chưa có nhà nào trong hệ thống.');
   els.recentHomesBody.innerHTML = state.homes.slice(0, 5).map((home) => `
     <tr>
-      <td>${escapeHtml(home.name)}</td>
-      <td>${escapeHtml(home.ownerName)}</td>
-      <td>${escapeHtml(home.memberCount)}</td>
+      <td><strong>${escapeHtml(home.name)}</strong></td>
+      <td>${escapeHtml(home.ownerName || '-')}</td>
+      <td>${escapeHtml(home.memberCount ?? 0)}</td>
       <td>${statusBadge(home.status)}</td>
     </tr>
-  `).join('') || '<tr><td colspan="4">Chưa có dữ liệu</td></tr>';
+  `).join('') || emptyRow(4, 'Chưa có dữ liệu nhà.');
 }
 
 function renderUsers() {
   els.usersBody.innerHTML = state.users.map((user) => `
     <tr>
-      <td>${escapeHtml(user.name)}</td>
+      <td><strong>${escapeHtml(user.name)}</strong></td>
       <td>${escapeHtml(user.username)}</td>
-      <td>${escapeHtml(user.phone)}</td>
-      <td><span class="role ${escapeHtml(user.role)}">${escapeHtml(user.role)}</span></td>
+      <td>${escapeHtml(user.phone || '-')}</td>
+      <td>${roleBadge(user.role)}</td>
       <td>${formatDate(user.lastActive)}</td>
       <td>${statusBadge(user.status)}</td>
     </tr>
-  `).join('') || '<tr><td colspan="6">Chưa có tài khoản nào</td></tr>';
+  `).join('') || emptyRow(6, 'Chưa có tài khoản nào trong hệ thống.');
 }
 
 function renderLogs() {
@@ -152,19 +177,19 @@ function renderLogs() {
     <tr>
       <td>${formatDate(log.createdAt)}</td>
       <td>${escapeHtml(log.actorUsername || '-')}</td>
-      <td>${escapeHtml(log.actorRole || '-')}</td>
-      <td>${escapeHtml(log.action)}</td>
+      <td>${escapeHtml(roleLabels[log.actorRole] || log.actorRole || '-')}</td>
+      <td><strong>${escapeHtml(log.action)}</strong></td>
       <td>${escapeHtml(log.targetName || log.targetId || log.targetType || '-')}</td>
       <td>${escapeHtml(log.ipAddress || '-')}</td>
     </tr>
-  `).join('') || '<tr><td colspan="6">Chưa có log nào</td></tr>';
+  `).join('') || emptyRow(6, 'Chưa có audit log nào.');
 
   els.recentLogsList.innerHTML = state.logs.slice(0, 8).map((log) => `
     <div class="log-item">
       <strong>${escapeHtml(log.action)}</strong>
-      <span>${escapeHtml(log.actorUsername || '-')} • ${formatDate(log.createdAt)}</span>
+      <span>${escapeHtml(log.actorUsername || '-')} - ${formatDate(log.createdAt)}</span>
     </div>
-  `).join('') || '<div class="log-item"><strong>Chưa có log</strong><span>-</span></div>';
+  `).join('') || '<div class="log-item"><strong>Chưa có hoạt động</strong><span>Audit log sẽ xuất hiện khi có thao tác mới.</span></div>';
 }
 
 function renderOverview() {
@@ -236,6 +261,12 @@ function switchView(name) {
   });
 }
 
+function refreshDashboard() {
+  loadDashboard().catch((error) => {
+    setApiStatus(`API: ${error.message}`, 'error');
+  });
+}
+
 els.loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   els.loginMessage.textContent = '';
@@ -248,17 +279,14 @@ els.loginForm.addEventListener('submit', async (event) => {
 });
 
 els.logoutBtn.addEventListener('click', logout);
+els.refreshAllBtn.addEventListener('click', refreshDashboard);
 
 els.navItems.forEach((item) => {
   item.addEventListener('click', () => switchView(item.dataset.view));
 });
 
 document.querySelectorAll('.refresh-btn').forEach((button) => {
-  button.addEventListener('click', () => {
-    loadDashboard().catch((error) => {
-      setApiStatus(`API: ${error.message}`, 'error');
-    });
-  });
+  button.addEventListener('click', refreshDashboard);
 });
 
 if (state.token && state.user) {
