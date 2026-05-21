@@ -30,10 +30,10 @@
     "plugins": [
       "expo-sharing",
       [
-        "react-native-voicekit",
-        {
-          "speechRecognitionPermission": "Cho phep Smart Home App nhan dang giong noi de xu ly lenh dieu khien nha thong minh.",
-          "microphonePermission": "Cho phep Smart Home App su dung microphone de ghi nhan lenh giong noi."
+          "react-native-voicekit",
+          {
+          "speechRecognitionPermission": "Cho phép Smart Home App nhận dạng giọng nói để xử lý lệnh điều khiển nhà thông minh.",
+          "microphonePermission": "Cho phép Smart Home App sử dụng microphone để ghi nhận lệnh giọng nói."
         }
       ]
     ]
