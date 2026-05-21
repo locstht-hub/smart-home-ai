@@ -246,6 +246,72 @@ class AuthStore:
                 return None
             return {"user": self.public_user(row), "homes": self.list_user_homes(conn, user_id)}
 
+    def get_home_access(self, user_id: str, home_id: str | None = None) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            if home_id:
+                row = conn.execute(
+                    """
+                    SELECT homes.*, home_members.role_in_home,
+                           home_members.can_manage_members, home_members.can_manage_devices
+                    FROM home_members
+                    JOIN homes ON homes.id = home_members.home_id
+                    WHERE home_members.user_id = ? AND homes.id = ?
+                    """,
+                    (user_id, home_id),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    """
+                    SELECT homes.*, home_members.role_in_home,
+                           home_members.can_manage_members, home_members.can_manage_devices
+                    FROM home_members
+                    JOIN homes ON homes.id = home_members.home_id
+                    WHERE home_members.user_id = ?
+                    ORDER BY CASE WHEN homes.status = 'active' THEN 0 ELSE 1 END, homes.created_at ASC
+                    LIMIT 1
+                    """,
+                    (user_id,),
+                ).fetchone()
+
+            if row is None:
+                return None
+
+            return {
+                "id": row["id"],
+                "name": row["name"],
+                "ownerId": row["owner_id"],
+                "status": row["status"],
+                "createdAt": row["created_at"],
+                "roleInHome": row["role_in_home"],
+                "canManageMembers": bool(row["can_manage_members"]),
+                "canManageDevices": bool(row["can_manage_devices"]),
+            }
+
+    def list_home_members(self, home_id: str) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT users.*, home_members.role_in_home, home_members.can_manage_members,
+                       home_members.can_manage_devices, home_members.created_at AS joined_at
+                FROM home_members
+                JOIN users ON users.id = home_members.user_id
+                WHERE home_members.home_id = ?
+                ORDER BY home_members.created_at ASC
+                """,
+                (home_id,),
+            ).fetchall()
+
+            return [
+                {
+                    **self.public_user(row),
+                    "roleInHome": row["role_in_home"],
+                    "canManageMembers": bool(row["can_manage_members"]),
+                    "canManageDevices": bool(row["can_manage_devices"]),
+                    "joinedAt": row["joined_at"],
+                }
+                for row in rows
+            ]
+
     def list_admin_homes(self) -> list[dict[str, Any]]:
         with self.connect() as conn:
             rows = conn.execute(
@@ -408,6 +474,121 @@ class AuthStore:
                 "memberCount": updated["member_count"],
                 "createdAt": updated["created_at"],
             }
+
+    def create_home_member(
+        self,
+        *,
+        home_id: str,
+        name: str,
+        username: str,
+        phone: str | None,
+        password: str,
+        role_in_home: str,
+        can_manage_members: bool,
+        can_manage_devices: bool,
+    ) -> dict[str, Any] | None:
+        now = utc_now()
+        user_id = f"user-{secrets.token_hex(8)}"
+        link_id = f"member-link-{secrets.token_hex(8)}"
+        app_role = "viewer" if role_in_home == "viewer" else "member"
+
+        with self.connect() as conn:
+            home = conn.execute("SELECT * FROM homes WHERE id = ?", (home_id,)).fetchone()
+            if home is None:
+                return None
+
+            conn.execute(
+                """
+                INSERT INTO users (id, username, phone, name, password_hash, role, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'active', ?)
+                """,
+                (user_id, username, phone or None, name, hash_password(password), app_role, now),
+            )
+            conn.execute(
+                """
+                INSERT INTO home_members (
+                    id, home_id, user_id, role_in_home,
+                    can_manage_members, can_manage_devices, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    link_id,
+                    home_id,
+                    user_id,
+                    role_in_home,
+                    1 if can_manage_members else 0,
+                    1 if can_manage_devices else 0,
+                    now,
+                ),
+            )
+
+            row = conn.execute(
+                """
+                SELECT users.*, home_members.role_in_home, home_members.can_manage_members,
+                       home_members.can_manage_devices, home_members.created_at AS joined_at
+                FROM users
+                JOIN home_members ON home_members.user_id = users.id
+                WHERE users.id = ? AND home_members.home_id = ?
+                """,
+                (user_id, home_id),
+            ).fetchone()
+
+            return {
+                **self.public_user(row),
+                "roleInHome": row["role_in_home"],
+                "canManageMembers": bool(row["can_manage_members"]),
+                "canManageDevices": bool(row["can_manage_devices"]),
+                "joinedAt": row["joined_at"],
+            }
+
+    def set_home_member_status(self, home_id: str, user_id: str, status: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute(
+                """
+                SELECT users.*, home_members.role_in_home
+                FROM users
+                JOIN home_members ON home_members.user_id = users.id
+                WHERE users.id = ? AND home_members.home_id = ?
+                """,
+                (user_id, home_id),
+            ).fetchone()
+            if row is None:
+                return None
+            if row["role_in_home"] == "owner":
+                raise ValueError("Cannot change owner status from member management")
+
+            conn.execute("UPDATE users SET status = ? WHERE id = ?", (status, user_id))
+            if status == "suspended":
+                conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+
+            updated = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            return self.public_user(updated)
+
+    def remove_home_member(self, home_id: str, user_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute(
+                """
+                SELECT users.*, home_members.role_in_home
+                FROM users
+                JOIN home_members ON home_members.user_id = users.id
+                WHERE users.id = ? AND home_members.home_id = ?
+                """,
+                (user_id, home_id),
+            ).fetchone()
+            if row is None:
+                return None
+            if row["role_in_home"] == "owner":
+                raise ValueError("Cannot remove the home owner")
+
+            public = self.public_user(row)
+            conn.execute("DELETE FROM home_members WHERE home_id = ? AND user_id = ?", (home_id, user_id))
+            remaining = conn.execute("SELECT COUNT(*) AS count FROM home_members WHERE user_id = ?", (user_id,)).fetchone()
+            if remaining["count"] == 0:
+                conn.execute("UPDATE users SET status = 'suspended' WHERE id = ?", (user_id,))
+                conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+
+            return public
 
     def record_audit_log(
         self,

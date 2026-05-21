@@ -201,7 +201,7 @@ def create_app() -> Flask:
     def add_cors_headers(response: Any) -> Any:
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Token"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, OPTIONS"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
         return response
 
     def extract_token() -> str:
@@ -236,6 +236,41 @@ def create_app() -> Flask:
         if current_user.get("role") != "system_admin":
             return jsonify({"ok": False, "error": "Forbidden"}), 403
         return current_user
+
+    def require_active_home_access(*, manage_devices: bool = False) -> dict[str, Any] | tuple[Any, int]:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        if current_user.get("role") == "system_admin":
+            return {"user": current_user, "home": None}
+
+        home_id = request.args.get("homeId") or (request.get_json(silent=True) or {}).get("homeId")
+        home = auth_store.get_home_access(str(current_user["id"]), str(home_id) if home_id else None)
+        if home is None:
+            return jsonify({"ok": False, "error": "Home access not found"}), 403
+        if home["status"] != "active":
+            return jsonify({"ok": False, "error": "Home is suspended"}), 403
+        if manage_devices and not home["canManageDevices"]:
+            return jsonify({"ok": False, "error": "Device permission denied"}), 403
+
+        return {"user": current_user, "home": home}
+
+    def require_home_member_manager(home_id: str) -> dict[str, Any] | tuple[Any, int]:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        if current_user.get("role") == "system_admin":
+            return {"user": current_user, "home": {"id": home_id, "status": "active", "canManageMembers": True}}
+
+        home = auth_store.get_home_access(str(current_user["id"]), home_id)
+        if home is None:
+            return jsonify({"ok": False, "error": "Home access not found"}), 403
+        if home["status"] != "active":
+            return jsonify({"ok": False, "error": "Home is suspended"}), 403
+        if not home["canManageMembers"]:
+            return jsonify({"ok": False, "error": "Member permission denied"}), 403
+
+        return {"user": current_user, "home": home}
 
     def audit(
         action: str,
@@ -324,6 +359,122 @@ def create_app() -> Flask:
         if not profile:
             return jsonify({"ok": False, "error": "User not found"}), 404
         return jsonify({"ok": True, **profile})
+
+    @app.get("/api/homes/<home_id>/members")
+    def home_members(home_id: str) -> Any:
+        access = require_home_member_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        audit("home.view_members", actor=access["user"], target_type="home", target_id=home_id, home_id=home_id)
+        return jsonify({"ok": True, "members": auth_store.list_home_members(home_id)})
+
+    @app.post("/api/homes/<home_id>/members")
+    def create_home_member(home_id: str) -> Any:
+        access = require_home_member_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        payload = request.get_json(silent=True) or {}
+        name = str(payload.get("name") or "").strip()
+        username = str(payload.get("username") or "").strip()
+        phone = str(payload.get("phone") or "").strip() or None
+        password = str(payload.get("password") or "")
+        role_in_home = str(payload.get("roleInHome") or "member").strip()
+        can_manage_members = bool(payload.get("canManageMembers", False))
+        can_manage_devices = bool(payload.get("canManageDevices", True))
+
+        if role_in_home not in {"member", "viewer"}:
+            return jsonify({"ok": False, "error": "roleInHome must be member or viewer"}), 400
+        if not name or not username or not password:
+            return jsonify({"ok": False, "error": "name, username and password are required"}), 400
+        if len(password) < 6:
+            return jsonify({"ok": False, "error": "Password must be at least 6 characters"}), 400
+
+        try:
+            member = auth_store.create_home_member(
+                home_id=home_id,
+                name=name,
+                username=username,
+                phone=phone,
+                password=password,
+                role_in_home=role_in_home,
+                can_manage_members=can_manage_members,
+                can_manage_devices=can_manage_devices,
+            )
+        except Exception as exc:
+            message = str(exc)
+            if "UNIQUE constraint failed" in message:
+                return jsonify({"ok": False, "error": "Username or phone already exists"}), 409
+            return jsonify({"ok": False, "error": message}), 500
+
+        if member is None:
+            return jsonify({"ok": False, "error": "Home not found"}), 404
+
+        audit(
+            "home.create_member",
+            actor=access["user"],
+            target_type="user",
+            target_id=member["id"],
+            target_name=member["username"],
+            home_id=home_id,
+            metadata={"roleInHome": role_in_home},
+        )
+        return jsonify({"ok": True, "member": member}), 201
+
+    @app.patch("/api/homes/<home_id>/members/<user_id>/suspend")
+    def suspend_home_member(home_id: str, user_id: str) -> Any:
+        return update_home_member_status(home_id, user_id, "suspended")
+
+    @app.patch("/api/homes/<home_id>/members/<user_id>/activate")
+    def activate_home_member(home_id: str, user_id: str) -> Any:
+        return update_home_member_status(home_id, user_id, "active")
+
+    def update_home_member_status(home_id: str, user_id: str, status: str) -> Any:
+        access = require_home_member_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        try:
+            member = auth_store.set_home_member_status(home_id, user_id, status)
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        if member is None:
+            return jsonify({"ok": False, "error": "Member not found"}), 404
+
+        audit(
+            "home.suspend_member" if status == "suspended" else "home.activate_member",
+            actor=access["user"],
+            target_type="user",
+            target_id=member["id"],
+            target_name=member["username"],
+            home_id=home_id,
+            metadata={"status": status},
+        )
+        return jsonify({"ok": True, "member": member})
+
+    @app.delete("/api/homes/<home_id>/members/<user_id>")
+    def delete_home_member(home_id: str, user_id: str) -> Any:
+        access = require_home_member_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        try:
+            member = auth_store.remove_home_member(home_id, user_id)
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        if member is None:
+            return jsonify({"ok": False, "error": "Member not found"}), 404
+
+        audit(
+            "home.delete_member",
+            actor=access["user"],
+            target_type="user",
+            target_id=member["id"],
+            target_name=member["username"],
+            home_id=home_id,
+        )
+        return jsonify({"ok": True, "member": member})
 
     @app.get("/api/admin/homes")
     def admin_homes() -> Any:
@@ -488,6 +639,10 @@ def create_app() -> Flask:
 
     @app.get("/api/power/current")
     def power_current() -> Any:
+        access = require_active_home_access()
+        if not isinstance(access, dict):
+            return access
+
         try:
             if mode == "plc-real":
                 values = s7.read_power(config.get("powerTags", {}))
@@ -518,6 +673,10 @@ def create_app() -> Flask:
 
     @app.get("/api/devices")
     def get_devices() -> Any:
+        access = require_active_home_access()
+        if not isinstance(access, dict):
+            return access
+
         try:
             return jsonify({"devices": group_devices(devices, read_states())})
         except Exception as exc:
@@ -532,6 +691,10 @@ def create_app() -> Flask:
         return set_device(device_id, False)
 
     def set_device(device_id: str, is_on: bool) -> Any:
+        access = require_active_home_access(manage_devices=True)
+        if not isinstance(access, dict):
+            return access
+
         device = next((item for item in devices if str(item["id"]) == device_id), None)
         if not device:
             return jsonify({"ok": False, "error": f"Unknown device: {device_id}"}), 404
@@ -546,6 +709,7 @@ def create_app() -> Flask:
                 target_type="device",
                 target_id=device_id,
                 target_name=str(device.get("name", device_id)),
+                home_id=access["home"]["id"] if access.get("home") else None,
                 metadata={"roomId": device.get("roomId"), "mode": mode},
             )
             return jsonify({"ok": True, "device_id": device_id, "isOn": is_on})
@@ -554,6 +718,10 @@ def create_app() -> Flask:
 
     @app.post("/api/scenes/<scene>")
     def apply_scene(scene: str) -> Any:
+        access = require_active_home_access(manage_devices=True)
+        if not isinstance(access, dict):
+            return access
+
         states = state_store.load()
 
         if scene == "sleep":
@@ -572,14 +740,30 @@ def create_app() -> Flask:
             states[device_id] = is_on
 
         state_store.save(states)
-        audit("scene.apply", target_type="scene", target_id=scene, target_name=scene, metadata={"affected": len(target)})
+        audit(
+            "scene.apply",
+            target_type="scene",
+            target_id=scene,
+            target_name=scene,
+            home_id=access["home"]["id"] if access.get("home") else None,
+            metadata={"affected": len(target)},
+        )
         return jsonify({"ok": True, "scene": scene})
 
     @app.post("/api/assistant/chat")
     def assistant_chat() -> Any:
+        access = require_active_home_access()
+        if not isinstance(access, dict):
+            return access
+
         payload = request.get_json(silent=True) or {}
         text = str(payload.get("text", "")).strip()
-        audit("assistant.chat", target_type="assistant", metadata={"text": text[:200]})
+        audit(
+            "assistant.chat",
+            target_type="assistant",
+            home_id=access["home"]["id"] if access.get("home") else None,
+            metadata={"text": text[:200]},
+        )
 
         if not text:
             return jsonify({"reply": "Ban hay nhap lenh can dieu khien hoac cau hoi ve dien nang."})

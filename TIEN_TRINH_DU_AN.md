@@ -28,6 +28,23 @@
 
 ---
 
+## 0.22. HOME ACCESS POLICY VA OWNER MEMBER MANAGEMENT (22/05/2026 - Session 17)
+
+- [x] Them kiem tra quyen theo nha cho `/api/devices`, `/api/scenes`, `/api/assistant/chat`, `/api/power/current`
+- [x] Neu nha bi `suspended`, owner/member/viewer cua nha do bi chan xem va dieu khien API thiet bi
+- [x] `system_admin` va API token van co quyen quan tri/kiem tra he thong
+- [x] Them API cho tai khoan cha quan ly thanh vien trong nha:
+  - `GET /api/homes/<home_id>/members`
+  - `POST /api/homes/<home_id>/members`
+  - `PATCH /api/homes/<home_id>/members/<user_id>/suspend`
+  - `PATCH /api/homes/<home_id>/members/<user_id>/activate`
+  - `DELETE /api/homes/<home_id>/members/<user_id>`
+- [x] Moi thao tac owner tao/khoa/mo/xoa thanh vien deu ghi audit log
+- [x] Test AuthStore va Flask route: home active cho phep, home suspended tra 403
+- [ ] Buoc tiep theo: lam man hinh app/mobile cho owner bam tao/xoa/khoa thanh vien
+
+---
+
 ## 1. TỔNG QUAN DỰ ÁN
 
 | Thông tin | Chi tiết |
