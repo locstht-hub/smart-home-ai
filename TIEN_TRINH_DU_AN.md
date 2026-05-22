@@ -58,6 +58,22 @@
 
 ---
 
+## 0.24. RA SOAT AI ASSISTANT VA MIC UI (22/05/2026 - Session 18)
+
+- [x] Sua UI mic trong man hinh Chat thanh nut tron co bieu tuong ro rang
+- [x] Sua text tieng Viet trong `ChatScreen.tsx`
+- [x] Doi quick replies sang cau lenh khong dau de demo chac chan
+- [x] Bo sung parser backend nhan them `muc tieu thu dien`, `tat het`, va action khong dau
+- [x] Restart backend va test AI Assistant tren domain that:
+  - `bat den phong khach`
+  - `tat tat ca thiet bi`
+  - `muc tieu thu dien hom nay`
+  - `bat che do ngu`
+- [x] Kiem tra `npx tsc --noEmit` va `python -m py_compile`
+- [ ] Buoc tiep theo: build APK moi va test mic tren dien thoai that
+
+---
+
 ## 1. TỔNG QUAN DỰ ÁN
 
 | Thông tin | Chi tiết |

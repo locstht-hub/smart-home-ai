@@ -10,7 +10,9 @@ Intent = dict[str, Any]
 
 
 def normalize_text(text: str) -> str:
-    lowered = text.lower().replace("đ", "d")
+    lowered = text.lower()
+    for bad, replacement in {"?": "", "đ": "d", "ð": "d"}.items():
+        lowered = lowered.replace(bad, replacement)
     normalized = unicodedata.normalize("NFD", lowered)
     without_marks = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
     return re.sub(r"\s+", " ", without_marks).strip()
@@ -80,7 +82,7 @@ def parse_intent(user_text: str, devices: list[dict[str, Any]]) -> Intent:
     if not text:
         return {"intent": "unknown"}
 
-    if _contains_any(text, ["cong suat", "dang dung bao nhieu dien", "dien nang hien tai", "muc tieu thu hien tai"]):
+    if _contains_any(text, ["cong suat", "dang dung bao nhieu dien", "dien nang hien tai", "muc tieu thu hien tai", "muc tieu thu dien", "tieu thu dien"]):
         return {"intent": "get_power_current"}
 
     if _contains_any(text, ["danh sach thiet bi", "co nhung thiet bi nao", "liet ke thiet bi"]):
@@ -101,9 +103,9 @@ def parse_intent(user_text: str, devices: list[dict[str, Any]]) -> Intent:
     if _contains_any(text, ["cuoi tuan", "che do cuoi tuan"]):
         return {"intent": "apply_scene", "scene": "weekend"}
 
-    wants_on = _contains_any(text, ["bat ", "mo ", "kich hoat"])
-    wants_off = _contains_any(text, ["tat ", "dong ", "ngat "])
-    has_all = _contains_any(text, ["tat ca", "het thiet bi", "toan bo"])
+    wants_on = _contains_any(text, ["bat", "mo", "kich hoat"])
+    wants_off = _contains_any(text, ["tat", "dong", "ngat"])
+    has_all = _contains_any(text, ["tat ca", "het thiet bi", "toan bo", "tat het"])
     room_id = detect_room(text)
     device_type = detect_device_type(text)
 

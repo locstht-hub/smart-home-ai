@@ -20,10 +20,10 @@ import { Colors } from '../constants/colors';
 const APP_AVATAR = require('../../assets/icon.png');
 
 const QUICK_REPLIES = [
-    'Bật đèn phòng khách',
-    'Tắt tất cả thiết bị',
-    'Mức tiêu thụ điện hôm nay',
-    'Bật chế độ ngủ',
+    'bat den phong khach',
+    'tat tat ca thiet bi',
+    'muc tieu thu dien hom nay',
+    'bat che do ngu',
 ];
 
 export default function ChatScreen() {
@@ -146,7 +146,7 @@ export default function ChatScreen() {
             const message = error?.message || 'Không thể nhận diện giọng nói lúc này.';
             setVoiceError(message);
             setIsVoiceStarting(false);
-            pushBotReply(`Mic gap su co: ${message}`);
+            pushBotReply(`Mic gặp sự cố: ${message}`);
         };
 
         VoiceKit.addListener(VoiceEvent.Error, handleVoiceError);
@@ -170,7 +170,7 @@ export default function ChatScreen() {
         setVoiceError(null);
 
         if (!isVoiceAvailable) {
-            pushBotReply('Thiết bị này chưa sẵn sàng cho speech-to-text. Bạn cần rebuild development build sau khi thêm native module và cấp quyền microphone.');
+            pushBotReply('Thiết bị này chưa sẵn sàng cho speech-to-text. Bạn cần dùng APK build mới và cấp quyền microphone.');
             return;
         }
 
@@ -214,7 +214,7 @@ export default function ChatScreen() {
 
     const voiceHint = useMemo(() => {
         if (!isVoiceAvailable) {
-            return 'Mic chưa sẵn sàng trên development build hiện tại.';
+            return 'Mic chưa sẵn sàng trên bản build hiện tại.';
         }
         if (isListening) {
             return transcript.trim() || 'Đang nghe... hãy nói lệnh của bạn';
@@ -224,6 +224,8 @@ export default function ChatScreen() {
         }
         return 'Nhấn mic, nói lệnh, app sẽ gửi transcript sang Server API.';
     }, [isListening, isVoiceAvailable, transcript, voiceError]);
+
+    const micLabel = isListening ? '■' : '🎙️';
 
     return (
         <View style={styles.container}>
@@ -275,7 +277,7 @@ export default function ChatScreen() {
                     {isVoiceStarting && !isListening ? (
                         <ActivityIndicator color="#ffffff" />
                     ) : (
-                        <Text style={styles.voiceButtonText}>{isListening ? 'Stop' : 'Mic'}</Text>
+                        <Text style={styles.voiceButtonIcon}>{micLabel}</Text>
                     )}
                 </TouchableOpacity>
             </View>
@@ -333,7 +335,7 @@ export default function ChatScreen() {
                                 styles.micAccessory,
                                 isListening && styles.micAccessoryActive,
                             ]}>
-                                <Text style={styles.micAccessoryText}>{isListening ? 'Stop' : 'Mic'}</Text>
+                                <Text style={styles.micAccessoryIcon}>{micLabel}</Text>
                             </View>
                         )}
                         containerStyle={styles.micAccessoryContainer}
@@ -438,12 +440,11 @@ const styles = StyleSheet.create({
         color: Colors.slate[500],
     },
     voiceButton: {
-        minWidth: 64,
+        width: 52,
+        height: 52,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 999,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
+        borderRadius: 26,
         backgroundColor: Colors.primary[600],
     },
     voiceButtonActive: {
@@ -452,10 +453,10 @@ const styles = StyleSheet.create({
     voiceButtonDisabled: {
         backgroundColor: Colors.slate[400],
     },
-    voiceButtonText: {
+    voiceButtonIcon: {
         color: '#fff',
-        fontSize: 13,
-        fontWeight: '700',
+        fontSize: 24,
+        fontWeight: '800',
     },
     toolbar: {
         borderTopWidth: 1,
@@ -475,20 +476,19 @@ const styles = StyleSheet.create({
         width: 54,
     },
     micAccessory: {
-        minWidth: 42,
+        width: 42,
+        height: 42,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 16,
-        paddingVertical: 10,
-        paddingHorizontal: 10,
+        borderRadius: 21,
         backgroundColor: Colors.slate[200],
     },
     micAccessoryActive: {
         backgroundColor: Colors.red[500],
     },
-    micAccessoryText: {
-        fontSize: 12,
-        fontWeight: '700',
+    micAccessoryIcon: {
+        fontSize: 21,
+        fontWeight: '800',
         color: Colors.slate[800],
     },
     textInput: {
