@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useVoice, VoiceEvent, VoiceKit, VoiceMode } from 'react-native-voicekit';
 import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
+import { useData } from '../contexts/DataContext';
 import { Colors } from '../constants/colors';
 
 const APP_AVATAR = require('../../assets/icon.png');
@@ -29,6 +30,7 @@ const QUICK_REPLIES = [
 export default function ChatScreen() {
     const { user } = useAuth();
     const { client, isConfigured, status } = useSmartHomeServer();
+    const { refresh: refreshDevices } = useData();
     const tabBarHeight = useBottomTabBarHeight();
     const lastHandledTranscriptRef = useRef('');
 
@@ -110,6 +112,7 @@ export default function ChatScreen() {
 
         try {
             const result = await client.chatWithTiming(userMessage);
+            await refreshDevices();
             const sourceLabel = result.endpoint === 'local' ? 'local' : 'domain';
             const diagnosticNote = `\n\nNguon API: ${sourceLabel} - ${(result.elapsedMs / 1000).toFixed(1)} giay.`;
             const timingNote = diagnosticNote;
@@ -122,7 +125,7 @@ export default function ChatScreen() {
             }
             pushBotReply('Không thể gọi Server API lúc này. Bạn hãy thử lại khi kết nối ổn định hơn.');
         }
-    }, [client, isConfigured, pushBotReply]);
+    }, [client, isConfigured, pushBotReply, refreshDevices]);
 
     const onSend = useCallback(async (newMessages: IMessage[] = [], options?: { skipAppend?: boolean }) => {
         if (!options?.skipAppend) {
