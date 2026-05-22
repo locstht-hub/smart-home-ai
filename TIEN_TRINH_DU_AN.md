@@ -38,7 +38,11 @@
 - [x] Rebuild APK cloud-first rieng cho chat: `dist/smart-home-ai-chat-cloud-first.apk`
 - [x] Rebuild APK co warm-up va timing: `dist/smart-home-ai-chat-timing.apk`
 - [x] Rebuild APK local-fast: `dist/smart-home-ai-local-fast.apk`
-- [ ] Buoc tiep theo: cai lai APK tren dien thoai, dang nhap lai va test Chat AI qua domain
+- [x] Chuyen local lam duong chinh theo mang hien tai: `http://10.203.15.51:5001`
+- [x] Login/app mac dinh ep luu `preferLocalApi=true` va local URL moi de tranh cau hinh cu
+- [x] Do lai local moi: chat tra khoang 22-24 ms khi goi truc tiep tu laptop
+- [x] Rebuild APK local-main: `dist/smart-home-ai-local-main.apk` va cap nhat `dist/smart-home-ai-release.apk`
+- [ ] Buoc tiep theo: cai lai APK tren dien thoai, cung WiFi `LocluvKT 2`, dang nhap lai va test Chat AI qua local API
 
 ---
 

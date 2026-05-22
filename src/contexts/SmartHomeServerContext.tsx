@@ -19,12 +19,12 @@ const SmartHomeServerContext = createContext<SmartHomeServerContextType>({} as S
 
 const STORAGE_KEY = 'smartHomeServerConfig';
 export const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
-export const DEFAULT_LOCAL_API_URL = 'http://172.16.12.99:5001';
+export const DEFAULT_LOCAL_API_URL = 'http://10.203.15.51:5001';
 
 const defaultConfig: SmartHomeServerConfig = {
     apiBaseUrl: CLOUD_API_URL,
     localApiBaseUrl: DEFAULT_LOCAL_API_URL,
-    preferLocalApi: false,
+    preferLocalApi: true,
     apiToken: '',
     forecastApiUrl: '',
     forecastModel: 'xgboost',
@@ -34,7 +34,7 @@ const defaultConfig: SmartHomeServerConfig = {
 const normalizeConfig = (nextConfig: SmartHomeServerConfig): SmartHomeServerConfig => ({
     apiBaseUrl: nextConfig.apiBaseUrl?.trim() || CLOUD_API_URL,
     localApiBaseUrl: nextConfig.localApiBaseUrl?.trim() || DEFAULT_LOCAL_API_URL,
-    preferLocalApi: nextConfig.preferLocalApi === true,
+    preferLocalApi: nextConfig.preferLocalApi !== false,
     apiToken: nextConfig.apiToken?.trim() || '',
     homeId: nextConfig.homeId?.trim() || '',
     forecastApiUrl: nextConfig.forecastApiUrl?.trim() || '',
