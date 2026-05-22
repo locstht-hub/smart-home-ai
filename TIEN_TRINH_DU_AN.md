@@ -30,10 +30,14 @@
 - [x] Ep rieng Chat AI uu tien domain truoc de tranh cau hinh local cu tren dien thoai lam tre 10 giay
 - [x] Them warm-up ket noi khi mo man Chat de giam tre DNS/TLS/Tunnel handshake
 - [x] Them do thoi gian request Chat AI trong app, hien "Thoi gian API" neu request tren 1.5 giay
+- [x] Do IP LAN moi cua laptop: `172.16.12.99`; local API tra lenh chat khoang 24 ms, domain khoang 313 ms khi goi tu laptop
+- [x] Cap nhat default local API sang `http://172.16.12.99:5001`
+- [x] Chat AI ton trong nut "Uu tien local API" de demo cung WiFi co the di local that nhanh
 - [x] Test `npx tsc --noEmit` thanh cong
 - [x] Rebuild APK latency fix: `dist/smart-home-ai-fast-domain.apk` va cap nhat `dist/smart-home-ai-release.apk`
 - [x] Rebuild APK cloud-first rieng cho chat: `dist/smart-home-ai-chat-cloud-first.apk`
 - [x] Rebuild APK co warm-up va timing: `dist/smart-home-ai-chat-timing.apk`
+- [x] Rebuild APK local-fast: `dist/smart-home-ai-local-fast.apk`
 - [ ] Buoc tiep theo: cai lai APK tren dien thoai, dang nhap lai va test Chat AI qua domain
 
 ---

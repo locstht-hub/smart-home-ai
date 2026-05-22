@@ -20,7 +20,7 @@ export interface ChatResult {
 const DEFAULT_TIMEOUT = 8000;
 const DEFAULT_LOCAL_TIMEOUT = 800;
 const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
-const DEFAULT_LOCAL_API_URL = 'http://172.16.5.180:5001';
+const DEFAULT_LOCAL_API_URL = 'http://172.16.12.99:5001';
 const USER_KEY = 'currentUser';
 const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
 
@@ -87,7 +87,7 @@ export class SmartHomeApiClient {
         const response = await this.request<ChatResponse>('/api/assistant/chat', {
             method: 'POST',
             body: JSON.stringify({ text, ...(this.config.homeId ? { homeId: this.config.homeId } : {}) }),
-        }, { preferCloudFirst: true });
+        }, { preferCloudFirst: this.config.preferLocalApi !== true });
         return {
             reply: response.reply || response.text || response.message || 'Server đã nhận lệnh của bạn.',
             elapsedMs: Date.now() - startedAt,

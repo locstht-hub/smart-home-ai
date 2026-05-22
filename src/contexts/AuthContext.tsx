@@ -22,7 +22,7 @@ const USERS_KEY = 'users';
 const USERS_BACKUP_KEY = 'users_backup';
 const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
 const SERVER_API_URL = 'https://api.smarthomeai.id.vn';
-const LOCAL_API_URL = 'http://172.16.5.180:5001';
+const LOCAL_API_URL = 'http://172.16.12.99:5001';
 
 export const useAuth = () => useContext(AuthContext);
 

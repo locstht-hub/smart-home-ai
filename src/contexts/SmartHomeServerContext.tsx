@@ -19,7 +19,7 @@ const SmartHomeServerContext = createContext<SmartHomeServerContextType>({} as S
 
 const STORAGE_KEY = 'smartHomeServerConfig';
 export const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
-export const DEFAULT_LOCAL_API_URL = 'http://172.16.5.180:5001';
+export const DEFAULT_LOCAL_API_URL = 'http://172.16.12.99:5001';
 
 const defaultConfig: SmartHomeServerConfig = {
     apiBaseUrl: CLOUD_API_URL,
