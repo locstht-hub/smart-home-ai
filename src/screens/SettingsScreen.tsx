@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
@@ -8,9 +8,8 @@ import { buildPlcMappingSummary } from '../constants/plcMapping';
 
 export default function SettingsScreen() {
     const { user, logout, changePassword } = useAuth();
-    const { config, status, error, saveConfig, testConnection } = useSmartHomeServer();
+    const { config, status, error, systemStatus, saveConfig, testConnection, refreshSystemStatus } = useSmartHomeServer();
     const [notifEnabled, setNotifEnabled] = useState(true);
-    const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [showServerModal, setShowServerModal] = useState(false);
     const [showPlcModal, setShowPlcModal] = useState(false);
@@ -23,9 +22,6 @@ export default function SettingsScreen() {
     const [apiToken, setApiToken] = useState(config.apiToken || '');
     const [forecastApiUrl, setForecastApiUrl] = useState(config.forecastApiUrl || '');
     const [forecastModel, setForecastModel] = useState<'xgboost' | 'lstm'>(config.forecastModel || 'xgboost');
-    const [plcAddress, setPlcAddress] = useState('192.168.0.1');
-    const [plcPort, setPlcPort] = useState('102');
-    const [plcConnected, setPlcConnected] = useState(false);
 
     useEffect(() => {
         setApiBaseUrl(config.apiBaseUrl);
@@ -40,7 +36,17 @@ export default function SettingsScreen() {
         ? 'Đã kết nối'
         : status === 'connecting'
             ? 'Đang kiểm tra'
-            : config.apiBaseUrl ? 'Chưa kết nối' : 'Chưa cấu hình';
+            : config.apiBaseUrl || config.localApiBaseUrl ? 'Chưa kết nối' : 'Chưa cấu hình';
+
+    const runtimeLabel = useMemo(() => {
+        if (!systemStatus) return 'Chưa đọc được';
+        return systemStatus.mode === 'plc-real' ? 'PLC thật' : 'Mock demo';
+    }, [systemStatus]);
+
+    const sourceLabel = useMemo(() => {
+        if (!systemStatus) return 'Chưa rõ';
+        return systemStatus.powerSource === 'plc-s7-1200' ? 'PLC S7-1200' : 'Dữ liệu mô phỏng';
+    }, [systemStatus]);
 
     const handleChangePassword = async () => {
         if (!currentPw || !newPw || !confirmPw) {
@@ -85,38 +91,31 @@ export default function SettingsScreen() {
             result.success ? 'Kết nối thành công' : 'Không thể kết nối',
             result.success ? 'App đã lưu cấu hình Server API riêng.' : result.message,
         );
-        if (result.success) {
-            setShowServerModal(false);
-        }
+        if (result.success) setShowServerModal(false);
     };
 
-    const handleConnectPlc = () => {
-        if (!plcAddress.trim()) {
-            setPlcConnected(false);
-            Alert.alert('Thông báo', 'Chưa nhập địa chỉ PLC.');
-            return;
-        }
-        setPlcConnected(true);
-        setShowPlcModal(false);
-        Alert.alert('Lưu cấu hình', `Đã lưu PLC ${plcAddress.trim()}:${plcPort || '102'}`);
+    const handleShowPlcInfo = () => {
+        setShowPlcModal(true);
     };
 
     const handleShowPlcMapping = () => {
         Alert.alert(
             'Mapping PLC -> Server -> App',
-            `${buildPlcMappingSummary()}\n\nHướng dẫn nhanh:\n1) PLC lưu trạng thái vào tag status.\n2) Server riêng đọc/ghi PLC qua Ethernet.\n3) App gọi REST API của server.\n4) Lệnh điều khiển được server ghi vào tag command để PLC xử lý.`,
+            `${buildPlcMappingSummary()}\n\nLuồng demo:\n1. PLC lưu trạng thái vào tag status.\n2. Server riêng đọc/ghi PLC qua Ethernet.\n3. App gọi REST API của server.\n4. Lệnh điều khiển được server ghi vào tag command để PLC xử lý.`,
         );
     };
 
     return (
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.profileCard}>
-                <View style={styles.avatar}><Text style={{ fontSize: 28, color: '#fff' }}>U</Text></View>
+                <View style={styles.avatar}><Text style={styles.avatarText}>U</Text></View>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.profileName}>{user?.name}</Text>
                     <Text style={styles.profilePhone}>{user?.phone}</Text>
                     <View style={styles.badgeRow}>
-                        <View style={styles.badge}><Text style={styles.badgeText}>{user?.role === 'admin' ? 'Admin' : 'User'}</Text></View>
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{user?.role === 'admin' ? 'Admin' : 'User'}</Text>
+                        </View>
                     </View>
                 </View>
             </LinearGradient>
@@ -130,7 +129,7 @@ export default function SettingsScreen() {
                         <View style={styles.menuIcon}><Text>U</Text></View>
                         <Text style={styles.menuText}>Thông tin cá nhân</Text>
                     </View>
-                    <Text style={styles.menuArrow}>›</Text>
+                    <Text style={styles.menuArrow}>{'>'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.menuItem} onPress={() => {
                     setNotifEnabled(!notifEnabled);
@@ -140,14 +139,16 @@ export default function SettingsScreen() {
                         <View style={styles.menuIcon}><Text>!</Text></View>
                         <Text style={styles.menuText}>Thông báo</Text>
                     </View>
-                    <View style={[styles.toggle, notifEnabled && styles.toggleActive]}><View style={[styles.toggleCircle, notifEnabled && styles.toggleCircleActive]} /></View>
+                    <View style={[styles.toggle, notifEnabled && styles.toggleActive]}>
+                        <View style={[styles.toggleCircle, notifEnabled && styles.toggleCircleActive]} />
+                    </View>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => setShowPasswordModal(true)}>
                     <View style={styles.menuLeft}>
                         <View style={styles.menuIcon}><Text>*</Text></View>
                         <Text style={styles.menuText}>Bảo mật</Text>
                     </View>
-                    <Text style={styles.menuArrow}>›</Text>
+                    <Text style={styles.menuArrow}>{'>'}</Text>
                 </TouchableOpacity>
             </View>
 
@@ -158,20 +159,20 @@ export default function SettingsScreen() {
                         <View style={styles.menuIcon}><Text>API</Text></View>
                         <View>
                             <Text style={styles.menuText}>Server API riêng</Text>
-                            <Text style={styles.menuSubText}>{apiBaseUrl || 'Chưa cấu hình API URL'}</Text>
+                            <Text style={styles.menuSubText}>{preferLocalApi ? localApiBaseUrl : apiBaseUrl}</Text>
                         </View>
                     </View>
                     <Text style={styles.menuValue}>{connectionLabel}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setShowPlcModal(true)}>
+                <TouchableOpacity style={styles.menuItem} onPress={handleShowPlcInfo}>
                     <View style={styles.menuLeft}>
                         <View style={styles.menuIcon}><Text>PLC</Text></View>
                         <View>
                             <Text style={styles.menuText}>PLC S7-1200</Text>
-                            <Text style={styles.menuSubText}>Laptop/server đọc PLC qua Ethernet</Text>
+                            <Text style={styles.menuSubText}>{systemStatus?.plcHost || 'Chưa cấu hình PLC thật'}</Text>
                         </View>
                     </View>
-                    <Text style={styles.menuValue}>{plcConnected ? `${plcAddress}:${plcPort}` : 'Chưa kết nối'}</Text>
+                    <Text style={styles.menuValue}>{sourceLabel}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.menuItem} onPress={handleShowPlcMapping}>
                     <View style={styles.menuLeft}>
@@ -181,17 +182,17 @@ export default function SettingsScreen() {
                             <Text style={styles.menuSubText}>PLC tag {'->'} API device {'->'} tên trên app</Text>
                         </View>
                     </View>
-                    <Text style={styles.menuArrow}>›</Text>
+                    <Text style={styles.menuArrow}>{'>'}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => {
-                    setCloudSyncEnabled(!cloudSyncEnabled);
-                    Alert.alert(cloudSyncEnabled ? 'Đã tắt đồng bộ Cloud' : 'Đã bật đồng bộ Cloud');
-                }}>
+                <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => { void refreshSystemStatus(); }}>
                     <View style={styles.menuLeft}>
-                        <View style={styles.menuIcon}><Text>CL</Text></View>
-                        <Text style={styles.menuText}>Đồng bộ Cloud</Text>
+                        <View style={styles.menuIcon}><Text>SYS</Text></View>
+                        <View>
+                            <Text style={styles.menuText}>Làm mới trạng thái</Text>
+                            <Text style={styles.menuSubText}>Kiểm tra server đang mock hay PLC thật</Text>
+                        </View>
                     </View>
-                    <View style={[styles.toggle, cloudSyncEnabled && styles.toggleActive]}><View style={[styles.toggleCircle, cloudSyncEnabled && styles.toggleCircleActive]} /></View>
+                    <Text style={styles.menuArrow}>{'>'}</Text>
                 </TouchableOpacity>
             </View>
 
@@ -204,20 +205,21 @@ export default function SettingsScreen() {
                 </View>
                 <View style={[styles.statusCard, { backgroundColor: Colors.blue[50] }]}>
                     <View style={[styles.statusDot, { backgroundColor: Colors.blue[500] }]} />
-                    <Text style={[styles.statusLabel, { color: Colors.blue[700] }]}>Cloud Sync</Text>
-                    <Text style={[styles.statusSub, { color: Colors.blue[600] }]}>{cloudSyncEnabled ? 'Bật' : 'Tắt'}</Text>
+                    <Text style={[styles.statusLabel, { color: Colors.blue[700] }]}>Nguồn API</Text>
+                    <Text style={[styles.statusSub, { color: Colors.blue[600] }]}>{preferLocalApi ? 'Ưu tiên local' : 'Ưu tiên domain'}</Text>
                 </View>
                 <View style={[styles.statusCard, { backgroundColor: Colors.purple[50] }]}>
                     <View style={[styles.statusDot, { backgroundColor: Colors.purple[500] }]} />
-                    <Text style={[styles.statusLabel, { color: Colors.purple[600] }]}>AI Model</Text>
-                    <Text style={[styles.statusSub, { color: Colors.purple[600] }]}>{config.forecastApiUrl ? config.forecastModel?.toUpperCase() || 'XGBOOST' : 'Mô phỏng'}</Text>
+                    <Text style={[styles.statusLabel, { color: Colors.purple[600] }]}>Chế độ server</Text>
+                    <Text style={[styles.statusSub, { color: Colors.purple[600] }]}>{runtimeLabel}</Text>
                 </View>
                 <View style={[styles.statusCard, { backgroundColor: Colors.amber[50] }]}>
                     <View style={[styles.statusDot, { backgroundColor: Colors.amber[500] }]} />
-                    <Text style={[styles.statusLabel, { color: Colors.amber[700] }]}>PLC</Text>
-                    <Text style={[styles.statusSub, { color: Colors.amber[600] }]}>{plcConnected ? 'Đã cấu hình' : 'Chưa kết nối'}</Text>
+                    <Text style={[styles.statusLabel, { color: Colors.amber[700] }]}>Dữ liệu điện</Text>
+                    <Text style={[styles.statusSub, { color: Colors.amber[600] }]}>{sourceLabel}</Text>
                 </View>
             </View>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
                 <Text style={styles.logoutText}>Đăng xuất</Text>
@@ -249,16 +251,21 @@ export default function SettingsScreen() {
             <Modal visible={showPlcModal} transparent animationType="slide">
                 <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Cấu hình PLC</Text>
-                        <Text style={styles.modalHint}>PLC S7-1200 CPU 1215C. Server đọc tag MD qua snap7, app không đọc PLC trực tiếp.</Text>
-                        <TextInput style={styles.modalInput} placeholder="PLC IP" value={plcAddress} onChangeText={setPlcAddress} keyboardType="numbers-and-punctuation" autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
-                        <TextInput style={styles.modalInput} placeholder="S7 port" value={plcPort} onChangeText={setPlcPort} keyboardType="number-pad" autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
+                        <Text style={styles.modalTitle}>Thông tin PLC</Text>
+                        <Text style={styles.modalHint}>
+                            App không đọc PLC trực tiếp. Backend sẽ đọc/ghi PLC qua snap7 khi config server chuyển sang mode plc-real.
+                        </Text>
+                        <Text style={styles.statusHint}>
+                            Chế độ hiện tại: {runtimeLabel}{'\n'}
+                            Nguồn dữ liệu: {sourceLabel}{'\n'}
+                            PLC host: {systemStatus?.plcHost || 'chưa cấu hình'}
+                        </Text>
                         <View style={styles.modalBtnRow}>
                             <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowPlcModal(false)}>
-                                <Text style={styles.modalCancelText}>Hủy</Text>
+                                <Text style={styles.modalCancelText}>Đóng</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.modalSaveBtn} onPress={handleConnectPlc}>
-                                <Text style={styles.modalSaveText}>Lưu</Text>
+                            <TouchableOpacity style={styles.modalSaveBtn} onPress={() => { void refreshSystemStatus(); }}>
+                                <Text style={styles.modalSaveText}>Kiểm tra lại</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -269,17 +276,19 @@ export default function SettingsScreen() {
                 <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Cấu hình Server API</Text>
-                        <Text style={styles.modalHint}>Khuyến nghị: https://api.smarthomeai.id.vn. Emulator local: http://10.0.2.2:5001. Điện thoại thật local: http://IP-LAPTOP:5001.</Text>
+                        <Text style={styles.modalHint}>Khuyến nghị: https://api.smarthomeai.id.vn. Điện thoại thật local: http://IP-LAPTOP:5001.</Text>
                         <TextInput style={styles.modalInput} placeholder="Server API URL" value={apiBaseUrl} onChangeText={setApiBaseUrl} autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
                         <TextInput style={styles.modalInput} placeholder="Local API URL" value={localApiBaseUrl} onChangeText={setLocalApiBaseUrl} autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
                         <TouchableOpacity style={styles.localToggleRow} onPress={() => setPreferLocalApi(!preferLocalApi)}>
-                            <View style={[styles.toggle, preferLocalApi && styles.toggleActive]}><View style={[styles.toggleCircle, preferLocalApi && styles.toggleCircleActive]} /></View>
-                            <Text style={styles.localToggleText}>Uu tien local API khi cung WiFi</Text>
+                            <View style={[styles.toggle, preferLocalApi && styles.toggleActive]}>
+                                <View style={[styles.toggleCircle, preferLocalApi && styles.toggleCircleActive]} />
+                            </View>
+                            <Text style={styles.localToggleText}>Ưu tiên local API khi cùng WiFi</Text>
                         </TouchableOpacity>
-                        <TextInput style={styles.modalInput} placeholder="API token (nếu có)" value={apiToken} onChangeText={setApiToken} autoCorrect={false} autoCapitalize="none" secureTextEntry placeholderTextColor={Colors.slate[400]} />
+                        <TextInput style={styles.modalInput} placeholder="API token nếu có" value={apiToken} onChangeText={setApiToken} autoCorrect={false} autoCapitalize="none" secureTextEntry placeholderTextColor={Colors.slate[400]} />
                         <TextInput style={styles.modalInput} placeholder="Forecast API URL" value={forecastApiUrl} onChangeText={setForecastApiUrl} autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
                         <Text style={styles.modalLabel}>Mô hình dự báo AI</Text>
-                        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+                        <View style={styles.modelRow}>
                             <TouchableOpacity style={[styles.modelOption, forecastModel === 'xgboost' && styles.modelOptionActive]} onPress={() => setForecastModel('xgboost')}>
                                 <Text style={[styles.modelOptionText, forecastModel === 'xgboost' && styles.modelOptionTextActive]}>XGBoost</Text>
                             </TouchableOpacity>
@@ -307,6 +316,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background, padding: 16 },
     profileCard: { borderRadius: 20, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8, marginBottom: 20 },
     avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+    avatarText: { fontSize: 28, color: '#fff' },
     profileName: { fontSize: 20, fontWeight: '600', color: '#fff' },
     profilePhone: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
     badgeRow: { flexDirection: 'row', gap: 6, marginTop: 8 },
@@ -319,17 +329,18 @@ const styles = StyleSheet.create({
     menuIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.slate[100], alignItems: 'center', justifyContent: 'center' },
     menuText: { fontSize: 15, fontWeight: '500', color: Colors.slate[800] },
     menuSubText: { fontSize: 11, color: Colors.slate[500], marginTop: 2 },
-    menuArrow: { fontSize: 22, color: Colors.slate[400] },
+    menuArrow: { fontSize: 18, color: Colors.slate[400] },
     menuValue: { fontSize: 13, color: Colors.slate[500], maxWidth: 120, textAlign: 'right' },
     toggle: { width: 48, height: 26, borderRadius: 13, backgroundColor: Colors.slate[300], justifyContent: 'center', paddingHorizontal: 2 },
     toggleActive: { backgroundColor: Colors.green[500] },
     toggleCircle: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
     toggleCircleActive: { alignSelf: 'flex-end' },
-    statusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+    statusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 },
     statusCard: { width: '47%' as any, padding: 12, borderRadius: 14 },
     statusDot: { width: 8, height: 8, borderRadius: 4, marginBottom: 6 },
     statusLabel: { fontSize: 12, fontWeight: '600' },
     statusSub: { fontSize: 11, marginTop: 2 },
+    errorText: { color: Colors.red[500], fontSize: 12, marginBottom: 16, paddingHorizontal: 4 },
     logoutBtn: { backgroundColor: '#fff', borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: Colors.red[200], marginBottom: 20 },
     logoutText: { fontSize: 15, fontWeight: '600', color: Colors.red[500] },
     version: { textAlign: 'center', fontSize: 12, color: Colors.slate[400] },
@@ -348,6 +359,7 @@ const styles = StyleSheet.create({
     modalCancelText: { color: Colors.slate[600], fontWeight: '500' },
     modalSaveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.primary[600], alignItems: 'center' },
     modalSaveText: { color: '#fff', fontWeight: '600' },
+    modelRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
     modelOption: { flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: Colors.slate[200], backgroundColor: Colors.slate[50], alignItems: 'center' },
     modelOptionActive: { borderColor: Colors.primary[500], backgroundColor: Colors.primary[50] },
     modelOptionText: { color: Colors.slate[600], fontWeight: '500' },

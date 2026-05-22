@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { defaultRooms, Device, ActivityLog } from '../constants/data';
 import { useAuth } from './AuthContext';
@@ -74,12 +74,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     AsyncStorage.getItem(ACTIVITY_LOGS_STORAGE_KEY),
                 ]);
 
-                if (savedDevices) {
-                    setDevices(JSON.parse(savedDevices));
-                }
-                if (savedLogs) {
-                    setActivityLogs(JSON.parse(savedLogs));
-                }
+                if (savedDevices) setDevices(JSON.parse(savedDevices));
+                if (savedLogs) setActivityLogs(JSON.parse(savedLogs));
             } catch (error) {
                 console.error('Error loading device cache:', error);
             } finally {
@@ -108,7 +104,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const log: ActivityLog = {
             id: `log-${Date.now()}`,
             userId: user?.id || 'guest',
-            userName: user?.name || 'He thong',
+            userName: user?.name || 'Hệ thống',
             action,
             device: deviceName,
             room: roomName,
@@ -223,9 +219,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [addLog, devices, getRoomName, isServerControlled, updateLocalHouse]);
 
     const setAllDevicesState = useCallback(async (roomId: string | null, nextState: boolean): Promise<boolean> => {
-        const targetDevices = roomId
-            ? devices[roomId] || []
-            : Object.values(devices).flat();
+        const targetDevices = roomId ? devices[roomId] || [] : Object.values(devices).flat();
 
         try {
             if (isConfigured && isServerControlled) {
@@ -305,10 +299,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         const sceneNames: Record<'morning' | 'work' | 'weekend' | 'sleep', string> = {
-            morning: 'Buoi sang',
-            work: 'Di lam',
-            weekend: 'Cuoi tuan',
-            sleep: 'Che do ngu',
+            morning: 'Buổi sáng',
+            work: 'Đi làm',
+            weekend: 'Cuối tuần',
+            sleep: 'Chế độ ngủ',
         };
         addLog(`${success ? 'Kích hoạt cảnh' : 'Lỗi kích hoạt cảnh'}: ${sceneNames[scene]}`);
     }, [addLog, client, isConfigured, isServerControlled, refresh, setAllDevicesState, updateLocalHouse]);
@@ -344,7 +338,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             activityLogs,
             isServerControlled,
             serverError,
-            isHomeSuspended: serverError === 'Nhà đang bị tạm khóa',
+            isHomeSuspended: serverError === 'Nhà đang bị tạm khóa' || serverError === 'Nha dang bi tam khoa',
             refresh,
             toggleDevice,
             addDevice,

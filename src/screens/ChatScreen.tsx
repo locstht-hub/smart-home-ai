@@ -20,10 +20,10 @@ import { Colors } from '../constants/colors';
 const APP_AVATAR = require('../../assets/icon.png');
 
 const QUICK_REPLIES = [
-    'bat den phong khach',
-    'tat tat ca thiet bi',
-    'muc tieu thu dien hom nay',
-    'bat che do ngu',
+    'bật đèn phòng khách',
+    'tắt tất cả thiết bị',
+    'mức tiêu thụ điện hôm nay',
+    'bật chế độ ngủ',
 ];
 
 export default function ChatScreen() {
@@ -90,9 +90,7 @@ export default function ChatScreen() {
     }), [user?.id, user?.name]);
 
     const processUserText = useCallback(async (userMessage: string) => {
-        if (!userMessage) {
-            return;
-        }
+        if (!userMessage) return;
 
         if (!isConfigured) {
             pushBotReply(`Server API chưa được cấu hình. Mình đã ghi nhận "${userMessage}" và hiện đang dùng phản hồi dự phòng.`);
@@ -104,7 +102,7 @@ export default function ChatScreen() {
             pushBotReply(reply || `Mình đã chuyển câu lệnh "${userMessage}" tới server riêng.`);
         } catch (error) {
             console.error('Error processing Smart Home server chat:', error);
-            if (error instanceof Error && error.message === 'Nhà đang bị tạm khóa') {
+            if (error instanceof Error && (error.message === 'Nhà đang bị tạm khóa' || error.message === 'Nha dang bi tam khoa')) {
                 pushBotReply('Nhà đang bị tạm khóa. Admin cần mở khóa nhà trước khi bạn dùng Chat AI để điều khiển thiết bị.');
                 return;
             }
@@ -118,23 +116,15 @@ export default function ChatScreen() {
         }
 
         const userMessage = newMessages[0]?.text?.trim();
-        if (!userMessage) {
-            return;
-        }
+        if (!userMessage) return;
 
         await processUserText(userMessage);
     }, [processUserText]);
 
     useEffect(() => {
         const transcriptToSend = transcript.trim();
-
-        if (isListening || !transcriptToSend) {
-            return;
-        }
-
-        if (lastHandledTranscriptRef.current === transcriptToSend) {
-            return;
-        }
+        if (isListening || !transcriptToSend) return;
+        if (lastHandledTranscriptRef.current === transcriptToSend) return;
 
         lastHandledTranscriptRef.current = transcriptToSend;
         resetTranscript();
@@ -157,9 +147,7 @@ export default function ChatScreen() {
     }, [pushBotReply]);
 
     useEffect(() => {
-        if (!isListening) {
-            setIsVoiceStarting(false);
-        }
+        if (!isListening) setIsVoiceStarting(false);
     }, [isListening]);
 
     const handleQuickReply = useCallback((replyText: string) => {
@@ -213,19 +201,13 @@ export default function ChatScreen() {
     }, [isListening, isVoiceAvailable, pushBotReply, resetTranscript, startListening, stopListening]);
 
     const voiceHint = useMemo(() => {
-        if (!isVoiceAvailable) {
-            return 'Mic chưa sẵn sàng trên bản build hiện tại.';
-        }
-        if (isListening) {
-            return transcript.trim() || 'Đang nghe... hãy nói lệnh của bạn';
-        }
-        if (voiceError) {
-            return voiceError;
-        }
+        if (!isVoiceAvailable) return 'Mic chưa sẵn sàng trên bản build hiện tại.';
+        if (isListening) return transcript.trim() || 'Đang nghe... hãy nói lệnh của bạn';
+        if (voiceError) return voiceError;
         return 'Nhấn mic, nói lệnh, app sẽ gửi transcript sang Server API.';
     }, [isListening, isVoiceAvailable, transcript, voiceError]);
 
-    const micLabel = isListening ? '■' : '🎙️';
+    const micLabel = isListening ? 'STOP' : 'MIC';
 
     return (
         <View style={styles.container}>
@@ -455,7 +437,7 @@ const styles = StyleSheet.create({
     },
     voiceButtonIcon: {
         color: '#fff',
-        fontSize: 24,
+        fontSize: 11,
         fontWeight: '800',
     },
     toolbar: {
@@ -487,7 +469,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.red[500],
     },
     micAccessoryIcon: {
-        fontSize: 21,
+        fontSize: 10,
         fontWeight: '800',
         color: Colors.slate[800],
     },

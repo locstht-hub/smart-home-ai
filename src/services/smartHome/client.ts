@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Device } from '../../constants/data';
-import { LoginResponse, PowerCurrentResponse, SmartHomeServerConfig } from '../../types/smartHomeServer';
+import { LoginResponse, PowerCurrentResponse, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
 
 interface DevicesResponse {
     devices: Record<string, Device[]>;
@@ -38,6 +38,10 @@ export class SmartHomeApiClient {
         return this.request('/api/auth/check');
     }
 
+    async getSystemStatus(): Promise<SystemStatusResponse> {
+        return this.request('/api/system/status');
+    }
+
     async login(username: string, password: string): Promise<LoginResponse> {
         return this.request('/api/auth/login', {
             method: 'POST',
@@ -73,7 +77,7 @@ export class SmartHomeApiClient {
             method: 'POST',
             body: JSON.stringify({ text, ...(this.config.homeId ? { homeId: this.config.homeId } : {}) }),
         });
-        return response.reply || response.text || response.message || 'Server da nhan lenh cua ban.';
+        return response.reply || response.text || response.message || 'Server đã nhận lệnh của bạn.';
     }
 
     private withHomeId(path: string): string {
@@ -87,7 +91,7 @@ export class SmartHomeApiClient {
         const baseUrls = this.resolveBaseUrls(savedConfig);
 
         if (!baseUrls.length) {
-            throw new Error('Server API chua duoc cau hinh.');
+            throw new Error('Server API chưa được cấu hình.');
         }
 
         let lastError: unknown = null;
@@ -108,7 +112,7 @@ export class SmartHomeApiClient {
             }
         }
 
-        throw lastError instanceof Error ? lastError : new Error('Khong the ket noi Server API.');
+        throw lastError instanceof Error ? lastError : new Error('Không thể kết nối Server API.');
     }
 
     private async requestFromBaseUrl<T>(
@@ -151,10 +155,10 @@ export class SmartHomeApiClient {
                     parsedError = body;
                 }
                 if (response.status === 401) {
-                    throw new Error('Phien dang nhap hoac API token khong hop le.');
+                    throw new Error('Phiên đăng nhập hoặc API token không hợp lệ.');
                 }
                 if (response.status === 403 && parsedError === 'Home is suspended') {
-                    throw new Error('Nha dang bi tam khoa');
+                    throw new Error('Nhà đang bị tạm khóa');
                 }
                 throw new Error(parsedError || `Server API tra ve ma ${response.status}`);
             }
@@ -189,7 +193,7 @@ export class SmartHomeApiClient {
         if (!(error instanceof Error)) return true;
         return error.name === 'AbortError'
             || /network request failed/i.test(error.message)
-            || /khong the ket noi/i.test(error.message);
+            || /khong the ket noi|không thể kết nối/i.test(error.message);
     }
 
     private async readSavedServerConfig(): Promise<SmartHomeServerConfig | null> {

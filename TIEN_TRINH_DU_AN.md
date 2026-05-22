@@ -6,6 +6,20 @@
 
 ---
 
+## 0.28. SUA TIENG VIET APP + SYSTEM STATUS (22/05/2026 - Session 20)
+
+- [x] Sua cac chuoi tieng Viet bi loi ma hoa trong `ChatScreen`, `SettingsScreen`, `DataContext` va client API
+- [x] Sua nut mic trong Chat AI sang nhan ro rang `MIC/STOP` de khong bi mat icon do loi encoding
+- [x] Them endpoint backend `GET /api/system/status` de app biet server dang chay `mock` hay `plc-real`
+- [x] Settings app hien thi ro nguon API local/domain, che do server, nguon du lieu dien mock hay PLC S7-1200
+- [x] Test `npx tsc --noEmit` thanh cong
+- [x] Test `python -m py_compile` backend thanh cong
+- [x] Restart backend local va goi thu `/api/system/status`: hien tai `mode=mock`, `powerSource=mock`, `plcConfigured=false`
+- [x] Rebuild APK moi: `dist/smart-home-ai-system-status.apk` va cap nhat `dist/smart-home-ai-release.apk`
+- [ ] Buoc tiep theo: cai APK tren dien thoai va kiem tra giao dien Settings/Chat that
+
+---
+
 ## 0.20. ADMIN-SITE UI POLISH (21/05/2026 - Session 16)
 
 - [x] Lam moi giao dien `admin-site/` theo huong dashboard quan tri chuyen nghiep hon

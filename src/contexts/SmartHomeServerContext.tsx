@@ -1,16 +1,18 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SmartHomeApiClient } from '../services/smartHome/client';
-import { SmartHomeServerConfig, SmartHomeServerStatus } from '../types/smartHomeServer';
+import { SmartHomeServerConfig, SmartHomeServerStatus, SystemStatusResponse } from '../types/smartHomeServer';
 
 interface SmartHomeServerContextType {
     config: SmartHomeServerConfig;
     status: SmartHomeServerStatus;
     error: string | null;
+    systemStatus: SystemStatusResponse | null;
     isConfigured: boolean;
     client: SmartHomeApiClient;
     saveConfig: (nextConfig: SmartHomeServerConfig) => Promise<void>;
     testConnection: (overrideConfig?: SmartHomeServerConfig) => Promise<{ success: boolean; message: string }>;
+    refreshSystemStatus: () => Promise<void>;
 }
 
 const SmartHomeServerContext = createContext<SmartHomeServerContextType>({} as SmartHomeServerContextType);
@@ -30,7 +32,7 @@ const defaultConfig: SmartHomeServerConfig = {
 };
 
 const normalizeConfig = (nextConfig: SmartHomeServerConfig): SmartHomeServerConfig => ({
-    apiBaseUrl: nextConfig.apiBaseUrl.trim(),
+    apiBaseUrl: nextConfig.apiBaseUrl?.trim() || CLOUD_API_URL,
     localApiBaseUrl: nextConfig.localApiBaseUrl?.trim() || DEFAULT_LOCAL_API_URL,
     preferLocalApi: nextConfig.preferLocalApi !== false,
     apiToken: nextConfig.apiToken?.trim() || '',
@@ -46,6 +48,7 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
     const [config, setConfig] = useState<SmartHomeServerConfig>(defaultConfig);
     const [status, setStatus] = useState<SmartHomeServerStatus>('idle');
     const [error, setError] = useState<string | null>(null);
+    const [systemStatus, setSystemStatus] = useState<SystemStatusResponse | null>(null);
 
     useEffect(() => {
         const loadConfig = async () => {
@@ -63,16 +66,17 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
     }, []);
 
     const client = useMemo(() => new SmartHomeApiClient(config), [config]);
-    const isConfigured = Boolean(config.apiBaseUrl.trim());
+    const isConfigured = Boolean(config.apiBaseUrl.trim() || config.localApiBaseUrl?.trim());
 
     const testConnection = useCallback(async (overrideConfig?: SmartHomeServerConfig) => {
         const effectiveConfig = normalizeConfig(overrideConfig || config);
         const effectiveClient = new SmartHomeApiClient(effectiveConfig);
 
-        if (!effectiveConfig.apiBaseUrl.trim()) {
+        if (!effectiveConfig.apiBaseUrl.trim() && !effectiveConfig.localApiBaseUrl?.trim()) {
             const message = 'Chưa cấu hình Server API';
             setStatus('error');
             setError(message);
+            setSystemStatus(null);
             return { success: false, message };
         }
 
@@ -80,15 +84,42 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
         setError(null);
         try {
             await effectiveClient.checkAuth();
+            const nextSystemStatus = await effectiveClient.getSystemStatus();
+            setSystemStatus(nextSystemStatus);
             setStatus('connected');
             return { success: true, message: 'Kết nối Server API thành công' };
         } catch (connectionError) {
             const message = connectionError instanceof Error ? connectionError.message : 'Không thể kết nối Server API';
             setStatus('error');
             setError(message);
+            setSystemStatus(null);
             return { success: false, message };
         }
     }, [config]);
+
+    const refreshSystemStatus = useCallback(async () => {
+        if (!isConfigured) {
+            setSystemStatus(null);
+            return;
+        }
+
+        try {
+            const nextSystemStatus = await client.getSystemStatus();
+            setSystemStatus(nextSystemStatus);
+            setStatus('connected');
+            setError(null);
+        } catch (connectionError) {
+            const message = connectionError instanceof Error ? connectionError.message : 'Không thể đọc trạng thái hệ thống';
+            setStatus('error');
+            setError(message);
+            setSystemStatus(null);
+        }
+    }, [client, isConfigured]);
+
+    useEffect(() => {
+        if (!isConfigured) return;
+        refreshSystemStatus().catch(() => undefined);
+    }, [isConfigured, refreshSystemStatus]);
 
     const saveConfig = useCallback(async (nextConfig: SmartHomeServerConfig) => {
         const normalized = normalizeConfig(nextConfig);
@@ -97,7 +128,17 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
     }, []);
 
     return (
-        <SmartHomeServerContext.Provider value={{ config, status, error, isConfigured, client, saveConfig, testConnection }}>
+        <SmartHomeServerContext.Provider value={{
+            config,
+            status,
+            error,
+            systemStatus,
+            isConfigured,
+            client,
+            saveConfig,
+            testConnection,
+            refreshSystemStatus,
+        }}>
             {children}
         </SmartHomeServerContext.Provider>
     );

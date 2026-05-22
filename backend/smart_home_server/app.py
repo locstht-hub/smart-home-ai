@@ -324,6 +324,30 @@ def create_app() -> Flask:
         current_user = get_current_user()
         return jsonify({"ok": True, "service": "smart-home-server", "auth": "ok", "user": current_user})
 
+    @app.get("/api/system/status")
+    def system_status() -> Any:
+        current_user = get_current_user()
+        database_path = configured_db_path.resolve()
+        power_source = "plc-s7-1200" if mode == "plc-real" else "mock"
+        plc = config.get("plc", {})
+
+        return jsonify(
+            {
+                "ok": True,
+                "service": "smart-home-server",
+                "mode": mode,
+                "powerSource": power_source,
+                "plcConfigured": mode == "plc-real",
+                "plcHost": plc.get("host"),
+                "plcRack": plc.get("rack", 0),
+                "plcSlot": plc.get("slot", 1),
+                "databasePath": str(database_path),
+                "statePath": str(STATE_PATH.resolve()),
+                "serverTime": datetime.now(timezone.utc).isoformat(),
+                "authUser": current_user,
+            }
+        )
+
     @app.post("/api/auth/login")
     def login() -> Any:
         payload = request.get_json(silent=True) or {}

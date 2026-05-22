@@ -20,6 +20,20 @@ export interface PowerCurrentResponse {
     source?: string;
 }
 
+export interface SystemStatusResponse {
+    ok: boolean;
+    service: string;
+    mode: 'mock' | 'plc-real' | string;
+    powerSource: 'mock' | 'plc-s7-1200' | string;
+    plcConfigured: boolean;
+    plcHost?: string;
+    plcRack?: number;
+    plcSlot?: number;
+    databasePath?: string;
+    statePath?: string;
+    serverTime: string;
+}
+
 export interface ServerHome {
     id: string;
     name: string;
