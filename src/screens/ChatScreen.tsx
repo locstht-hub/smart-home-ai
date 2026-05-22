@@ -104,6 +104,10 @@ export default function ChatScreen() {
             pushBotReply(reply || `Mình đã chuyển câu lệnh "${userMessage}" tới server riêng.`);
         } catch (error) {
             console.error('Error processing Smart Home server chat:', error);
+            if (error instanceof Error && error.message === 'Nhà đang bị tạm khóa') {
+                pushBotReply('Nhà đang bị tạm khóa. Admin cần mở khóa nhà trước khi bạn dùng Chat AI để điều khiển thiết bị.');
+                return;
+            }
             pushBotReply('Không thể gọi Server API lúc này. Bạn hãy thử lại khi kết nối ổn định hơn.');
         }
     }, [client, isConfigured, pushBotReply]);

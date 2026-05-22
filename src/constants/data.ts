@@ -31,6 +31,14 @@ export interface User {
     status: 'pending' | 'approved' | 'rejected';
     createdAt: string;
     lastActive?: string;
+    username?: string;
+    serverRole?: 'system_admin' | 'owner' | 'member' | 'viewer';
+    serverToken?: string;
+    homeId?: string;
+    homeName?: string;
+    homeStatus?: 'active' | 'suspended';
+    canManageMembers?: boolean;
+    canManageDevices?: boolean;
 }
 
 export interface ActivityLog {

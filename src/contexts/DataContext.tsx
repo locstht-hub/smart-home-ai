@@ -18,6 +18,8 @@ interface DataContextType {
     devices: HouseDevices;
     activityLogs: ActivityLog[];
     isServerControlled: boolean;
+    serverError: string | null;
+    isHomeSuspended: boolean;
     refresh: () => Promise<void>;
     toggleDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<void>;
     addDevice: (roomId: string, device: Omit<Device, 'id' | 'ownerId'>, targetUserId?: string) => Promise<void>;
@@ -62,6 +64,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
     const [hasLoadedStorage, setHasLoadedStorage] = useState(false);
     const [isServerControlled, setIsServerControlled] = useState(false);
+    const [serverError, setServerError] = useState<string | null>(null);
 
     useEffect(() => {
         const loadPersistedData = async () => {
@@ -117,6 +120,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const refresh = useCallback(async () => {
         if (!isConfigured) {
             setIsServerControlled(false);
+            setServerError(null);
             return;
         }
 
@@ -124,9 +128,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const nextDevices = await client.getDevices();
             setDevices(normalizeServerDevices(nextDevices));
             setIsServerControlled(true);
+            setServerError(null);
         } catch (error) {
             console.error('Error refreshing Smart Home server devices:', error);
-            setIsServerControlled(false);
+            setIsServerControlled(true);
+            setServerError(error instanceof Error ? error.message : 'Không thể tải dữ liệu server');
         }
     }, [client, isConfigured]);
 
@@ -173,6 +179,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addLog(currentDevice.isOn ? 'Tắt thiết bị' : 'Bật thiết bị', currentDevice.name, getRoomName(roomId));
         } catch (error) {
             console.error('Error toggling device:', error);
+            setServerError(error instanceof Error ? error.message : 'Không thể điều khiển thiết bị');
             addLog('Lỗi điều khiển thiết bị', currentDevice.name, getRoomName(roomId));
         }
     }, [addLog, client, devices, getRoomName, isConfigured, isServerControlled, refresh, updateLocalHouse]);
@@ -243,6 +250,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return true;
         } catch (error) {
             console.error('Error setting all devices state:', error);
+            setServerError(error instanceof Error ? error.message : 'Không thể điều khiển thiết bị');
             return false;
         }
     }, [client, devices, isConfigured, isServerControlled, refresh, updateLocalHouse]);
@@ -293,6 +301,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         } catch (error) {
             console.error('Error applying scene:', error);
+            setServerError(error instanceof Error ? error.message : 'Không thể kích hoạt cảnh');
         }
 
         const sceneNames: Record<'morning' | 'work' | 'weekend' | 'sleep', string> = {
@@ -334,6 +343,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             devices,
             activityLogs,
             isServerControlled,
+            serverError,
+            isHomeSuspended: serverError === 'Nhà đang bị tạm khóa',
             refresh,
             toggleDevice,
             addDevice,

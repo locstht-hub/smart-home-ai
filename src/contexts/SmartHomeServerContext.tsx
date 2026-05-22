@@ -28,6 +28,7 @@ const defaultConfig: SmartHomeServerConfig = {
 const normalizeConfig = (nextConfig: SmartHomeServerConfig): SmartHomeServerConfig => ({
     apiBaseUrl: nextConfig.apiBaseUrl.trim(),
     apiToken: nextConfig.apiToken?.trim() || '',
+    homeId: nextConfig.homeId?.trim() || '',
     forecastApiUrl: nextConfig.forecastApiUrl?.trim() || '',
     forecastModel: nextConfig.forecastModel || 'xgboost',
     timeout: nextConfig.timeout || 8000,

@@ -7,7 +7,7 @@ import { Colors } from '../constants/colors';
 
 export default function RoomsScreen({ route }: any) {
     const { user } = useAuth();
-    const { rooms, getUserDevices, toggleDevice, addDevice, deleteDevice, turnAllOn, turnAllOffRoom, applyScene, isServerControlled } = useData();
+    const { rooms, getUserDevices, toggleDevice, addDevice, deleteDevice, turnAllOn, turnAllOffRoom, applyScene, isServerControlled, isHomeSuspended, serverError } = useData();
     const [selectedRoom, setSelectedRoom] = useState<string | null>(route?.params?.roomId || null);
     const [showAddDevice, setShowAddDevice] = useState(false);
     const [newDeviceName, setNewDeviceName] = useState('');
@@ -58,11 +58,18 @@ export default function RoomsScreen({ route }: any) {
                     </View>
                 </View>
 
+                {isHomeSuspended && (
+                    <View style={styles.lockedBanner}>
+                        <Text style={styles.lockedTitle}>Nhà đang bị tạm khóa</Text>
+                        <Text style={styles.lockedText}>Bạn không thể bật/tắt thiết bị cho tới khi admin mở khóa nhà.</Text>
+                    </View>
+                )}
+
                 <View style={styles.allBtnRow}>
-                    <TouchableOpacity style={[styles.allBtn, { backgroundColor: Colors.green[500] }]} onPress={() => { void turnAllOn(selectedRoom); }}>
+                    <TouchableOpacity disabled={isHomeSuspended} style={[styles.allBtn, { backgroundColor: Colors.green[500] }, isHomeSuspended && styles.disabledBtn]} onPress={() => { void turnAllOn(selectedRoom); }}>
                         <Text style={styles.allBtnText}>⚡ Bật tất cả</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.allBtn, { backgroundColor: Colors.slate[200] }]} onPress={() => { void turnAllOffRoom(selectedRoom); }}>
+                    <TouchableOpacity disabled={isHomeSuspended} style={[styles.allBtn, { backgroundColor: Colors.slate[200] }, isHomeSuspended && styles.disabledBtn]} onPress={() => { void turnAllOffRoom(selectedRoom); }}>
                         <Text style={[styles.allBtnText, { color: Colors.slate[700] }]}>🔌 Tắt tất cả</Text>
                     </TouchableOpacity>
                 </View>
@@ -91,6 +98,7 @@ export default function RoomsScreen({ route }: any) {
                             <View style={styles.deviceActions}>
                                 <TouchableOpacity
                                     style={[styles.toggle, device.isOn && styles.toggleActive]}
+                                    disabled={isHomeSuspended}
                                     onPress={() => { void toggleDevice(selectedRoom, device.id); }}
                                 >
                                     <View style={[styles.toggleCircle, device.isOn && styles.toggleCircleActive]} />
@@ -192,6 +200,20 @@ export default function RoomsScreen({ route }: any) {
     return (
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
             <Text style={styles.pageTitle}>Quản lý phòng</Text>
+
+            {isHomeSuspended && (
+                <View style={styles.lockedBanner}>
+                    <Text style={styles.lockedTitle}>Nhà đang bị tạm khóa</Text>
+                    <Text style={styles.lockedText}>Demo phân quyền: admin web khóa nhà thì app mobile không được xem dữ liệu mới hoặc điều khiển thiết bị.</Text>
+                </View>
+            )}
+
+            {!isHomeSuspended && serverError && isServerControlled && (
+                <View style={styles.adminHintCard}>
+                    <Text style={styles.adminHintTitle}>Server API chưa sẵn sàng</Text>
+                    <Text style={styles.adminHintText}>{serverError}</Text>
+                </View>
+            )}
 
             {user?.role === 'admin' && (
                 <View style={styles.adminHintCard}>
@@ -349,4 +371,8 @@ const styles = StyleSheet.create({
     modalCancelText: { color: Colors.slate[600], fontWeight: '500' },
     modalSaveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.primary[600], alignItems: 'center' },
     modalSaveText: { color: '#fff', fontWeight: '600' },
+    lockedBanner: { backgroundColor: Colors.red[50], borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.red[200], marginBottom: 14 },
+    lockedTitle: { fontSize: 14, fontWeight: '700', color: Colors.red[600], marginBottom: 4 },
+    lockedText: { fontSize: 13, color: Colors.red[600], lineHeight: 18 },
+    disabledBtn: { opacity: 0.45 },
 });

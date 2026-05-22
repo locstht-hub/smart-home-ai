@@ -12,7 +12,7 @@ const DAY_NAMES = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ 
 
 export default function DashboardScreen({ navigation }: any) {
     const { user } = useAuth();
-    const { rooms, getTotalPower, getActiveDeviceCount, turnAllOff, applyScene } = useData();
+    const { rooms, getTotalPower, getActiveDeviceCount, turnAllOff, applyScene, serverError, isHomeSuspended, isServerControlled } = useData();
     const { client, isConfigured } = useSmartHomeServer();
     const [now, setNow] = useState(new Date());
     const [powerCurrent, setPowerCurrent] = useState<PowerCurrentResponse | null>(null);
@@ -30,6 +30,7 @@ export default function DashboardScreen({ navigation }: any) {
                 setPowerCurrent(await client.getPowerCurrent());
             } catch (error) {
                 console.error('Error loading server power:', error);
+                setPowerCurrent(null);
             }
         };
 
@@ -70,6 +71,20 @@ export default function DashboardScreen({ navigation }: any) {
                     <View style={styles.notifDot}><Text style={styles.notifDotText}>2</Text></View>
                 </TouchableOpacity>
             </View>
+
+            {isHomeSuspended && (
+                <View style={styles.lockedBanner}>
+                    <Text style={styles.lockedTitle}>Nhà đang bị tạm khóa</Text>
+                    <Text style={styles.lockedText}>Admin web đã khóa nhà này. App sẽ chặn xem dữ liệu mới và điều khiển thiết bị để minh họa phân quyền server.</Text>
+                </View>
+            )}
+
+            {!isHomeSuspended && serverError && isServerControlled && (
+                <View style={styles.errorBanner}>
+                    <Text style={styles.errorTitle}>Server API chưa sẵn sàng</Text>
+                    <Text style={styles.errorText}>{serverError}</Text>
+                </View>
+            )}
 
             <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.powerCard}>
                 <View style={styles.powerCardCircle1} />
@@ -216,4 +231,10 @@ const styles = StyleSheet.create({
     tipCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: Colors.amber[200], marginTop: 6 },
     tipTitle: { fontSize: 14, fontWeight: '500', color: Colors.amber[800], marginBottom: 4 },
     tipText: { fontSize: 13, color: Colors.amber[700], lineHeight: 18 },
+    lockedBanner: { backgroundColor: Colors.red[50], borderWidth: 1, borderColor: Colors.red[200], borderRadius: 14, padding: 14, marginBottom: 14 },
+    lockedTitle: { fontSize: 15, fontWeight: '700', color: Colors.red[600], marginBottom: 4 },
+    lockedText: { fontSize: 13, color: Colors.red[600], lineHeight: 18 },
+    errorBanner: { backgroundColor: Colors.amber[50], borderWidth: 1, borderColor: Colors.amber[200], borderRadius: 14, padding: 14, marginBottom: 14 },
+    errorTitle: { fontSize: 15, fontWeight: '700', color: Colors.amber[700], marginBottom: 4 },
+    errorText: { fontSize: 13, color: Colors.amber[700], lineHeight: 18 },
 });

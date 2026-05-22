@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, defaultAdmin, defaultApprovedUser } from '../constants/data';
+import { SmartHomeApiClient } from '../services/smartHome/client';
+import { SmartHomeServerConfig } from '../types/smartHomeServer';
 
 interface AuthContextType {
     user: User | null;
@@ -18,6 +20,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 const USERS_KEY = 'users';
 const USERS_BACKUP_KEY = 'users_backup';
+const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
+const SERVER_API_URL = 'https://api.smarthomeai.id.vn';
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -102,7 +106,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await AsyncStorage.setItem(USERS_KEY, JSON.stringify(normalized));
     };
 
+    const saveServerSession = async (token: string, homeId?: string) => {
+        const saved = await AsyncStorage.getItem(SERVER_CONFIG_KEY);
+        const previous: SmartHomeServerConfig = saved
+            ? JSON.parse(saved)
+            : { apiBaseUrl: SERVER_API_URL, apiToken: '', forecastApiUrl: '', forecastModel: 'xgboost', timeout: 8000 };
+        await AsyncStorage.setItem(SERVER_CONFIG_KEY, JSON.stringify({
+            ...previous,
+            apiBaseUrl: SERVER_API_URL,
+            apiToken: token,
+            homeId: homeId || '',
+            timeout: previous.timeout || 8000,
+        }));
+    };
+
+    const loginWithServer = async (usernameOrPhone: string, password: string): Promise<{ success: boolean; message: string }> => {
+        const client = new SmartHomeApiClient({
+            apiBaseUrl: SERVER_API_URL,
+            apiToken: '',
+            forecastApiUrl: '',
+            forecastModel: 'xgboost',
+            timeout: 8000,
+        });
+        const session = await client.login(usernameOrPhone, password);
+        const primaryHome = session.homes[0];
+        const mappedUser: User = {
+            id: session.user.id,
+            name: session.user.name,
+            username: session.user.username,
+            phone: session.user.phone || session.user.username,
+            password: '',
+            role: session.user.role === 'system_admin' ? 'admin' : 'user',
+            status: 'approved',
+            createdAt: session.user.createdAt,
+            lastActive: session.user.lastActive || new Date().toISOString(),
+            serverRole: session.user.role,
+            serverToken: session.token,
+            homeId: primaryHome?.id,
+            homeName: primaryHome?.name,
+            homeStatus: primaryHome?.status,
+            canManageMembers: primaryHome?.canManageMembers,
+            canManageDevices: primaryHome?.canManageDevices,
+        };
+
+        setUser(mappedUser);
+        await AsyncStorage.setItem('currentUser', JSON.stringify(mappedUser));
+        await saveServerSession(session.token, primaryHome?.id);
+        return { success: true, message: 'Đăng nhập server thành công' };
+    };
+
     const login = async (phone: string, password: string): Promise<{ success: boolean; message: string }> => {
+        try {
+            return await loginWithServer(phone, password);
+        } catch (serverError) {
+            console.log('Server login fallback:', serverError);
+        }
+
         const allUsers = await readUsersFromStorage();
 
         const found = allUsers.find(u => u.phone === phone && u.password === password);
@@ -153,6 +212,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = async () => {
         setUser(null);
         await AsyncStorage.removeItem('currentUser');
+        const saved = await AsyncStorage.getItem(SERVER_CONFIG_KEY);
+        if (saved) {
+            const previous: SmartHomeServerConfig = JSON.parse(saved);
+            await AsyncStorage.setItem(SERVER_CONFIG_KEY, JSON.stringify({ ...previous, apiToken: '', homeId: '' }));
+        }
     };
 
     const approveUser = async (userId: string) => {

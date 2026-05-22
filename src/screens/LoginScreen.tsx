@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { Colors } from '../constants/colors';
@@ -7,18 +7,18 @@ import { Colors } from '../constants/colors';
 const APP_LOGO = require('../../assets/icon.png');
 
 export default function LoginScreen({ navigation }: any) {
-    const [phone, setPhone] = useState('');
-    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('owner');
+    const [password, setPassword] = useState('owner123');
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
 
     const handleLogin = async () => {
-        if (!phone.trim() || !password.trim()) {
-            Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại và mật khẩu');
+        if (!username.trim() || !password.trim()) {
+            Alert.alert('Lỗi', 'Vui lòng nhập username/SĐT và mật khẩu');
             return;
         }
         setLoading(true);
-        const result = await login(phone.trim(), password);
+        const result = await login(username.trim(), password);
         setLoading(false);
         if (!result.success) {
             Alert.alert('Đăng nhập thất bại', result.message);
@@ -28,27 +28,25 @@ export default function LoginScreen({ navigation }: any) {
     return (
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-                {/* Header */}
                 <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.header}>
                     <View style={styles.logoContainer}>
                         <Image source={APP_LOGO} style={styles.logoImage} resizeMode="cover" />
                     </View>
-                    <Text style={styles.appName}>Smart Home</Text>
-                    <Text style={styles.subtitle}>Điều khiển ngôi nhà thông minh</Text>
+                    <Text style={styles.appName}>Smart Home AI</Text>
+                    <Text style={styles.subtitle}>Demo một nhà cho luận văn tốt nghiệp</Text>
                 </LinearGradient>
 
-                {/* Form */}
                 <View style={styles.formContainer}>
-                    <Text style={styles.formTitle}>Đăng nhập</Text>
+                    <Text style={styles.formTitle}>Đăng nhập demo</Text>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Số điện thoại</Text>
+                        <Text style={styles.label}>Username hoặc SĐT</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Nhập số điện thoại"
-                            value={phone}
-                            onChangeText={setPhone}
-                            keyboardType="phone-pad"
+                            placeholder="owner"
+                            value={username}
+                            onChangeText={setUsername}
+                            keyboardType="default"
                             autoCapitalize="none"
                             placeholderTextColor={Colors.slate[400]}
                         />
@@ -58,7 +56,7 @@ export default function LoginScreen({ navigation }: any) {
                         <Text style={styles.label}>Mật khẩu</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Nhập mật khẩu"
+                            placeholder="owner123"
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
@@ -77,17 +75,17 @@ export default function LoginScreen({ navigation }: any) {
                     </TouchableOpacity>
 
                     <View style={styles.registerRow}>
-                        <Text style={styles.registerText}>Chưa có tài khoản? </Text>
+                        <Text style={styles.registerText}>Cần tài khoản local? </Text>
                         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                            <Text style={styles.registerLink}>Đăng ký ngay</Text>
+                            <Text style={styles.registerLink}>Đăng ký</Text>
                         </TouchableOpacity>
                     </View>
 
-                    {/* Demo credentials */}
                     <View style={styles.demoBox}>
-                        <Text style={styles.demoTitle}>Tài khoản Admin:</Text>
-                        <Text style={styles.demoText}>SĐT: 0123456789</Text>
-                        <Text style={styles.demoText}>MK: admin123</Text>
+                        <Text style={styles.demoTitle}>Tài khoản demo luận văn:</Text>
+                        <Text style={styles.demoText}>Chủ nhà: owner / owner123</Text>
+                        <Text style={styles.demoText}>Thành viên: member / member123</Text>
+                        <Text style={styles.demoText}>Admin web: admin / admin123</Text>
                     </View>
                 </View>
             </ScrollView>
@@ -127,5 +125,5 @@ const styles = StyleSheet.create({
         borderRadius: 12, borderWidth: 1, borderColor: Colors.primary[200],
     },
     demoTitle: { fontSize: 13, fontWeight: '600', color: Colors.primary[700], marginBottom: 4 },
-    demoText: { fontSize: 13, color: Colors.primary[600] },
+    demoText: { fontSize: 13, color: Colors.primary[600], lineHeight: 19 },
 });

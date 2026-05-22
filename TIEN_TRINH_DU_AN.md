@@ -45,6 +45,19 @@
 
 ---
 
+## 0.23. MOBILE DEMO MOT NHA CHO LUAN VAN (22/05/2026 - Session 18)
+
+- [x] Chuyen login mobile sang backend domain `https://api.smarthomeai.id.vn`
+- [x] Tai khoan demo mac dinh tren app: `owner / owner123`
+- [x] Luu session token va homeId sau khi dang nhap de cac API mobile goi bang Bearer token
+- [x] Dashboard/Rooms doc thiet bi va dien nang tu server rieng
+- [x] Chat AI gui lenh qua `/api/assistant/chat`
+- [x] Khi admin web khoa nha, app hien thong bao "Nha dang bi tam khoa" va chan thao tac dieu khien
+- [x] Kiem tra TypeScript bang `npx tsc --noEmit`
+- [ ] Buoc tiep theo: rebuild APK demo va test tren dien thoai that
+
+---
+
 ## 1. TỔNG QUAN DỰ ÁN
 
 | Thông tin | Chi tiết |
