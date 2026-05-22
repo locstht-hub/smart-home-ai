@@ -15,6 +15,13 @@ interface ChatResponse {
 export interface ChatResult {
     reply: string;
     elapsedMs: number;
+    endpoint: 'local' | 'cloud';
+    baseUrl: string;
+}
+
+interface RequestResult<T> {
+    data: T;
+    baseUrl: string;
 }
 
 const DEFAULT_TIMEOUT = 8000;
@@ -84,18 +91,21 @@ export class SmartHomeApiClient {
 
     async chatWithTiming(text: string): Promise<ChatResult> {
         const startedAt = Date.now();
-        const response = await this.request<ChatResponse>('/api/assistant/chat', {
+        const result = await this.requestWithEndpoint<ChatResponse>('/api/assistant/chat', {
             method: 'POST',
             body: JSON.stringify({ text, ...(this.config.homeId ? { homeId: this.config.homeId } : {}) }),
         }, { preferCloudFirst: this.config.preferLocalApi !== true });
+        const response = result.data;
         return {
             reply: response.reply || response.text || response.message || 'Server đã nhận lệnh của bạn.',
             elapsedMs: Date.now() - startedAt,
+            endpoint: this.isLocalBaseUrl(result.baseUrl) ? 'local' : 'cloud',
+            baseUrl: result.baseUrl,
         };
     }
 
     async warmUpChatConnection(): Promise<void> {
-        await this.request('/health', {}, { preferCloudFirst: true, singleBaseUrl: true });
+        await this.request('/health', {}, { preferCloudFirst: this.config.preferLocalApi !== true, singleBaseUrl: true });
     }
 
     private withHomeId(path: string): string {
@@ -109,6 +119,15 @@ export class SmartHomeApiClient {
         init: RequestInit = {},
         options: { preferCloudFirst?: boolean; singleBaseUrl?: boolean } = {},
     ): Promise<T> {
+        const result = await this.requestWithEndpoint<T>(path, init, options);
+        return result.data;
+    }
+
+    private async requestWithEndpoint<T>(
+        path: string,
+        init: RequestInit = {},
+        options: { preferCloudFirst?: boolean; singleBaseUrl?: boolean } = {},
+    ): Promise<RequestResult<T>> {
         const savedConfig = await this.readSavedServerConfig();
         const baseUrls = this.resolveBaseUrls(savedConfig, options);
 
@@ -119,13 +138,14 @@ export class SmartHomeApiClient {
         let lastError: unknown = null;
         for (const [index, baseUrl] of baseUrls.entries()) {
             try {
-                return await this.requestFromBaseUrl<T>(
+                const data = await this.requestFromBaseUrl<T>(
                     baseUrl,
                     path,
                     init,
                     savedConfig,
                     this.getTimeoutForBaseUrl(baseUrl, index),
                 );
+                return { data, baseUrl };
             } catch (error) {
                 lastError = error;
                 if (!this.canRetryWithNextBaseUrl(error)) {
@@ -197,7 +217,7 @@ export class SmartHomeApiClient {
     ): string[] {
         const cloudUrl = this.config.apiBaseUrl?.trim() || savedConfig?.apiBaseUrl?.trim() || CLOUD_API_URL;
         const localUrl = this.config.localApiBaseUrl?.trim() || savedConfig?.localApiBaseUrl?.trim() || DEFAULT_LOCAL_API_URL;
-        const preferLocal = options.preferCloudFirst ? false : savedConfig?.preferLocalApi ?? this.config.preferLocalApi ?? true;
+        const preferLocal = options.preferCloudFirst ? false : this.config.preferLocalApi ?? savedConfig?.preferLocalApi ?? true;
         const ordered = preferLocal ? [localUrl, cloudUrl] : [cloudUrl, localUrl];
 
         const baseUrls = ordered
@@ -209,10 +229,14 @@ export class SmartHomeApiClient {
 
     private getTimeoutForBaseUrl(baseUrl: string, index: number): number {
         const configuredTimeout = this.config.timeout || DEFAULT_TIMEOUT;
-        if (index === 0 && /^http:\/\/(10\.|172\.|192\.168\.|127\.0\.0\.1|localhost)/i.test(baseUrl)) {
+        if (index === 0 && this.isLocalBaseUrl(baseUrl)) {
             return Math.min(configuredTimeout, DEFAULT_LOCAL_TIMEOUT);
         }
         return configuredTimeout;
+    }
+
+    private isLocalBaseUrl(baseUrl: string): boolean {
+        return /^http:\/\/(10\.|172\.|192\.168\.|127\.0\.0\.1|localhost)/i.test(baseUrl);
     }
 
     private canRetryWithNextBaseUrl(error: unknown): boolean {

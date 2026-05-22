@@ -110,7 +110,9 @@ export default function ChatScreen() {
 
         try {
             const result = await client.chatWithTiming(userMessage);
-            const timingNote = result.elapsedMs >= 1500 ? `\n\nThời gian API: ${(result.elapsedMs / 1000).toFixed(1)} giây.` : '';
+            const sourceLabel = result.endpoint === 'local' ? 'local' : 'domain';
+            const diagnosticNote = `\n\nNguon API: ${sourceLabel} - ${(result.elapsedMs / 1000).toFixed(1)} giay.`;
+            const timingNote = diagnosticNote;
             pushBotReply(`${result.reply || `Mình đã chuyển câu lệnh "${userMessage}" tới server riêng.`}${timingNote}`);
         } catch (error) {
             console.error('Error processing Smart Home server chat:', error);

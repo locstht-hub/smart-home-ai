@@ -42,6 +42,9 @@
 - [x] Login/app mac dinh ep luu `preferLocalApi=true` va local URL moi de tranh cau hinh cu
 - [x] Do lai local moi: chat tra khoang 22-24 ms khi goi truc tiep tu laptop
 - [x] Rebuild APK local-main: `dist/smart-home-ai-local-main.apk` va cap nhat `dist/smart-home-ai-release.apk`
+- [x] Bat `usesCleartextTraffic=true` cho Android release de app duoc phep goi `http://10.203.15.51:5001`
+- [x] Chat AI hien ro `Nguon API: local/domain` va thoi gian de biet app dang di duong nao
+- [x] Rebuild APK local-http: `dist/smart-home-ai-local-http.apk` va cap nhat `dist/smart-home-ai-release.apk`
 - [ ] Buoc tiep theo: cai lai APK tren dien thoai, cung WiFi `LocluvKT 2`, dang nhap lai va test Chat AI qua local API
 
 ---
