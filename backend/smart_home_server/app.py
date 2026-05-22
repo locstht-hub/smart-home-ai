@@ -302,6 +302,12 @@ def create_app() -> Flask:
             return s7.read_device_states(devices)
         return state_store.load()
 
+    def unpack_view_result(result: Any) -> tuple[dict[str, Any], int]:
+        if isinstance(result, tuple):
+            response, status = result
+            return dict(response.get_json(silent=True) or {}), int(status)
+        return dict(result.get_json(silent=True) or {}), 200
+
     @app.get("/health")
     def health() -> Any:
         return jsonify(
@@ -699,6 +705,13 @@ def create_app() -> Flask:
         if not device:
             return jsonify({"ok": False, "error": f"Unknown device: {device_id}"}), 404
 
+        result = execute_device_command(access, device, is_on)
+        if not result["ok"]:
+            return jsonify(result), 500
+        return jsonify(result)
+
+    def execute_device_command(access: dict[str, Any], device: dict[str, Any], is_on: bool) -> dict[str, Any]:
+        device_id = str(device["id"])
         try:
             if mode == "plc-real":
                 s7.write_device_command(device, is_on)
@@ -712,15 +725,24 @@ def create_app() -> Flask:
                 home_id=access["home"]["id"] if access.get("home") else None,
                 metadata={"roomId": device.get("roomId"), "mode": mode},
             )
-            return jsonify({"ok": True, "device_id": device_id, "isOn": is_on})
+            return {"ok": True, "device_id": device_id, "isOn": is_on}
         except Exception as exc:
-            return jsonify({"ok": False, "error": str(exc)}), 500
+            return {"ok": False, "error": str(exc), "device_id": device_id, "isOn": is_on, "mode": mode}
 
     @app.post("/api/scenes/<scene>")
     def apply_scene(scene: str) -> Any:
         access = require_active_home_access(manage_devices=True)
         if not isinstance(access, dict):
             return access
+
+        result = execute_scene(access, scene)
+        if not result["ok"]:
+            status = 400 if result.get("reason") == "unknown_scene" else 500
+            return jsonify(result), status
+        return jsonify(result)
+
+    def execute_scene(access: dict[str, Any], scene: str) -> dict[str, Any]:
+        scene = str(scene)
 
         states = state_store.load()
 
@@ -731,24 +753,27 @@ def create_app() -> Flask:
         elif scene in {"morning", "weekend"}:
             target = {str(item["id"]): True for item in devices}
         else:
-            return jsonify({"ok": False, "error": f"Unknown scene: {scene}"}), 400
+            return {"ok": False, "error": f"Unknown scene: {scene}", "reason": "unknown_scene", "scene": scene}
 
-        for device_id, is_on in target.items():
-            device = next(item for item in devices if str(item["id"]) == device_id)
-            if mode == "plc-real":
-                s7.write_device_command(device, is_on)
-            states[device_id] = is_on
+        try:
+            for device_id, is_on in target.items():
+                device = next(item for item in devices if str(item["id"]) == device_id)
+                if mode == "plc-real":
+                    s7.write_device_command(device, is_on)
+                states[device_id] = is_on
 
-        state_store.save(states)
-        audit(
-            "scene.apply",
-            target_type="scene",
-            target_id=scene,
-            target_name=scene,
-            home_id=access["home"]["id"] if access.get("home") else None,
-            metadata={"affected": len(target)},
-        )
-        return jsonify({"ok": True, "scene": scene})
+            state_store.save(states)
+            audit(
+                "scene.apply",
+                target_type="scene",
+                target_id=scene,
+                target_name=scene,
+                home_id=access["home"]["id"] if access.get("home") else None,
+                metadata={"affected": len(target), "mode": mode},
+            )
+            return {"ok": True, "scene": scene, "affected": len(target)}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc), "scene": scene, "mode": mode}
 
     @app.post("/api/assistant/chat")
     def assistant_chat() -> Any:
@@ -771,39 +796,70 @@ def create_app() -> Flask:
         intent = parse_intent(text, devices)
 
         if intent["intent"] == "get_power_current":
-            power = power_current().json
+            power, status = unpack_view_result(power_current())
+            if status >= 400 or not power.get("source"):
+                return jsonify({"intent": intent, "reply": f"Khong the doc du lieu dien nang: {power.get('error', 'server loi')}"})
             return jsonify({"intent": intent, "reply": f"Cong suat hien tai khoang {power.get('power_kw')} kW."})
 
         if intent["intent"] == "turn_off_all":
-            apply_scene("work")
+            control_access = require_active_home_access(manage_devices=True)
+            if not isinstance(control_access, dict):
+                return control_access
+            result = execute_scene(control_access, "work")
+            if not result["ok"]:
+                return jsonify({"intent": intent, "reply": f"Khong the tat tat ca thiet bi: {result.get('error', 'server loi')}", "error": result})
             return jsonify({"intent": intent, "reply": "Da gui lenh tat tat ca thiet bi."})
 
         if intent["intent"] == "turn_on_all":
-            apply_scene("weekend")
+            control_access = require_active_home_access(manage_devices=True)
+            if not isinstance(control_access, dict):
+                return control_access
+            result = execute_scene(control_access, "weekend")
+            if not result["ok"]:
+                return jsonify({"intent": intent, "reply": f"Khong the bat tat ca thiet bi: {result.get('error', 'server loi')}", "error": result})
             return jsonify({"intent": intent, "reply": "Da gui lenh bat tat ca thiet bi."})
 
         if intent["intent"] == "apply_scene":
-            apply_scene(str(intent["scene"]))
+            control_access = require_active_home_access(manage_devices=True)
+            if not isinstance(control_access, dict):
+                return control_access
+            result = execute_scene(control_access, str(intent["scene"]))
+            if not result["ok"]:
+                return jsonify({"intent": intent, "reply": f"Khong the kich hoat canh {intent['scene']}: {result.get('error', 'server loi')}", "error": result})
             return jsonify({"intent": intent, "reply": f"Da kich hoat canh {intent['scene']}."})
 
         if intent["intent"] in {"turn_on_device", "turn_off_device"}:
+            control_access = require_active_home_access(manage_devices=True)
+            if not isinstance(control_access, dict):
+                return control_access
             is_on = intent["intent"] == "turn_on_device"
-            set_device(str(intent["device_id"]), is_on)
+            device = next((item for item in devices if str(item["id"]) == str(intent["device_id"])), None)
+            if not device:
+                return jsonify({"intent": intent, "reply": f"Khong tim thay thiet bi {intent['device_id']}."})
+            result = execute_device_command(control_access, device, is_on)
             action = "bat" if is_on else "tat"
+            if not result["ok"]:
+                return jsonify({"intent": intent, "reply": f"Khong the {action} {intent.get('device_name', intent['device_id'])}: {result.get('error', 'server loi')}", "error": result})
             return jsonify({"intent": intent, "reply": f"Da gui lenh {action} {intent.get('device_name', intent['device_id'])}."})
 
         if intent["intent"] == "set_filtered_devices":
-            states = read_states()
+            control_access = require_active_home_access(manage_devices=True)
+            if not isinstance(control_access, dict):
+                return control_access
             affected = 0
+            errors: list[dict[str, Any]] = []
             for device in devices:
                 if intent.get("room_id") and device.get("roomId") != intent["room_id"]:
                     continue
                 if intent.get("device_type") and device.get("type") != intent["device_type"]:
                     continue
-                set_device(str(device["id"]), bool(intent["is_on"]))
-                states[str(device["id"])] = bool(intent["is_on"])
-                affected += 1
-            state_store.save(states)
+                result = execute_device_command(control_access, device, bool(intent["is_on"]))
+                if result["ok"]:
+                    affected += 1
+                else:
+                    errors.append(result)
+            if errors:
+                return jsonify({"intent": intent, "reply": f"Chi gui duoc lenh cho {affected} thiet bi, {len(errors)} thiet bi loi: {errors[0].get('error', 'server loi')}", "errors": errors})
             return jsonify({"intent": intent, "reply": f"Da gui lenh cho {affected} thiet bi phu hop."})
 
         if intent["intent"] == "list_devices":

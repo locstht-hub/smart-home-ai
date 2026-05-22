@@ -99,6 +99,19 @@
 
 ---
 
+## 0.27. CHAT AI BAO LOI PLC THAT (22/05/2026 - Session 18)
+
+- [x] Tach helper thuc thi lenh thiet bi/scene de tra ve `ok/error` ro rang
+- [x] Route bat/tat thiet bi va scene van giu API cu, nhung tra loi 500 neu PLC loi
+- [x] Chat AI khong con bo qua loi khi goi lenh dieu khien
+- [x] Neu `plc-real` va PLC loi, chat tra loi kieu `Khong the bat ...`
+- [x] Mock mode van hoat dong binh thuong cho demo khong co PLC
+- [x] Test `python -m py_compile`
+- [x] Test Flask client: mock thanh cong, gia lap `PLC offline` thi chat bao loi that
+- [ ] Buoc tiep theo: khi co PLC that, cai `python-snap7`, doi `mode` sang `plc-real`, test doc/ghi tag that
+
+---
+
 ## 1. TỔNG QUAN DỰ ÁN
 
 | Thông tin | Chi tiết |
