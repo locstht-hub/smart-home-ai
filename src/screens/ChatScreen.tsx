@@ -63,6 +63,17 @@ export default function ChatScreen() {
         muteAndroidBeep: true,
     });
 
+    useEffect(() => {
+        if (!isConfigured) return;
+
+        client.warmUpChatConnection().catch(() => undefined);
+        const keepWarmInterval = setInterval(() => {
+            client.warmUpChatConnection().catch(() => undefined);
+        }, 25000);
+
+        return () => clearInterval(keepWarmInterval);
+    }, [client, isConfigured]);
+
     const pushBotReply = useCallback((text: string) => {
         const botReply: IMessage = {
             _id: `bot-${Date.now()}`,
@@ -98,8 +109,9 @@ export default function ChatScreen() {
         }
 
         try {
-            const reply = await client.chat(userMessage);
-            pushBotReply(reply || `Mình đã chuyển câu lệnh "${userMessage}" tới server riêng.`);
+            const result = await client.chatWithTiming(userMessage);
+            const timingNote = result.elapsedMs >= 1500 ? `\n\nThời gian API: ${(result.elapsedMs / 1000).toFixed(1)} giây.` : '';
+            pushBotReply(`${result.reply || `Mình đã chuyển câu lệnh "${userMessage}" tới server riêng.`}${timingNote}`);
         } catch (error) {
             console.error('Error processing Smart Home server chat:', error);
             if (error instanceof Error && (error.message === 'Nhà đang bị tạm khóa' || error.message === 'Nha dang bi tam khoa')) {
