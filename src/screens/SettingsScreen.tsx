@@ -18,6 +18,8 @@ export default function SettingsScreen() {
     const [newPw, setNewPw] = useState('');
     const [confirmPw, setConfirmPw] = useState('');
     const [apiBaseUrl, setApiBaseUrl] = useState(config.apiBaseUrl);
+    const [localApiBaseUrl, setLocalApiBaseUrl] = useState(config.localApiBaseUrl || '');
+    const [preferLocalApi, setPreferLocalApi] = useState(config.preferLocalApi !== false);
     const [apiToken, setApiToken] = useState(config.apiToken || '');
     const [forecastApiUrl, setForecastApiUrl] = useState(config.forecastApiUrl || '');
     const [forecastModel, setForecastModel] = useState<'xgboost' | 'lstm'>(config.forecastModel || 'xgboost');
@@ -27,10 +29,12 @@ export default function SettingsScreen() {
 
     useEffect(() => {
         setApiBaseUrl(config.apiBaseUrl);
+        setLocalApiBaseUrl(config.localApiBaseUrl || '');
+        setPreferLocalApi(config.preferLocalApi !== false);
         setApiToken(config.apiToken || '');
         setForecastApiUrl(config.forecastApiUrl || '');
         setForecastModel(config.forecastModel || 'xgboost');
-    }, [config.apiBaseUrl, config.apiToken, config.forecastApiUrl, config.forecastModel]);
+    }, [config.apiBaseUrl, config.localApiBaseUrl, config.preferLocalApi, config.apiToken, config.forecastApiUrl, config.forecastModel]);
 
     const connectionLabel = status === 'connected'
         ? 'Đã kết nối'
@@ -67,6 +71,8 @@ export default function SettingsScreen() {
     const handleSaveServer = async () => {
         const nextConfig = {
             apiBaseUrl,
+            localApiBaseUrl,
+            preferLocalApi,
             apiToken,
             timeout: 8000,
             forecastApiUrl,
@@ -265,6 +271,11 @@ export default function SettingsScreen() {
                         <Text style={styles.modalTitle}>Cấu hình Server API</Text>
                         <Text style={styles.modalHint}>Khuyến nghị: https://api.smarthomeai.id.vn. Emulator local: http://10.0.2.2:5001. Điện thoại thật local: http://IP-LAPTOP:5001.</Text>
                         <TextInput style={styles.modalInput} placeholder="Server API URL" value={apiBaseUrl} onChangeText={setApiBaseUrl} autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
+                        <TextInput style={styles.modalInput} placeholder="Local API URL" value={localApiBaseUrl} onChangeText={setLocalApiBaseUrl} autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
+                        <TouchableOpacity style={styles.localToggleRow} onPress={() => setPreferLocalApi(!preferLocalApi)}>
+                            <View style={[styles.toggle, preferLocalApi && styles.toggleActive]}><View style={[styles.toggleCircle, preferLocalApi && styles.toggleCircleActive]} /></View>
+                            <Text style={styles.localToggleText}>Uu tien local API khi cung WiFi</Text>
+                        </TouchableOpacity>
                         <TextInput style={styles.modalInput} placeholder="API token (nếu có)" value={apiToken} onChangeText={setApiToken} autoCorrect={false} autoCapitalize="none" secureTextEntry placeholderTextColor={Colors.slate[400]} />
                         <TextInput style={styles.modalInput} placeholder="Forecast API URL" value={forecastApiUrl} onChangeText={setForecastApiUrl} autoCorrect={false} autoCapitalize="none" placeholderTextColor={Colors.slate[400]} />
                         <Text style={styles.modalLabel}>Mô hình dự báo AI</Text>
@@ -330,6 +341,8 @@ const styles = StyleSheet.create({
     statusHint: { fontSize: 12, color: Colors.slate[500], marginBottom: 10, lineHeight: 18 },
     modalLabel: { fontSize: 13, fontWeight: '600', color: Colors.slate[700], marginBottom: 8, marginTop: 4 },
     modalInput: { backgroundColor: Colors.slate[50], borderRadius: 12, padding: 14, fontSize: 16, color: Colors.slate[800], borderWidth: 1, borderColor: Colors.slate[200], marginBottom: 10 },
+    localToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+    localToggleText: { fontSize: 13, color: Colors.slate[700], fontWeight: '500' },
     modalBtnRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
     modalCancelBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.slate[100], alignItems: 'center' },
     modalCancelText: { color: Colors.slate[600], fontWeight: '500' },

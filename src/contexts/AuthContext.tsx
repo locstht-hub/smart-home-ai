@@ -22,6 +22,7 @@ const USERS_KEY = 'users';
 const USERS_BACKUP_KEY = 'users_backup';
 const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
 const SERVER_API_URL = 'https://api.smarthomeai.id.vn';
+const LOCAL_API_URL = 'http://172.16.5.180:5001';
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -110,10 +111,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const saved = await AsyncStorage.getItem(SERVER_CONFIG_KEY);
         const previous: SmartHomeServerConfig = saved
             ? JSON.parse(saved)
-            : { apiBaseUrl: SERVER_API_URL, apiToken: '', forecastApiUrl: '', forecastModel: 'xgboost', timeout: 8000 };
+            : { apiBaseUrl: SERVER_API_URL, localApiBaseUrl: LOCAL_API_URL, preferLocalApi: true, apiToken: '', forecastApiUrl: '', forecastModel: 'xgboost', timeout: 8000 };
         await AsyncStorage.setItem(SERVER_CONFIG_KEY, JSON.stringify({
             ...previous,
             apiBaseUrl: SERVER_API_URL,
+            localApiBaseUrl: previous.localApiBaseUrl || LOCAL_API_URL,
+            preferLocalApi: previous.preferLocalApi !== false,
             apiToken: token,
             homeId: homeId || '',
             timeout: previous.timeout || 8000,
@@ -121,8 +124,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const loginWithServer = async (usernameOrPhone: string, password: string): Promise<{ success: boolean; message: string }> => {
+        const saved = await AsyncStorage.getItem(SERVER_CONFIG_KEY);
+        const savedConfig: SmartHomeServerConfig | null = saved ? JSON.parse(saved) : null;
         const client = new SmartHomeApiClient({
             apiBaseUrl: SERVER_API_URL,
+            localApiBaseUrl: savedConfig?.localApiBaseUrl || LOCAL_API_URL,
+            preferLocalApi: savedConfig?.preferLocalApi !== false,
             apiToken: '',
             forecastApiUrl: '',
             forecastModel: 'xgboost',

@@ -1,5 +1,7 @@
 export interface SmartHomeServerConfig {
     apiBaseUrl: string;
+    localApiBaseUrl?: string;
+    preferLocalApi?: boolean;
     apiToken?: string;
     homeId?: string;
     forecastApiUrl?: string;

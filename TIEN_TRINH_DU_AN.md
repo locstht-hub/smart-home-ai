@@ -86,6 +86,19 @@
 
 ---
 
+## 0.26. AUTO API LOCAL/DOMAIN (22/05/2026 - Session 18)
+
+- [x] Them cau hinh `localApiBaseUrl` va `preferLocalApi` cho app mobile
+- [x] Mac dinh uu tien local API `http://172.16.5.180:5001` khi dien thoai cung WiFi voi laptop
+- [x] Neu local API khong ket noi duoc, app tu fallback ve domain `https://api.smarthomeai.id.vn`
+- [x] Luong dang nhap server cung dung co che local truoc, domain sau
+- [x] Them o cau hinh Local API URL trong man hinh Cai dat
+- [x] Kiem tra TypeScript bang `npx tsc --noEmit`
+- [x] Build APK moi `dist/smart-home-ai-auto-api.apk` de test toc do chat/lenh tren dien thoai that
+- [ ] Buoc tiep theo: cai APK moi, dang nhap lai va test lenh `bat den phong khach`
+
+---
+
 ## 1. TỔNG QUAN DỰ ÁN
 
 | Thông tin | Chi tiết |

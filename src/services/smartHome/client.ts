@@ -1,5 +1,5 @@
-import { Device } from '../../constants/data';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Device } from '../../constants/data';
 import { LoginResponse, PowerCurrentResponse, SmartHomeServerConfig } from '../../types/smartHomeServer';
 
 interface DevicesResponse {
@@ -13,6 +13,9 @@ interface ChatResponse {
 }
 
 const DEFAULT_TIMEOUT = 8000;
+const DEFAULT_LOCAL_TIMEOUT = 2500;
+const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
+const DEFAULT_LOCAL_API_URL = 'http://172.16.5.180:5001';
 const USER_KEY = 'currentUser';
 const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
 
@@ -24,7 +27,7 @@ export class SmartHomeApiClient {
     }
 
     isReady(): boolean {
-        return Boolean(this.config.apiBaseUrl.trim());
+        return Boolean(this.config.apiBaseUrl.trim() || this.config.localApiBaseUrl?.trim());
     }
 
     async health(): Promise<{ ok: boolean; service?: string }> {
@@ -70,7 +73,7 @@ export class SmartHomeApiClient {
             method: 'POST',
             body: JSON.stringify({ text, ...(this.config.homeId ? { homeId: this.config.homeId } : {}) }),
         });
-        return response.reply || response.text || response.message || 'Server đã nhận lệnh của bạn.';
+        return response.reply || response.text || response.message || 'Server da nhan lenh cua ban.';
     }
 
     private withHomeId(path: string): string {
@@ -80,20 +83,49 @@ export class SmartHomeApiClient {
     }
 
     private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
-        const baseUrl = this.config.apiBaseUrl.trim().replace(/\/+$/, '');
-        if (!baseUrl) {
-            throw new Error('Server API chưa được cấu hình');
+        const savedConfig = await this.readSavedServerConfig();
+        const baseUrls = this.resolveBaseUrls(savedConfig);
+
+        if (!baseUrls.length) {
+            throw new Error('Server API chua duoc cau hinh.');
         }
 
+        let lastError: unknown = null;
+        for (const [index, baseUrl] of baseUrls.entries()) {
+            try {
+                return await this.requestFromBaseUrl<T>(
+                    baseUrl,
+                    path,
+                    init,
+                    savedConfig,
+                    this.getTimeoutForBaseUrl(baseUrl, index),
+                );
+            } catch (error) {
+                lastError = error;
+                if (!this.canRetryWithNextBaseUrl(error)) {
+                    throw error;
+                }
+            }
+        }
+
+        throw lastError instanceof Error ? lastError : new Error('Khong the ket noi Server API.');
+    }
+
+    private async requestFromBaseUrl<T>(
+        baseUrl: string,
+        path: string,
+        init: RequestInit,
+        savedConfig: SmartHomeServerConfig | null,
+        timeout: number,
+    ): Promise<T> {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), this.config.timeout || DEFAULT_TIMEOUT);
+        const timer = setTimeout(() => controller.abort(), timeout);
 
         try {
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
                 ...((init.headers as Record<string, string>) || {}),
             };
-            const savedConfig = await this.readSavedServerConfig();
             const savedUser = await this.readSavedUser();
             const token = this.config.apiToken?.trim() || savedConfig?.apiToken?.trim() || savedUser?.serverToken?.trim();
             const homeId = this.config.homeId?.trim() || savedConfig?.homeId?.trim() || savedUser?.homeId?.trim();
@@ -119,18 +151,45 @@ export class SmartHomeApiClient {
                     parsedError = body;
                 }
                 if (response.status === 401) {
-                    throw new Error('Phiên đăng nhập hoặc API token không hợp lệ.');
+                    throw new Error('Phien dang nhap hoac API token khong hop le.');
                 }
                 if (response.status === 403 && parsedError === 'Home is suspended') {
-                    throw new Error('Nhà đang bị tạm khóa');
+                    throw new Error('Nha dang bi tam khoa');
                 }
-                throw new Error(parsedError || `Server API trả về mã ${response.status}`);
+                throw new Error(parsedError || `Server API tra ve ma ${response.status}`);
             }
 
             return response.json() as Promise<T>;
         } finally {
             clearTimeout(timer);
         }
+    }
+
+    private resolveBaseUrls(savedConfig: SmartHomeServerConfig | null): string[] {
+        const cloudUrl = this.config.apiBaseUrl?.trim() || savedConfig?.apiBaseUrl?.trim() || CLOUD_API_URL;
+        const localUrl = this.config.localApiBaseUrl?.trim() || savedConfig?.localApiBaseUrl?.trim() || DEFAULT_LOCAL_API_URL;
+        const preferLocal = this.config.preferLocalApi ?? savedConfig?.preferLocalApi ?? true;
+        const ordered = preferLocal ? [localUrl, cloudUrl] : [cloudUrl, localUrl];
+
+        return ordered
+            .map((url) => url.trim().replace(/\/+$/, ''))
+            .filter(Boolean)
+            .filter((url, index, list) => list.indexOf(url) === index);
+    }
+
+    private getTimeoutForBaseUrl(baseUrl: string, index: number): number {
+        const configuredTimeout = this.config.timeout || DEFAULT_TIMEOUT;
+        if (index === 0 && /^http:\/\/(10\.|172\.|192\.168\.|127\.0\.0\.1|localhost)/i.test(baseUrl)) {
+            return Math.min(configuredTimeout, DEFAULT_LOCAL_TIMEOUT);
+        }
+        return configuredTimeout;
+    }
+
+    private canRetryWithNextBaseUrl(error: unknown): boolean {
+        if (!(error instanceof Error)) return true;
+        return error.name === 'AbortError'
+            || /network request failed/i.test(error.message)
+            || /khong the ket noi/i.test(error.message);
     }
 
     private async readSavedServerConfig(): Promise<SmartHomeServerConfig | null> {
