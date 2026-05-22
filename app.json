@@ -22,6 +22,9 @@
         "monochromeImage": "./assets/icon.png"
       },
       "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "RECORD_AUDIO"
+      ],
       "package": "com.anonymous.smarthomeapp"
     },
     "web": {

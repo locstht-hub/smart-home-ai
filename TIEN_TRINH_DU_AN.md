@@ -70,7 +70,19 @@
   - `muc tieu thu dien hom nay`
   - `bat che do ngu`
 - [x] Kiem tra `npx tsc --noEmit` va `python -m py_compile`
-- [ ] Buoc tiep theo: build APK moi va test mic tren dien thoai that
+- [x] Build APK moi de test mic tren dien thoai that
+
+---
+
+## 0.25. BUILD APK DEMO MIC (22/05/2026 - Session 18)
+
+- [x] Them quyen `RECORD_AUDIO` vao `app.json` va Android manifest local de app co the xin quyen micro tren may that
+- [x] Them `android.packagingOptions.pickFirsts=**/libworklets.so` de xu ly loi native lib trung khi build release
+- [x] Build APK release thanh cong bang Gradle voi `NODE_ENV=production`
+- [x] Xuat APK demo:
+  - `dist/smart-home-ai-demo-mic.apk`
+  - `dist/smart-home-ai-release.apk`
+- [ ] Buoc tiep theo: cai APK len dien thoai that, cap quyen microphone, test nut mic trong AI Assistant
 
 ---
 
