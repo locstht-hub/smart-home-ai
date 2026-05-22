@@ -76,7 +76,7 @@ export class SmartHomeApiClient {
         const response = await this.request<ChatResponse>('/api/assistant/chat', {
             method: 'POST',
             body: JSON.stringify({ text, ...(this.config.homeId ? { homeId: this.config.homeId } : {}) }),
-        });
+        }, { preferCloudFirst: true });
         return response.reply || response.text || response.message || 'Server đã nhận lệnh của bạn.';
     }
 
@@ -86,9 +86,9 @@ export class SmartHomeApiClient {
         return `${path}${separator}homeId=${encodeURIComponent(this.config.homeId.trim())}`;
     }
 
-    private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    private async request<T>(path: string, init: RequestInit = {}, options: { preferCloudFirst?: boolean } = {}): Promise<T> {
         const savedConfig = await this.readSavedServerConfig();
-        const baseUrls = this.resolveBaseUrls(savedConfig);
+        const baseUrls = this.resolveBaseUrls(savedConfig, options);
 
         if (!baseUrls.length) {
             throw new Error('Server API chưa được cấu hình.');
@@ -169,10 +169,10 @@ export class SmartHomeApiClient {
         }
     }
 
-    private resolveBaseUrls(savedConfig: SmartHomeServerConfig | null): string[] {
+    private resolveBaseUrls(savedConfig: SmartHomeServerConfig | null, options: { preferCloudFirst?: boolean } = {}): string[] {
         const cloudUrl = this.config.apiBaseUrl?.trim() || savedConfig?.apiBaseUrl?.trim() || CLOUD_API_URL;
         const localUrl = this.config.localApiBaseUrl?.trim() || savedConfig?.localApiBaseUrl?.trim() || DEFAULT_LOCAL_API_URL;
-        const preferLocal = savedConfig?.preferLocalApi ?? this.config.preferLocalApi ?? false;
+        const preferLocal = options.preferCloudFirst ? false : savedConfig?.preferLocalApi ?? this.config.preferLocalApi ?? false;
         const ordered = preferLocal ? [localUrl, cloudUrl] : [cloudUrl, localUrl];
 
         return ordered

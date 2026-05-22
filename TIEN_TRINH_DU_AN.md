@@ -27,8 +27,10 @@
 - [x] Doi mac dinh app sang uu tien domain, chi dung local khi nguoi dung bat thu cong trong Settings
 - [x] Giam timeout local tu 2500 ms xuong 800 ms de fallback nhanh hon neu local bi loi
 - [x] Login server khong con ep luu `preferLocalApi=true`, tranh chat bi cham do cau hinh cu
+- [x] Ep rieng Chat AI uu tien domain truoc de tranh cau hinh local cu tren dien thoai lam tre 10 giay
 - [x] Test `npx tsc --noEmit` thanh cong
 - [x] Rebuild APK latency fix: `dist/smart-home-ai-fast-domain.apk` va cap nhat `dist/smart-home-ai-release.apk`
+- [x] Rebuild APK cloud-first rieng cho chat: `dist/smart-home-ai-chat-cloud-first.apk`
 - [ ] Buoc tiep theo: cai lai APK tren dien thoai, dang nhap lai va test Chat AI qua domain
 
 ---
