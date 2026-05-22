@@ -24,7 +24,7 @@ export const DEFAULT_LOCAL_API_URL = 'http://172.16.5.180:5001';
 const defaultConfig: SmartHomeServerConfig = {
     apiBaseUrl: CLOUD_API_URL,
     localApiBaseUrl: DEFAULT_LOCAL_API_URL,
-    preferLocalApi: true,
+    preferLocalApi: false,
     apiToken: '',
     forecastApiUrl: '',
     forecastModel: 'xgboost',
@@ -34,7 +34,7 @@ const defaultConfig: SmartHomeServerConfig = {
 const normalizeConfig = (nextConfig: SmartHomeServerConfig): SmartHomeServerConfig => ({
     apiBaseUrl: nextConfig.apiBaseUrl?.trim() || CLOUD_API_URL,
     localApiBaseUrl: nextConfig.localApiBaseUrl?.trim() || DEFAULT_LOCAL_API_URL,
-    preferLocalApi: nextConfig.preferLocalApi !== false,
+    preferLocalApi: nextConfig.preferLocalApi === true,
     apiToken: nextConfig.apiToken?.trim() || '',
     homeId: nextConfig.homeId?.trim() || '',
     forecastApiUrl: nextConfig.forecastApiUrl?.trim() || '',

@@ -20,6 +20,19 @@
 
 ---
 
+## 0.29. GIAM DO TRE CHAT AI QUA DOMAIN (22/05/2026 - Session 20)
+
+- [x] Do thoi gian domain `https://api.smarthomeai.id.vn/api/assistant/chat`: khoang 321 ms khi goi truc tiep tu laptop
+- [x] Phat hien IP local `http://172.16.5.180:5001` khong truy cap duoc nen gay treo lau neu app thu local truoc
+- [x] Doi mac dinh app sang uu tien domain, chi dung local khi nguoi dung bat thu cong trong Settings
+- [x] Giam timeout local tu 2500 ms xuong 800 ms de fallback nhanh hon neu local bi loi
+- [x] Login server khong con ep luu `preferLocalApi=true`, tranh chat bi cham do cau hinh cu
+- [x] Test `npx tsc --noEmit` thanh cong
+- [x] Rebuild APK latency fix: `dist/smart-home-ai-fast-domain.apk` va cap nhat `dist/smart-home-ai-release.apk`
+- [ ] Buoc tiep theo: cai lai APK tren dien thoai, dang nhap lai va test Chat AI qua domain
+
+---
+
 ## 0.20. ADMIN-SITE UI POLISH (21/05/2026 - Session 16)
 
 - [x] Lam moi giao dien `admin-site/` theo huong dashboard quan tri chuyen nghiep hon

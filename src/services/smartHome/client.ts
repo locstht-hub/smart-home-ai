@@ -13,7 +13,7 @@ interface ChatResponse {
 }
 
 const DEFAULT_TIMEOUT = 8000;
-const DEFAULT_LOCAL_TIMEOUT = 2500;
+const DEFAULT_LOCAL_TIMEOUT = 800;
 const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
 const DEFAULT_LOCAL_API_URL = 'http://172.16.5.180:5001';
 const USER_KEY = 'currentUser';
@@ -172,7 +172,7 @@ export class SmartHomeApiClient {
     private resolveBaseUrls(savedConfig: SmartHomeServerConfig | null): string[] {
         const cloudUrl = this.config.apiBaseUrl?.trim() || savedConfig?.apiBaseUrl?.trim() || CLOUD_API_URL;
         const localUrl = this.config.localApiBaseUrl?.trim() || savedConfig?.localApiBaseUrl?.trim() || DEFAULT_LOCAL_API_URL;
-        const preferLocal = this.config.preferLocalApi ?? savedConfig?.preferLocalApi ?? true;
+        const preferLocal = savedConfig?.preferLocalApi ?? this.config.preferLocalApi ?? false;
         const ordered = preferLocal ? [localUrl, cloudUrl] : [cloudUrl, localUrl];
 
         return ordered
