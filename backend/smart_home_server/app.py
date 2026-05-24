@@ -308,6 +308,50 @@ def create_app() -> Flask:
             return dict(response.get_json(silent=True) or {}), int(status)
         return dict(result.get_json(silent=True) or {}), 200
 
+    def request_payload() -> dict[str, Any]:
+        return dict(request.get_json(silent=True) or {})
+
+    def requested_home_id() -> str | None:
+        payload = request_payload()
+        raw_home_id = request.args.get("homeId") or payload.get("homeId")
+        return str(raw_home_id).strip() if raw_home_id else None
+
+    def access_home_id(access: dict[str, Any]) -> str | None:
+        home = access.get("home")
+        if isinstance(home, dict) and home.get("id"):
+            return str(home["id"])
+        return requested_home_id()
+
+    def optional_float(value: Any) -> float | None:
+        if value is None or value == "":
+            return None
+        return float(value)
+
+    def record_power_snapshot(access: dict[str, Any], reading: dict[str, Any]) -> dict[str, Any] | None:
+        home_id = access_home_id(access)
+        if not home_id:
+            return None
+
+        saved = auth_store.record_power_reading(
+            home_id=home_id,
+            timestamp=str(reading["timestamp"]),
+            voltage=optional_float(reading.get("voltage")),
+            current=optional_float(reading.get("current")),
+            power_kw=optional_float(reading.get("power_kw")),
+            energy_kwh=optional_float(reading.get("energy_kwh")),
+            source=str(reading.get("source") or "unknown"),
+            metadata={"mode": mode, "kind": "snapshot"},
+        )
+        audit(
+            "power.reading_recorded",
+            actor=access.get("user"),
+            target_type="power_reading",
+            target_id=saved["id"],
+            home_id=home_id,
+            metadata={"source": saved["source"], "power_kw": saved["power_kw"]},
+        )
+        return saved
+
     @app.get("/health")
     def health() -> Any:
         return jsonify(
@@ -688,16 +732,73 @@ def create_app() -> Flask:
                 }
                 source = "mock"
 
-            return jsonify(
-                {
-                    "voltage": values.get("voltage"),
-                    "current": values.get("current"),
-                    "power_kw": values.get("power_kw"),
-                    "energy_kwh": values.get("energy_kwh"),
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "source": source,
-                }
+            reading = {
+                "voltage": values.get("voltage"),
+                "current": values.get("current"),
+                "power_kw": values.get("power_kw"),
+                "energy_kwh": values.get("energy_kwh"),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": source,
+            }
+            saved = record_power_snapshot(access, reading)
+            return jsonify({**reading, "recorded": bool(saved), "readingId": saved["id"] if saved else None})
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    @app.post("/api/power/readings")
+    def create_power_reading() -> Any:
+        access = require_active_home_access()
+        if not isinstance(access, dict):
+            return access
+
+        payload = request_payload()
+        home_id = access_home_id(access)
+        if not home_id:
+            return jsonify({"ok": False, "error": "homeId is required"}), 400
+
+        try:
+            timestamp = str(payload.get("timestamp") or datetime.now(timezone.utc).isoformat())
+            saved = auth_store.record_power_reading(
+                home_id=home_id,
+                timestamp=timestamp,
+                voltage=optional_float(payload.get("voltage")),
+                current=optional_float(payload.get("current")),
+                power_kw=optional_float(payload.get("power_kw")),
+                energy_kwh=optional_float(payload.get("energy_kwh")),
+                source=str(payload.get("source") or "api"),
+                metadata=dict(payload.get("metadata") or {}),
             )
+            audit(
+                "power.reading_created",
+                actor=access.get("user"),
+                target_type="power_reading",
+                target_id=saved["id"],
+                home_id=home_id,
+                metadata={"source": saved["source"], "power_kw": saved["power_kw"]},
+            )
+            return jsonify({"ok": True, "reading": saved}), 201
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+
+    @app.get("/api/power/history")
+    def power_history() -> Any:
+        access = require_active_home_access()
+        if not isinstance(access, dict):
+            return access
+
+        home_id = access_home_id(access)
+        if not home_id:
+            return jsonify({"ok": False, "error": "homeId is required"}), 400
+
+        try:
+            limit = int(request.args.get("limit", "288"))
+            readings = auth_store.list_power_readings(
+                home_id=home_id,
+                limit=limit,
+                start=request.args.get("start"),
+                end=request.args.get("end"),
+            )
+            return jsonify({"ok": True, "homeId": home_id, "readings": readings})
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc)}), 500
 

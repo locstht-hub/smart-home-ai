@@ -50,6 +50,8 @@ https://api-tenmiencuaban.com
 GET  /health
 GET  /api/auth/check
 GET  /api/power/current
+GET  /api/power/history
+POST /api/power/readings
 GET  /api/devices
 POST /api/devices/<device_id>/turn-on
 POST /api/devices/<device_id>/turn-off
@@ -130,6 +132,33 @@ GET /api/admin/audit-logs?limit=100
 ```
 
 Chi `system_admin` moi doc duoc audit log toan he thong.
+
+## Power readings theo nha
+
+Backend luu lich su dien nang theo `homeId` trong bang SQLite `power_readings`.
+
+```text
+GET  /api/power/history?limit=288
+POST /api/power/readings
+```
+
+`GET /api/power/current` cung tu ghi mot snapshot vao lich su neu request co nha hop le.
+
+Payload mau de PLC/laptop ghi du lieu:
+
+```json
+{
+  "homeId": "home-demo-001",
+  "timestamp": "2026-05-24T12:00:00+07:00",
+  "voltage": 220.5,
+  "current": 1.25,
+  "power_kw": 0.276,
+  "energy_kwh": 12.7,
+  "source": "plc-s7-1200"
+}
+```
+
+Du lieu nay la nen tang de ve lich su 24h/ngay/thang va retrain model forecast rieng cho tung nha.
 
 ## Bao mat API bang token
 

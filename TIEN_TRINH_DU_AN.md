@@ -66,6 +66,20 @@
 
 ---
 
+## 0.31. LUU LICH SU DIEN NANG THEO HOME ID (24/05/2026 - Session 21)
+
+- [x] Them bang SQLite `power_readings` trong `smart_home_auth.db`
+- [x] Them index `idx_power_readings_home_time` de truy van lich su theo nha/thoi gian
+- [x] `GET /api/power/current` tu ghi snapshot vao lich su neu request co `homeId` hop le
+- [x] Them `POST /api/power/readings` de PLC/laptop/day du lieu len server theo `homeId`
+- [x] Them `GET /api/power/history?limit=...` de app/admin doc lich su dien nang cua nha
+- [x] Them audit log `power.reading_recorded` va `power.reading_created`
+- [x] Them client method `getPowerHistory()` va `recordPowerReading()` cho app mobile
+- [x] Test backend: login owner, goi current, ghi reading thu cong, doc history thanh cong
+- [ ] Buoc tiep theo: noi man Analysis doc `/api/power/history` de hien thi lich su dien nang cua nha
+
+---
+
 ## 0.20. ADMIN-SITE UI POLISH (21/05/2026 - Session 16)
 
 - [x] Lam moi giao dien `admin-site/` theo huong dashboard quan tri chuyen nghiep hon

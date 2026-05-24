@@ -18,6 +18,27 @@ export interface PowerCurrentResponse {
     energy_kwh: number | null;
     timestamp: string;
     source?: string;
+    recorded?: boolean;
+    readingId?: string | null;
+}
+
+export interface PowerReading {
+    id: string;
+    homeId: string;
+    timestamp: string;
+    voltage: number | null;
+    current: number | null;
+    power_kw: number | null;
+    energy_kwh: number | null;
+    source: string;
+    metadata?: Record<string, unknown>;
+    createdAt: string;
+}
+
+export interface PowerHistoryResponse {
+    ok: boolean;
+    homeId: string;
+    readings: PowerReading[];
 }
 
 export interface SystemStatusResponse {

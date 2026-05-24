@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Device } from '../../constants/data';
-import { LoginResponse, PowerCurrentResponse, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
+import { LoginResponse, PowerCurrentResponse, PowerHistoryResponse, PowerReading, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
 
 interface DevicesResponse {
     devices: Record<string, Device[]>;
@@ -63,6 +63,21 @@ export class SmartHomeApiClient {
 
     async getPowerCurrent(): Promise<PowerCurrentResponse> {
         return this.request(this.withHomeId('/api/power/current'));
+    }
+
+    async getPowerHistory(limit = 288): Promise<PowerReading[]> {
+        const separator = this.config.homeId?.trim() ? '&' : '?';
+        const path = `${this.withHomeId('/api/power/history')}${separator}limit=${encodeURIComponent(String(limit))}`;
+        const response = await this.request<PowerHistoryResponse>(path);
+        return response.readings;
+    }
+
+    async recordPowerReading(reading: Partial<PowerReading>): Promise<PowerReading> {
+        const response = await this.request<{ ok: boolean; reading: PowerReading }>('/api/power/readings', {
+            method: 'POST',
+            body: JSON.stringify({ ...reading, ...(this.config.homeId ? { homeId: this.config.homeId } : {}) }),
+        });
+        return response.reading;
     }
 
     async getDevices(): Promise<Record<string, Device[]>> {

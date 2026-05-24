@@ -104,9 +104,23 @@ class AuthStore:
                     created_at TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS power_readings (
+                    id TEXT PRIMARY KEY,
+                    home_id TEXT NOT NULL REFERENCES homes(id) ON DELETE CASCADE,
+                    timestamp TEXT NOT NULL,
+                    voltage REAL,
+                    current REAL,
+                    power_kw REAL,
+                    energy_kwh REAL,
+                    source TEXT NOT NULL DEFAULT 'unknown',
+                    metadata_json TEXT,
+                    created_at TEXT NOT NULL
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_user_id);
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_home ON audit_logs(home_id);
+                CREATE INDEX IF NOT EXISTS idx_power_readings_home_time ON power_readings(home_id, timestamp);
                 """
             )
             self.seed_defaults(conn)
@@ -661,3 +675,106 @@ class AuthStore:
                 }
                 for row in rows
             ]
+
+    def record_power_reading(
+        self,
+        *,
+        home_id: str,
+        timestamp: str,
+        voltage: float | None,
+        current: float | None,
+        power_kw: float | None,
+        energy_kwh: float | None,
+        source: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        reading_id = f"power-{secrets.token_hex(12)}"
+        created_at = utc_now()
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO power_readings (
+                    id, home_id, timestamp, voltage, current, power_kw,
+                    energy_kwh, source, metadata_json, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    reading_id,
+                    home_id,
+                    timestamp,
+                    voltage,
+                    current,
+                    power_kw,
+                    energy_kwh,
+                    source,
+                    json.dumps(metadata or {}, ensure_ascii=False),
+                    created_at,
+                ),
+            )
+
+        return {
+            "id": reading_id,
+            "homeId": home_id,
+            "timestamp": timestamp,
+            "voltage": voltage,
+            "current": current,
+            "power_kw": power_kw,
+            "energy_kwh": energy_kwh,
+            "source": source,
+            "metadata": metadata or {},
+            "createdAt": created_at,
+        }
+
+    def list_power_readings(
+        self,
+        *,
+        home_id: str,
+        limit: int = 288,
+        start: str | None = None,
+        end: str | None = None,
+    ) -> list[dict[str, Any]]:
+        safe_limit = min(max(limit, 1), 5000)
+        clauses = ["home_id = ?"]
+        params: list[Any] = [home_id]
+
+        if start:
+            clauses.append("timestamp >= ?")
+            params.append(start)
+        if end:
+            clauses.append("timestamp <= ?")
+            params.append(end)
+
+        params.append(safe_limit)
+        with self.connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT * FROM power_readings
+                WHERE {' AND '.join(clauses)}
+                ORDER BY timestamp DESC
+                LIMIT ?
+                """,
+                params,
+            ).fetchall()
+
+        readings: list[dict[str, Any]] = []
+        for row in reversed(rows):
+            try:
+                metadata = json.loads(row["metadata_json"] or "{}")
+            except json.JSONDecodeError:
+                metadata = {}
+            readings.append(
+                {
+                    "id": row["id"],
+                    "homeId": row["home_id"],
+                    "timestamp": row["timestamp"],
+                    "voltage": row["voltage"],
+                    "current": row["current"],
+                    "power_kw": row["power_kw"],
+                    "energy_kwh": row["energy_kwh"],
+                    "source": row["source"],
+                    "metadata": metadata,
+                    "createdAt": row["created_at"],
+                }
+            )
+        return readings
