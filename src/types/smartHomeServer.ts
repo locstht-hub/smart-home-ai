@@ -53,6 +53,17 @@ export interface SystemStatusResponse {
     databasePath?: string;
     statePath?: string;
     serverTime: string;
+    powerCollector?: {
+        enabled: boolean;
+        running: boolean;
+        intervalSeconds: number;
+        homeIds: string[];
+        lastRunAt?: string | null;
+        lastSuccessAt?: string | null;
+        lastError?: string | null;
+        lastReadingCount: number;
+        totalReadings: number;
+    };
 }
 
 export interface ServerHome {

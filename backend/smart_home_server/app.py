@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import threading
+import time
 from hmac import compare_digest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -187,6 +189,26 @@ def create_app() -> Flask:
     config = load_config()
     devices = list(config.get("devices", []))
     mode = str(config.get("mode", "mock")).strip().lower()
+    collector_config = dict(config.get("powerCollector", {}))
+    collector_interval = max(5, int(collector_config.get("intervalSeconds", 60)))
+    collector_enabled = bool(collector_config.get("enabled", False))
+    collector_home_ids = [str(item).strip() for item in collector_config.get("homeIds", []) if str(item).strip()]
+    mock_energy_kwh = float(collector_config.get("initialEnergyKwh", 12.3))
+    last_mock_energy_update = datetime.now(timezone.utc)
+    energy_lock = threading.Lock()
+    collector_stop_event = threading.Event()
+    collector_status: dict[str, Any] = {
+        "enabled": collector_enabled,
+        "running": False,
+        "intervalSeconds": collector_interval,
+        "homeIds": collector_home_ids,
+        "lastRunAt": None,
+        "lastSuccessAt": None,
+        "lastError": None,
+        "lastReadingCount": 0,
+        "totalReadings": 0,
+    }
+    collector_status_lock = threading.Lock()
     state_store = StateStore(devices)
     s7 = S7Client(config)
     configured_db_path = Path(str(config.get("database", {}).get("path", AUTH_DB_PATH)))
@@ -302,6 +324,99 @@ def create_app() -> Flask:
             return s7.read_device_states(devices)
         return state_store.load()
 
+    def read_power_measurement() -> dict[str, Any]:
+        nonlocal mock_energy_kwh, last_mock_energy_update
+
+        if mode == "plc-real":
+            values = s7.read_power(config.get("powerTags", {}))
+            source = "plc-s7-1200"
+        else:
+            states = state_store.load()
+            active_power_w = sum(float(item["power"]) for item in devices if states.get(str(item["id"]), False))
+            power_kw = round(active_power_w / 1000.0, 4)
+            now = datetime.now(timezone.utc)
+            with energy_lock:
+                elapsed_hours = max(0.0, (now - last_mock_energy_update).total_seconds() / 3600.0)
+                mock_energy_kwh = round(mock_energy_kwh + power_kw * elapsed_hours, 6)
+                last_mock_energy_update = now
+                energy_kwh = mock_energy_kwh
+            values = {
+                "voltage": 220.0,
+                "current": round(active_power_w / 220.0, 4),
+                "power_kw": power_kw,
+                "energy_kwh": energy_kwh,
+            }
+            source = "mock"
+
+        return {
+            "voltage": values.get("voltage"),
+            "current": values.get("current"),
+            "power_kw": values.get("power_kw"),
+            "energy_kwh": values.get("energy_kwh"),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "source": source,
+        }
+
+    def update_collector_status(**updates: Any) -> None:
+        with collector_status_lock:
+            collector_status.update(updates)
+
+    def current_collector_status() -> dict[str, Any]:
+        with collector_status_lock:
+            return dict(collector_status)
+
+    def run_power_collector_once() -> dict[str, Any]:
+        homes = auth_store.list_collector_homes(collector_home_ids or None)
+        if not homes:
+            return {"ok": True, "readings": 0, "homeIds": []}
+
+        reading = read_power_measurement()
+        saved_ids: list[str] = []
+        for home in homes:
+            saved = auth_store.record_power_reading(
+                home_id=str(home["id"]),
+                timestamp=str(reading["timestamp"]),
+                voltage=optional_float(reading.get("voltage")),
+                current=optional_float(reading.get("current")),
+                power_kw=optional_float(reading.get("power_kw")),
+                energy_kwh=optional_float(reading.get("energy_kwh")),
+                source=f"{reading.get('source')}-collector",
+                metadata={"mode": mode, "kind": "collector", "intervalSeconds": collector_interval},
+            )
+            saved_ids.append(saved["id"])
+            auth_store.record_audit_log(
+                actor={"id": "power-collector", "username": "power-collector", "role": "system"},
+                action="power.collector_recorded",
+                target_type="power_reading",
+                target_id=saved["id"],
+                home_id=str(home["id"]),
+                metadata={"source": saved["source"], "power_kw": saved["power_kw"]},
+            )
+
+        return {"ok": True, "readings": len(saved_ids), "homeIds": [home["id"] for home in homes], "readingIds": saved_ids}
+
+    def power_collector_loop() -> None:
+        update_collector_status(running=True, lastError=None)
+        while not collector_stop_event.is_set():
+            now_iso = datetime.now(timezone.utc).isoformat()
+            update_collector_status(lastRunAt=now_iso)
+            try:
+                result = run_power_collector_once()
+                readings_count = int(result.get("readings", 0))
+                with collector_status_lock:
+                    collector_status["lastSuccessAt"] = datetime.now(timezone.utc).isoformat()
+                    collector_status["lastError"] = None
+                    collector_status["lastReadingCount"] = readings_count
+                    collector_status["totalReadings"] = int(collector_status.get("totalReadings", 0)) + readings_count
+            except Exception as exc:
+                update_collector_status(lastError=str(exc))
+                app.logger.warning("Power collector failed: %s", exc)
+
+            if collector_stop_event.wait(collector_interval):
+                break
+
+        update_collector_status(running=False)
+
     def unpack_view_result(result: Any) -> tuple[dict[str, Any], int]:
         if isinstance(result, tuple):
             response, status = result
@@ -389,8 +504,39 @@ def create_app() -> Flask:
                 "statePath": str(STATE_PATH.resolve()),
                 "serverTime": datetime.now(timezone.utc).isoformat(),
                 "authUser": current_user,
+                "powerCollector": current_collector_status(),
             }
         )
+
+    @app.get("/api/power/collector/status")
+    def power_collector_status() -> Any:
+        return jsonify({"ok": True, "collector": current_collector_status()})
+
+    @app.post("/api/power/collector/run-once")
+    def power_collector_run_once() -> Any:
+        admin = require_system_admin()
+        if not isinstance(admin, dict):
+            return admin
+
+        try:
+            result = run_power_collector_once()
+            update_collector_status(
+                lastRunAt=datetime.now(timezone.utc).isoformat(),
+                lastSuccessAt=datetime.now(timezone.utc).isoformat(),
+                lastError=None,
+                lastReadingCount=int(result.get("readings", 0)),
+                totalReadings=int(current_collector_status().get("totalReadings", 0)) + int(result.get("readings", 0)),
+            )
+            audit(
+                "power.collector_run_once",
+                actor=admin,
+                target_type="power_collector",
+                metadata={"readings": result.get("readings"), "homeIds": result.get("homeIds", [])},
+            )
+            return jsonify(result)
+        except Exception as exc:
+            update_collector_status(lastError=str(exc))
+            return jsonify({"ok": False, "error": str(exc)}), 500
 
     @app.post("/api/auth/login")
     def login() -> Any:
@@ -718,28 +864,7 @@ def create_app() -> Flask:
             return access
 
         try:
-            if mode == "plc-real":
-                values = s7.read_power(config.get("powerTags", {}))
-                source = "plc-s7-1200"
-            else:
-                states = state_store.load()
-                active_power_w = sum(float(item["power"]) for item in devices if states.get(str(item["id"]), False))
-                values = {
-                    "voltage": 220.0,
-                    "current": round(active_power_w / 220.0, 4),
-                    "power_kw": round(active_power_w / 1000.0, 4),
-                    "energy_kwh": 12.3,
-                }
-                source = "mock"
-
-            reading = {
-                "voltage": values.get("voltage"),
-                "current": values.get("current"),
-                "power_kw": values.get("power_kw"),
-                "energy_kwh": values.get("energy_kwh"),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "source": source,
-            }
+            reading = read_power_measurement()
             saved = record_power_snapshot(access, reading)
             return jsonify({**reading, "recorded": bool(saved), "readingId": saved["id"] if saved else None})
         except Exception as exc:
@@ -996,6 +1121,10 @@ def create_app() -> Flask:
             return jsonify({"intent": intent, "reply": "Chuc nang du bao se doc Forecast API sau khi co du lieu lich su tu PLC."})
 
         return jsonify({"intent": intent, "reply": f"Minh chua hieu ro lenh: {text}. Ban co the noi lai ngan hon, vi du: bat den phong khach."})
+
+    if collector_enabled and os.environ.get("SMART_HOME_DISABLE_COLLECTOR") != "1":
+        collector_thread = threading.Thread(target=power_collector_loop, name="power-collector", daemon=True)
+        collector_thread.start()
 
     return app
 

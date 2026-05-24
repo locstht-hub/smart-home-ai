@@ -52,6 +52,8 @@ GET  /api/auth/check
 GET  /api/power/current
 GET  /api/power/history
 POST /api/power/readings
+GET  /api/power/collector/status
+POST /api/power/collector/run-once
 GET  /api/devices
 POST /api/devices/<device_id>/turn-on
 POST /api/devices/<device_id>/turn-off
@@ -143,6 +145,25 @@ POST /api/power/readings
 ```
 
 `GET /api/power/current` cung tu ghi mot snapshot vao lich su neu request co nha hop le.
+
+Server co the tu ghi lich su dinh ky bang `powerCollector` trong `config.json`:
+
+```json
+{
+  "powerCollector": {
+    "enabled": true,
+    "intervalSeconds": 60,
+    "initialEnergyKwh": 12.3,
+    "homeIds": ["home-demo-001"]
+  }
+}
+```
+
+- `intervalSeconds`: chu ky lay mau. Demo nen de 30-60 giay, thuc te co the 60-300 giay.
+- `homeIds`: danh sach nha can ghi. De mang rong thi collector ghi cho tat ca nha active.
+- `GET /api/power/collector/status`: xem collector dang chay, lan ghi cuoi, loi gan nhat.
+- `POST /api/power/collector/run-once`: system admin kich hoat ghi thu mot lan de test.
+- Dat bien moi truong `SMART_HOME_DISABLE_COLLECTOR=1` neu muon tam tat collector khi test backend.
 
 Payload mau de PLC/laptop ghi du lieu:
 

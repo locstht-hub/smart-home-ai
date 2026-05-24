@@ -84,6 +84,24 @@
 
 ---
 
+## 0.32. POWER COLLECTOR TU GHI LICH SU DINH KY (24/05/2026 - Session 21)
+
+- [x] Them cau hinh `powerCollector` trong `backend/smart_home_server/config.json`
+- [x] Backend co background collector tu doc power va ghi vao `power_readings` theo chu ky
+- [x] Mock mode tu cong don `energy_kwh` theo cong suat va thoi gian thay vi giu cung 12.3
+- [x] Collector mac dinh ghi cho `home-demo-001`, co the doi `intervalSeconds` hoac `homeIds`
+- [x] Them `GET /api/power/collector/status` de xem collector dang chay/lan ghi cuoi/loi gan nhat
+- [x] Them `POST /api/power/collector/run-once` de system admin ghi thu mot lan
+- [x] Them audit log `power.collector_recorded` va `power.collector_run_once`
+- [x] Cap nhat README backend ve power collector va bien `SMART_HOME_DISABLE_COLLECTOR=1`
+- [x] Test `python -m py_compile` backend thanh cong
+- [x] Test `npx tsc --noEmit` thanh cong
+- [x] Test Flask client: login admin, doc collector status, run-once, doc history thanh cong
+- [x] Test collector background tu chay va ghi snapshot ngay khi server start
+- [ ] Buoc tiep theo: restart Smart Home API port 5001 bang code moi, de collector chay nen that tren laptop
+
+---
+
 ## 0.20. ADMIN-SITE UI POLISH (21/05/2026 - Session 16)
 
 - [x] Lam moi giao dien `admin-site/` theo huong dashboard quan tri chuyen nghiep hon

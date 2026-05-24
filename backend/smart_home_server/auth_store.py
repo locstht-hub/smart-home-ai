@@ -354,6 +354,36 @@ class AuthStore:
                 for row in rows
             ]
 
+    def list_collector_homes(self, home_ids: list[str] | None = None) -> list[dict[str, Any]]:
+        clauses = ["status = 'active'"]
+        params: list[Any] = []
+        if home_ids:
+            placeholders = ",".join("?" for _ in home_ids)
+            clauses.append(f"id IN ({placeholders})")
+            params.extend(home_ids)
+
+        with self.connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT id, name, owner_id, status, created_at
+                FROM homes
+                WHERE {' AND '.join(clauses)}
+                ORDER BY created_at ASC
+                """,
+                params,
+            ).fetchall()
+
+            return [
+                {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "ownerId": row["owner_id"],
+                    "status": row["status"],
+                    "createdAt": row["created_at"],
+                }
+                for row in rows
+            ]
+
     def list_admin_users(self) -> list[dict[str, Any]]:
         with self.connect() as conn:
             rows = conn.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()
