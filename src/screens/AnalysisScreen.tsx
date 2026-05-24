@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LineChart, PieChart } from 'react-native-chart-kit';
@@ -7,7 +7,9 @@ import * as Sharing from 'expo-sharing';
 import { Colors } from '../constants/colors';
 import { useForecast } from '../contexts/ForecastContext';
 import { useData } from '../contexts/DataContext';
+import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { AnomalyAlert } from '../types/forecast';
+import { PowerReading } from '../types/smartHomeServer';
 
 const screenWidth = Dimensions.get('window').width - 64;
 
@@ -18,6 +20,13 @@ const normalizeConfidence = (value?: number) => {
 };
 
 const formatConfidence = (value?: number) => `${normalizeConfidence(value)}%`;
+const formatKw = (value?: number | null) => `${(value ?? 0).toFixed(2)} kW`;
+const formatEnergy = (value?: number | null) => value == null ? '-- kWh' : `${value.toFixed(2)} kWh`;
+const getReadingPower = (reading: PowerReading) => typeof reading.power_kw === 'number' && Number.isFinite(reading.power_kw) ? reading.power_kw : 0;
+const formatReadingTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime()) ? '--:--' : date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+};
 
 const generateReportHTML = (
     rooms: Array<{ name: string; power: number; percent: number }>,
@@ -113,12 +122,77 @@ const generateReportHTML = (
 export default function AnalysisScreen() {
     const { predictions, anomalies, insights, modelInfo, isLoading, error, refresh, triggerRetrain } = useForecast();
     const { rooms, getTotalPower, getActiveDeviceCount } = useData();
+    const { client, isConfigured } = useSmartHomeServer();
     const [showAnomalyDetail, setShowAnomalyDetail] = useState<AnomalyAlert | null>(null);
     const [isExporting, setIsExporting] = useState(false);
     const [isRetraining, setIsRetraining] = useState(false);
+    const [powerHistory, setPowerHistory] = useState<PowerReading[]>([]);
+    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState<string | null>(null);
 
     const totalPowerKw = Number((getTotalPower() / 1000).toFixed(1));
     const activeCount = getActiveDeviceCount();
+
+    const loadPowerHistory = useCallback(async () => {
+        if (!isConfigured) {
+            setPowerHistory([]);
+            setHistoryError('Chưa cấu hình Server API.');
+            return;
+        }
+
+        setIsHistoryLoading(true);
+        setHistoryError(null);
+        try {
+            const readings = await client.getPowerHistory(288);
+            setPowerHistory(readings);
+        } catch (historyLoadError) {
+            const message = historyLoadError instanceof Error ? historyLoadError.message : 'Không thể đọc lịch sử điện năng.';
+            setHistoryError(message);
+        } finally {
+            setIsHistoryLoading(false);
+        }
+    }, [client, isConfigured]);
+
+    useEffect(() => {
+        void loadPowerHistory();
+    }, [loadPowerHistory]);
+
+    const handleRefreshAll = useCallback(() => {
+        void refresh().catch(() => undefined);
+        void loadPowerHistory();
+    }, [loadPowerHistory, refresh]);
+
+    const historySummary = useMemo(() => {
+        const values = powerHistory.map(getReadingPower).filter(value => value > 0);
+        const latest = powerHistory[0] || null;
+        const averageKw = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+        const peakKw = values.length ? Math.max(...values) : 0;
+        const firstEnergy = powerHistory[powerHistory.length - 1]?.energy_kwh;
+        const lastEnergy = latest?.energy_kwh;
+        const energyDelta = typeof firstEnergy === 'number' && typeof lastEnergy === 'number'
+            ? Math.max(0, lastEnergy - firstEnergy)
+            : null;
+
+        return {
+            latest,
+            averageKw,
+            peakKw,
+            energyDelta,
+            count: powerHistory.length,
+        };
+    }, [powerHistory]);
+
+    const historyChartData = useMemo(() => {
+        const sampled = powerHistory.slice(0, 12).reverse();
+        const labels = sampled.map((reading, index) => index % 2 === 0 ? formatReadingTime(reading.timestamp) : '');
+        const series = sampled.map(getReadingPower);
+
+        return {
+            labels: labels.length ? labels : ['--'],
+            datasets: [{ data: series.length ? series : [0], color: () => Colors.green[500], strokeWidth: 2 }],
+            legend: ['Lịch sử thật'],
+        };
+    }, [powerHistory]);
 
     const pieData = useMemo(() => {
         const total = rooms.reduce((sum, room) => sum + room.power, 0) || 1;
@@ -279,7 +353,7 @@ export default function AnalysisScreen() {
             <View style={styles.chartCard}>
                 <View style={styles.predHeader}>
                     <Text style={styles.chartTitle}>Phụ tải điện năng</Text>
-                    <TouchableOpacity onPress={() => refresh().catch(() => undefined)}>
+                    <TouchableOpacity onPress={handleRefreshAll}>
                         <Text style={styles.predUpdate}>Làm mới</Text>
                     </TouchableOpacity>
                 </View>
@@ -299,6 +373,82 @@ export default function AnalysisScreen() {
                     bezier
                     style={{ borderRadius: 12 }}
                 />
+            </View>
+
+            <View style={styles.chartCard}>
+                <View style={styles.predHeader}>
+                    <Text style={styles.chartTitle}>Lịch sử điện năng thật</Text>
+                    <TouchableOpacity onPress={loadPowerHistory} disabled={isHistoryLoading}>
+                        <Text style={styles.predUpdate}>{isHistoryLoading ? 'Đang tải...' : 'Đọc lại'}</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {historyError ? (
+                    <View style={styles.historyEmptyBox}>
+                        <Text style={styles.historyEmptyTitle}>Chưa đọc được lịch sử</Text>
+                        <Text style={styles.historyEmptyText}>{historyError}</Text>
+                    </View>
+                ) : powerHistory.length === 0 ? (
+                    <View style={styles.historyEmptyBox}>
+                        <Text style={styles.historyEmptyTitle}>Chưa có dữ liệu lịch sử</Text>
+                        <Text style={styles.historyEmptyText}>Mở Dashboard hoặc gọi /api/power/current để server ghi snapshot đầu tiên cho nhà này.</Text>
+                    </View>
+                ) : (
+                    <>
+                        <View style={styles.historyStatsGrid}>
+                            <View style={styles.historyStatItem}>
+                                <Text style={styles.historyStatLabel}>Mới nhất</Text>
+                                <Text style={styles.historyStatValue}>{formatKw(historySummary.latest?.power_kw)}</Text>
+                            </View>
+                            <View style={styles.historyStatItem}>
+                                <Text style={styles.historyStatLabel}>Trung bình</Text>
+                                <Text style={styles.historyStatValue}>{formatKw(historySummary.averageKw)}</Text>
+                            </View>
+                            <View style={styles.historyStatItem}>
+                                <Text style={styles.historyStatLabel}>Đỉnh tải</Text>
+                                <Text style={styles.historyStatValue}>{formatKw(historySummary.peakKw)}</Text>
+                            </View>
+                            <View style={styles.historyStatItem}>
+                                <Text style={styles.historyStatLabel}>kWh tăng</Text>
+                                <Text style={styles.historyStatValue}>{formatEnergy(historySummary.energyDelta)}</Text>
+                            </View>
+                        </View>
+
+                        <LineChart
+                            data={historyChartData}
+                            width={screenWidth}
+                            height={190}
+                            yAxisSuffix=" kW"
+                            chartConfig={{
+                                backgroundColor: '#fff',
+                                backgroundGradientFrom: '#fff',
+                                backgroundGradientTo: '#fff',
+                                color: (opacity = 1) => `rgba(34, 197, 94, ${opacity})`,
+                                labelColor: () => Colors.slate[500],
+                                propsForDots: { r: '3' },
+                            }}
+                            bezier
+                            style={{ borderRadius: 12 }}
+                        />
+
+                        <View style={styles.historyList}>
+                            {powerHistory.slice(0, 5).map((reading) => (
+                                <View key={reading.id} style={styles.historyRow}>
+                                    <View>
+                                        <Text style={styles.historyRowTime}>{new Date(reading.timestamp).toLocaleString('vi-VN')}</Text>
+                                        <Text style={styles.historyRowSource}>{reading.source}</Text>
+                                    </View>
+                                    <View style={styles.historyRowValues}>
+                                        <Text style={styles.historyRowPower}>{formatKw(reading.power_kw)}</Text>
+                                        <Text style={styles.historyRowMeta}>
+                                            {reading.voltage?.toFixed(0) ?? '--'}V - {reading.current?.toFixed(2) ?? '--'}A
+                                        </Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    </>
+                )}
             </View>
 
             <View style={styles.chartCard}>
@@ -525,6 +675,20 @@ const styles = StyleSheet.create({
     chartCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
     predHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     predUpdate: { fontSize: 11, color: Colors.slate[400] },
+    historyEmptyBox: { backgroundColor: Colors.slate[50], borderRadius: 12, borderWidth: 1, borderColor: Colors.slate[200], padding: 14 },
+    historyEmptyTitle: { fontSize: 14, fontWeight: '600', color: Colors.slate[800], marginBottom: 4 },
+    historyEmptyText: { fontSize: 12, color: Colors.slate[500], lineHeight: 18 },
+    historyStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 },
+    historyStatItem: { width: '47%' as const, backgroundColor: Colors.slate[50], borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.slate[100] },
+    historyStatLabel: { fontSize: 11, color: Colors.slate[500], marginBottom: 4 },
+    historyStatValue: { fontSize: 16, fontWeight: '700', color: Colors.slate[800] },
+    historyList: { marginTop: 12, gap: 8 },
+    historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.slate[50], borderRadius: 12, padding: 12 },
+    historyRowTime: { fontSize: 12, fontWeight: '600', color: Colors.slate[700] },
+    historyRowSource: { fontSize: 11, color: Colors.slate[400], marginTop: 2 },
+    historyRowValues: { alignItems: 'flex-end' },
+    historyRowPower: { fontSize: 13, fontWeight: '700', color: Colors.green[600] },
+    historyRowMeta: { fontSize: 11, color: Colors.slate[500], marginTop: 2 },
     predItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: Colors.slate[50], borderRadius: 12, marginBottom: 8 },
     predLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     predIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: Colors.primary[100], alignItems: 'center', justifyContent: 'center' },

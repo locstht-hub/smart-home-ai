@@ -272,7 +272,9 @@ export class SmartHomeApiClient {
 
     private appendHomeIdForDemo(path: string, homeId?: string): string {
         if (!homeId || path.includes('homeId=')) return path;
-        const needsHomeId = path.startsWith('/api/devices') || path.startsWith('/api/power/current');
+        const needsHomeId = path.startsWith('/api/devices')
+            || path.startsWith('/api/power/current')
+            || path.startsWith('/api/power/history');
         if (!needsHomeId) return path;
         const separator = path.includes('?') ? '&' : '?';
         return `${path}${separator}homeId=${encodeURIComponent(homeId)}`;

@@ -76,7 +76,11 @@
 - [x] Them audit log `power.reading_recorded` va `power.reading_created`
 - [x] Them client method `getPowerHistory()` va `recordPowerReading()` cho app mobile
 - [x] Test backend: login owner, goi current, ghi reading thu cong, doc history thanh cong
-- [ ] Buoc tiep theo: noi man Analysis doc `/api/power/history` de hien thi lich su dien nang cua nha
+- [x] Noi man Analysis doc `/api/power/history` de hien thi lich su dien nang cua nha
+- [x] Analysis hien thi thong ke moi nhat/trung binh/dinh tai/kWh tang, bieu do lich su va 5 ban ghi gan nhat
+- [x] Client tu kem `homeId` cho `/api/power/history` khi doc lich su theo nha
+- [x] Test `npx tsc --noEmit` thanh cong
+- [ ] Buoc tiep theo: restart Smart Home API tren port 5001 de app doc duoc route history moi, sau do test tren dien thoai khi can build APK
 
 ---
 
