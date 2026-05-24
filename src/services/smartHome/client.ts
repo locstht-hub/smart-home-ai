@@ -27,7 +27,7 @@ interface RequestResult<T> {
 const DEFAULT_TIMEOUT = 8000;
 const DEFAULT_LOCAL_TIMEOUT = 800;
 const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
-const DEFAULT_LOCAL_API_URL = 'http://10.203.15.51:5001';
+const DEFAULT_LOCAL_API_URL = 'http://172.16.50.47:5001';
 const USER_KEY = 'currentUser';
 const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
 

@@ -50,6 +50,22 @@
 
 ---
 
+## 0.30. KIEM TRA VA NOI FORECAST API THAT (24/05/2026 - Session 21)
+
+- [x] Xac nhan artifact XGBoost da co trong `ml-training/modeltrainingdone/`
+- [x] Xac nhan artifact LSTM da co trong `ml-training/modeltrainingdone/lstm/`
+- [x] Them `backend/forecast_api/run_server.py` de chay Flask Forecast API on dinh khong dung debug reloader
+- [x] Sua import LSTM predictor de backend load duoc khi chay tu repo root hoac tu `backend/forecast_api`
+- [x] Chay Forecast API tren `http://172.16.50.47:5000`
+- [x] Test HTTP XGBoost: `/forecast/predictions?model=xgboost` tra 24 diem du bao
+- [x] Test HTTP LSTM: `/forecast/predictions?model=lstm` tra 24 diem du bao
+- [x] Cap nhat app mac dinh dung Forecast API local `http://172.16.50.47:5000`
+- [x] Cap nhat app mac dinh dung Smart Home API local `http://172.16.50.47:5001`
+- [x] Build APK moi: `dist/smart-home-ai-forecast-api.apk` va cap nhat `dist/smart-home-ai-release.apk`
+- [ ] Buoc tiep theo: cai APK moi va test man Analysis tren dien thoai that
+
+---
+
 ## 0.20. ADMIN-SITE UI POLISH (21/05/2026 - Session 16)
 
 - [x] Lam moi giao dien `admin-site/` theo huong dashboard quan tri chuyen nghiep hon

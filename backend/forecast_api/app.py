@@ -63,7 +63,10 @@ BEST_TEST_METRICS = METRICS["results"][MODEL_NAME]["test"]
 try:
     lstm_meta_path = LSTM_ARTIFACTS_DIR / "lstm_meta.json"
     if lstm_meta_path.exists():
-        from lstm_predictor import LstmPredictor
+        try:
+            from lstm_predictor import LstmPredictor
+        except ModuleNotFoundError:
+            from backend.forecast_api.lstm_predictor import LstmPredictor
         LSTM_PREDICTOR = LstmPredictor(LSTM_ARTIFACTS_DIR)
         LSTM_AVAILABLE = True
         print(f"[OK] LSTM model loaded: {LSTM_PREDICTOR.best_model_name}")

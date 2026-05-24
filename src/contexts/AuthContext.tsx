@@ -22,7 +22,8 @@ const USERS_KEY = 'users';
 const USERS_BACKUP_KEY = 'users_backup';
 const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
 const SERVER_API_URL = 'https://api.smarthomeai.id.vn';
-const LOCAL_API_URL = 'http://10.203.15.51:5001';
+const LOCAL_API_URL = 'http://172.16.50.47:5001';
+const FORECAST_API_URL = 'http://172.16.50.47:5000';
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -111,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const saved = await AsyncStorage.getItem(SERVER_CONFIG_KEY);
         const previous: SmartHomeServerConfig = saved
             ? JSON.parse(saved)
-            : { apiBaseUrl: SERVER_API_URL, localApiBaseUrl: LOCAL_API_URL, preferLocalApi: true, apiToken: '', forecastApiUrl: '', forecastModel: 'xgboost', timeout: 8000 };
+            : { apiBaseUrl: SERVER_API_URL, localApiBaseUrl: LOCAL_API_URL, preferLocalApi: true, apiToken: '', forecastApiUrl: FORECAST_API_URL, forecastModel: 'xgboost', timeout: 8000 };
         await AsyncStorage.setItem(SERVER_CONFIG_KEY, JSON.stringify({
             ...previous,
             apiBaseUrl: SERVER_API_URL,
@@ -119,6 +120,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             preferLocalApi: true,
             apiToken: token,
             homeId: homeId || '',
+            forecastApiUrl: previous.forecastApiUrl || FORECAST_API_URL,
+            forecastModel: previous.forecastModel || 'xgboost',
             timeout: previous.timeout || 8000,
         }));
     };
@@ -131,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localApiBaseUrl: LOCAL_API_URL,
             preferLocalApi: true,
             apiToken: '',
-            forecastApiUrl: '',
+            forecastApiUrl: savedConfig?.forecastApiUrl || FORECAST_API_URL,
             forecastModel: 'xgboost',
             timeout: 8000,
         });
