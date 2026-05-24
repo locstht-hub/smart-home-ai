@@ -1,8 +1,79 @@
 # 📋 TIẾN TRÌNH DỰ ÁN - SMART HOME APP
 
-> **Cập nhật lần cuối:** 21/05/2026 — Session 16  
-> **Trạng thái:** ✅ Đã có domain API, Cloudflare Tunnel, APK local, auth nhiều nhà, audit log backend và admin-site tĩnh  
+> **Cập nhật lần cuối:** 24/05/2026 — Session 24
+> **Trạng thái:** ✅ Đã hoàn thành Chiến lược viết bài báo khoa học HEMS (không cần mô hình vật lý), tích hợp Hạn mức Điện năng HEMS, quản lý thành viên cho Owner, cẩm nang phản biện, domain API, Cloudflare Tunnel, APK local, và AI metrics
 > **APK mới nhất:** `C:\Users\ADMIN\.gemini\antigravity\scratch\smart-home-app\dist\smart-home-ai-release.apk` (~45.6 MB)
+
+---
+
+## 0.33. CHIẾN LƯỢC VIẾT BÀI BÁO KHOA HỌC HEMS (KHÔNG CẦN MÔ HÌNH VẬT LÝ) (24/05/2026 - Session 24)
+
+- [x] Tạo tài liệu chiến lược nghiên cứu khoa học chuyên nghiệp: `C:\Users\ADMIN\.gemini\antigravity-ide\brain\dae1bc95-42e0-4a79-bf55-766aef38e83f\research_paper_strategy.md`.
+- [x] Khẳng định tính khả thi và độ phổ biến cực kỳ cao của việc viết bài báo khoa học trong lĩnh vực HEMS/IoT/AI mà không cần mô hình phần cứng vật lý.
+- [x] Rút trích dữ liệu thực nghiệm "vàng" sẵn có trong mã nguồn dự án:
+  - Bảng so sánh hiệu năng các mô hình dự báo phụ tải (XGBoost vs. Random Forest) huấn luyện trên tập dữ liệu chuẩn thế giới **UCI Individual Household Electric Power Consumption** (1.7 triệu bản ghi): XGBoost Test MAE `0.4010` vs. Random Forest Test MAE `0.4097`.
+  - Bảng sai số theo các bước thời gian tương lai (Forecast Horizon Analysis) từ $h+1$ đến $h+24$.
+  - Đánh giá độ trễ truyền thông (Communication & Latency Evaluation): LAN (<30ms) vs. Cloud Tunnel (300-450ms).
+- [x] Đề xuất 3 tiêu đề bài báo tiếng Anh/tiếng Việt chuyên nghiệp.
+- [x] Định nghĩa 3 đóng góp khoa học chính (Contributions): thuật toán AI trên tập dữ liệu chuẩn, kiến trúc lai Biên-Đám mây đàn hồi (Offline Fallback với AsyncStorage, kết nối PLC S7-1200 công nghiệp qua Snap7), và mô phỏng Phần mềm trong Vòng lặp (Software-in-the-Loop - SIL).
+- [x] Thiết lập bố cục bài báo khoa học chuẩn quốc tế (IMRAD) tương ứng với các thành phần kỹ thuật đã phát triển.
+
+---
+
+## 0.32. HẠN MỨC ĐIỆN NĂNG HEMS (HEMS ENERGY QUOTA) (24/05/2026 - Session 23)
+
+- [x] SQLite Backend Migration:
+  - Tự động chạy di trú (PRAGMA table_info) để thêm trường `energy_limit_kwh` REAL NOT NULL DEFAULT 0.0 vào bảng `homes` nếu chưa có.
+  - Viết hàm `get_home_quota_status(home_id)` tính toán điện năng tiêu thụ trong tháng hiện tại (`MAX(energy_kwh) - MIN(energy_kwh)`) từ lịch sử `power_readings`, tự động fallback về `mock_energy_kwh` ở chế độ mock để demo luôn hoạt động sinh động.
+  - Viết hàm `update_home_quota(home_id, limit)` cập nhật hạn mức.
+- [x] Flask API Endpoints:
+  - `GET /api/homes/<homeId>/quota` -> Lấy thông tin hạn mức và lượng dùng hiện tại (cho phép cả owner/member/viewer xem). Ghi audit log `home.view_quota`.
+  - `POST /api/homes/<homeId>/quota` -> Cập nhật hạn mức (chỉ cho phép owner/system_admin). Chặn member/viewer bằng lỗi 403. Ghi audit log `home.quota_updated`.
+- [x] Mobile TypeScript & API Client:
+  - Thêm interface `HomeQuota` vào `src/types/smartHomeServer.ts`.
+  - Thêm 2 phương thức `getHomeQuota` và `updateHomeQuota` vào class `SmartHomeApiClient`.
+- [x] Mobile UI Dashboard Card:
+  - Thiết kế thẻ Hạn mức HEMS tuyệt đẹp ngay trên DashboardScreen.
+  - Thanh tiến trình (Progress Bar) Gradient đổi màu thông minh: Màu xanh lá (<75%), Màu vàng cam (75%-90%), Màu đỏ rực rỡ (>90% hoặc quá tải) kèm icon cảnh báo nguy cơ vượt hạn mức.
+  - Chỉ hiển thị nút "✏️ Thiết lập" hoặc "Cài đặt ngay" cho tài khoản Cha (`owner`). Tài khoản con chỉ được xem thanh tiến trình và cảnh báo.
+  - Modal "Cài đặt hạn mức" cho phép Owner nhập số kWh mong muốn trực quan.
+- [x] Xác minh & Test:
+  - Chạy `python -m py_compile` backend -> PASS 100%.
+  - Chạy `npx tsc --noEmit` -> PASS 100% không lỗi.
+- [x] Bước tiếp theo: Rebuild APK thành công bản release và lưu vào thư mục dist/.
+- [ ] Bước tiếp theo mới: Cài đặt APK mới lên điện thoại thực tế và thực hành trả lời phản biện.
+
+---
+
+## 0.31. MAN HINH QUAN LY THANH VIEN GIA DINH CHO OWNER (24/05/2026 - Session 22)
+
+- [x] Them interface `HomeMember` va `CreateMemberPayload` vao `src/types/smartHomeServer.ts`
+- [x] Them 5 phuong thuc API vao `SmartHomeApiClient` (`src/services/smartHome/client.ts`):
+  - `getHomeMembers(homeId)` → `GET /api/homes/<homeId>/members`
+  - `createHomeMember(homeId, data)` → `POST /api/homes/<homeId>/members`
+  - `suspendHomeMember(homeId, userId)` → `PATCH .../suspend`
+  - `activateHomeMember(homeId, userId)` → `PATCH .../activate`
+  - `deleteHomeMember(homeId, userId)` → `DELETE .../members/<userId>`
+- [x] Tao man hinh moi `src/screens/MemberManagementScreen.tsx`:
+  - Header gradient hien ten nha + so thanh vien
+  - Danh sach thanh vien dang card (FlatList) voi badge vai tro va trang thai
+  - Nut Them thanh vien (FAB) -> Modal nhap ten, username, SDT, mat khau, chon role member/viewer
+  - Nut Tam khoa / Kich hoat lai / Xoa thanh vien (co Alert xac nhan)
+  - Pull-to-refresh, empty state, loading indicator
+  - Owner card hien nhan rieng, khong co nut thao tac
+- [x] Sua `SettingsScreen.tsx`: them muc "Quan ly gia dinh" chi hien thi khi user co `serverRole === 'owner'` va `canManageMembers === true`
+- [x] Sua `AppNavigator.tsx`: them route `MemberManagement` vao Stack navigator
+- [x] Kiem tra TypeScript `npx tsc --noEmit` thanh cong
+- [x] Buoc tiep theo: rebuild APK va test tren dien thoai that voi tai khoan owner/member
+
+---
+
+## 0.30. CAM NANG PHAN BIEN KIEN TRUC (24/05/2026 - Session 21)
+
+- [x] Tạo file cẩm nang phản biện kiến trúc đồ án: `TAI_LIEU_PHAN_BIEN_KIEN_TRUC.md` tại thư mục gốc dự án.
+- [x] Đóng gói các câu hỏi phản biện cực kỳ cốt lõi và câu trả lời chuẩn khoa học về Cloudflare Tunnel, lưu trữ SQLite, cơ chế dự phòng Offline, Edge Gateway (Raspberry Pi/Mini PC), mô hình đẩy dữ liệu IoT (Push Model) và định hướng nâng cấp AI (XAI SHAP, Unsloth LLM).
+- [x] Hỗ trợ lập luận vững chắc khi bảo vệ đồ án trước Hội đồng phản biện.
+- [x] Da hoan thanh: Man hinh quan ly thanh vien gia dinh cho tai khoan Cha (Session 22)
 
 ---
 

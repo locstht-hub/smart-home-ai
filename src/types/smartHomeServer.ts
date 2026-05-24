@@ -95,3 +95,34 @@ export interface LoginResponse {
     homes: ServerHome[];
     expiresAt: string;
 }
+
+export interface HomeMember {
+    id: string;
+    username: string;
+    phone?: string | null;
+    name: string;
+    role: 'system_admin' | 'owner' | 'member' | 'viewer';
+    status: 'active' | 'suspended';
+    createdAt: string;
+    lastActive?: string | null;
+    roleInHome: 'owner' | 'member' | 'viewer';
+    canManageMembers: boolean;
+    canManageDevices: boolean;
+    joinedAt: string;
+}
+
+export interface CreateMemberPayload {
+    name: string;
+    username: string;
+    phone?: string;
+    password: string;
+    roleInHome: 'member' | 'viewer';
+    canManageMembers?: boolean;
+    canManageDevices?: boolean;
+}
+
+export interface HomeQuota {
+    homeId: string;
+    energyLimitKwh: number;
+    currentMonthEnergyKwh: number;
+}

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
@@ -7,6 +8,7 @@ import { Colors } from '../constants/colors';
 import { buildPlcMappingSummary } from '../constants/plcMapping';
 
 export default function SettingsScreen() {
+    const navigation = useNavigation<any>();
     const { user, logout, changePassword } = useAuth();
     const { config, status, error, systemStatus, saveConfig, testConnection, refreshSystemStatus } = useSmartHomeServer();
     const [notifEnabled, setNotifEnabled] = useState(true);
@@ -143,6 +145,18 @@ export default function SettingsScreen() {
                         <View style={[styles.toggleCircle, notifEnabled && styles.toggleCircleActive]} />
                     </View>
                 </TouchableOpacity>
+                {user?.serverRole === 'owner' && user?.canManageMembers ? (
+                    <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('MemberManagement')}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: Colors.purple[100] }]}><Text>👥</Text></View>
+                            <View>
+                                <Text style={styles.menuText}>Quan ly gia dinh</Text>
+                                <Text style={styles.menuSubText}>{user?.homeName || 'Quan ly thanh vien trong nha'}</Text>
+                            </View>
+                        </View>
+                        <Text style={styles.menuArrow}>{'>'}</Text>
+                    </TouchableOpacity>
+                ) : null}
                 <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => setShowPasswordModal(true)}>
                     <View style={styles.menuLeft}>
                         <View style={styles.menuIcon}><Text>*</Text></View>

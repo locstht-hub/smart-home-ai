@@ -61,6 +61,7 @@ backend/**/*.sqlite
 backend/**/*.sqlite3
 
 # Local agent/tool scratch
+.agents/
 .codex-temp/
 .tmp-*.ps1
 

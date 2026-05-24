@@ -14,6 +14,7 @@ import AnalysisScreen from '../screens/AnalysisScreen';
 import ChatScreen from '../screens/ChatScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AdminScreen from '../screens/AdminScreen';
+import MemberManagementScreen from '../screens/MemberManagementScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -110,6 +111,7 @@ export default function AppNavigator() {
             {user ? (
                 <Stack.Navigator screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="Main" component={MainTabs} />
+                    <Stack.Screen name="MemberManagement" component={MemberManagementScreen} />
                 </Stack.Navigator>
             ) : (
                 <Stack.Navigator screenOptions={{ headerShown: false }}>

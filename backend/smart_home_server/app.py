@@ -580,6 +580,59 @@ def create_app() -> Flask:
             return jsonify({"ok": False, "error": "User not found"}), 404
         return jsonify({"ok": True, **profile})
 
+    @app.get("/api/homes/<home_id>/quota")
+    def home_quota(home_id: str) -> Any:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 401
+
+        if current_user.get("role") == "system_admin":
+            quota = auth_store.get_home_quota_status(home_id)
+            return jsonify({"ok": True, "quota": quota})
+
+        home = auth_store.get_home_access(str(current_user["id"]), home_id)
+        if home is None:
+            return jsonify({"ok": False, "error": "Home access not found"}), 403
+        if home["status"] != "active":
+            return jsonify({"ok": False, "error": "Home is suspended"}), 403
+
+        quota = auth_store.get_home_quota_status(home_id)
+        audit("home.view_quota", actor=current_user, target_type="home", target_id=home_id, home_id=home_id)
+        return jsonify({"ok": True, "quota": quota})
+
+    @app.post("/api/homes/<home_id>/quota")
+    def update_home_quota(home_id: str) -> Any:
+        access = require_home_member_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        payload = request.get_json(silent=True) or {}
+        limit_val = payload.get("energyLimitKwh")
+        if limit_val is None:
+            return jsonify({"ok": False, "error": "energyLimitKwh is required"}), 400
+
+        try:
+            limit = float(limit_val)
+            if limit < 0:
+                return jsonify({"ok": False, "error": "energyLimitKwh cannot be negative"}), 400
+        except ValueError:
+            return jsonify({"ok": False, "error": "energyLimitKwh must be a number"}), 400
+
+        old_quota = auth_store.get_home_quota_status(home_id)
+        if not auth_store.update_home_quota(home_id, limit):
+            return jsonify({"ok": False, "error": "Home not found"}), 404
+        new_quota = auth_store.get_home_quota_status(home_id)
+
+        audit(
+            "home.quota_updated",
+            actor=access["user"],
+            target_type="home",
+            target_id=home_id,
+            home_id=home_id,
+            metadata={"oldLimit": old_quota.get("energyLimitKwh"), "newLimit": limit},
+        )
+        return jsonify({"ok": True, "quota": new_quota})
+
     @app.get("/api/homes/<home_id>/members")
     def home_members(home_id: str) -> Any:
         access = require_home_member_manager(home_id)

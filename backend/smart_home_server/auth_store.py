@@ -67,6 +67,7 @@ class AuthStore:
                     name TEXT NOT NULL,
                     owner_id TEXT NOT NULL REFERENCES users(id),
                     status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'suspended')),
+                    energy_limit_kwh REAL NOT NULL DEFAULT 0.0,
                     created_at TEXT NOT NULL
                 );
 
@@ -123,7 +124,16 @@ class AuthStore:
                 CREATE INDEX IF NOT EXISTS idx_power_readings_home_time ON power_readings(home_id, timestamp);
                 """
             )
+            self.migrate_db(conn)
             self.seed_defaults(conn)
+
+    def migrate_db(self, conn: sqlite3.Connection) -> None:
+        home_columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(homes)").fetchall()
+        }
+        if "energy_limit_kwh" not in home_columns:
+            conn.execute("ALTER TABLE homes ADD COLUMN energy_limit_kwh REAL NOT NULL DEFAULT 0.0")
 
     def seed_defaults(self, conn: sqlite3.Connection) -> None:
         count = conn.execute("SELECT COUNT(*) AS count FROM users").fetchone()["count"]
@@ -808,3 +818,43 @@ class AuthStore:
                 }
             )
         return readings
+
+    def get_home_quota_status(self, home_id: str) -> dict[str, Any]:
+        with self.connect() as conn:
+            row = conn.execute("SELECT energy_limit_kwh FROM homes WHERE id = ?", (home_id,)).fetchone()
+            limit = float(row["energy_limit_kwh"]) if row else 0.0
+
+        now = datetime.now(timezone.utc)
+        start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc).isoformat()
+
+        with self.connect() as conn:
+            readings_row = conn.execute(
+                """
+                SELECT MIN(energy_kwh) AS min_energy, MAX(energy_kwh) AS max_energy
+                FROM power_readings
+                WHERE home_id = ? AND timestamp >= ?
+                """,
+                (home_id, start_of_month),
+            ).fetchone()
+
+            min_energy = readings_row["min_energy"] if readings_row else None
+            max_energy = readings_row["max_energy"] if readings_row else None
+
+            if min_energy is not None and max_energy is not None:
+                current_usage = max(0.0, float(max_energy) - float(min_energy))
+            else:
+                current_usage = 0.0
+
+        return {
+            "homeId": home_id,
+            "energyLimitKwh": limit,
+            "currentMonthEnergyKwh": round(current_usage, 2),
+        }
+
+    def update_home_quota(self, home_id: str, limit: float) -> bool:
+        with self.connect() as conn:
+            cursor = conn.execute(
+                "UPDATE homes SET energy_limit_kwh = ? WHERE id = ?",
+                (limit, home_id),
+            )
+            return cursor.rowcount > 0

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Device } from '../../constants/data';
-import { LoginResponse, PowerCurrentResponse, PowerHistoryResponse, PowerReading, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
+import { CreateMemberPayload, HomeMember, HomeQuota, LoginResponse, PowerCurrentResponse, PowerHistoryResponse, PowerReading, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
 
 interface DevicesResponse {
     devices: Record<string, Device[]>;
@@ -98,6 +98,51 @@ export class SmartHomeApiClient {
             body: JSON.stringify(this.config.homeId ? { homeId: this.config.homeId } : {}),
         });
     }
+
+    async getHomeMembers(homeId: string): Promise<HomeMember[]> {
+        const response = await this.request<{ ok: boolean; members: HomeMember[] }>(`/api/homes/${encodeURIComponent(homeId)}/members`);
+        return response.members;
+    }
+
+    async createHomeMember(homeId: string, data: CreateMemberPayload): Promise<HomeMember> {
+        const response = await this.request<{ ok: boolean; member: HomeMember }>(`/api/homes/${encodeURIComponent(homeId)}/members`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+        return response.member;
+    }
+
+    async suspendHomeMember(homeId: string, userId: string): Promise<void> {
+        await this.request(`/api/homes/${encodeURIComponent(homeId)}/members/${encodeURIComponent(userId)}/suspend`, {
+            method: 'PATCH',
+        });
+    }
+
+    async activateHomeMember(homeId: string, userId: string): Promise<void> {
+        await this.request(`/api/homes/${encodeURIComponent(homeId)}/members/${encodeURIComponent(userId)}/activate`, {
+            method: 'PATCH',
+        });
+    }
+
+    async deleteHomeMember(homeId: string, userId: string): Promise<void> {
+        await this.request(`/api/homes/${encodeURIComponent(homeId)}/members/${encodeURIComponent(userId)}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async getHomeQuota(homeId: string): Promise<HomeQuota> {
+        const response = await this.request<{ ok: boolean; quota: HomeQuota }>(`/api/homes/${encodeURIComponent(homeId)}/quota`);
+        return response.quota;
+    }
+
+    async updateHomeQuota(homeId: string, limit: number): Promise<HomeQuota> {
+        const response = await this.request<{ ok: boolean; quota: HomeQuota }>(`/api/homes/${encodeURIComponent(homeId)}/quota`, {
+            method: 'POST',
+            body: JSON.stringify({ energyLimitKwh: limit }),
+        });
+        return response.quota;
+    }
+
 
     async chat(text: string): Promise<string> {
         const result = await this.chatWithTiming(text);
