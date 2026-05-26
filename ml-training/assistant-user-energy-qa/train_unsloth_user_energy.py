@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import unsloth  # noqa: F401 - must be imported before trl/transformers for Unsloth patching.
 import argparse
 import json
 from pathlib import Path
 from typing import Any
 
 from datasets import load_dataset
-from transformers import TrainingArguments
-from trl import SFTTrainer
+from trl import SFTConfig, SFTTrainer
 from unsloth import FastLanguageModel, is_bfloat16_supported
 
 
@@ -109,13 +109,10 @@ def main() -> None:
 
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        dataset_text_field="text",
-        max_seq_length=args.max_seq_length,
-        packing=False,
-        args=TrainingArguments(
+        args=SFTConfig(
             per_device_train_batch_size=args.batch_size,
             gradient_accumulation_steps=args.gradient_accumulation_steps,
             warmup_steps=5,
@@ -132,6 +129,9 @@ def main() -> None:
             seed=args.seed,
             output_dir=args.output_dir,
             report_to="none",
+            dataset_text_field="text",
+            max_length=args.max_seq_length,
+            packing=False,
         ),
     )
 
