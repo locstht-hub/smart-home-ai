@@ -106,6 +106,7 @@ function askQuestion(question) {
 }
 
 function setFloatingChatOpen(isOpen) {
+  floatingChatPanel.hidden = !isOpen;
   floatingChatPanel.classList.toggle("is-open", isOpen);
   floatingChatToggle.setAttribute("aria-expanded", String(isOpen));
 
