@@ -21,6 +21,9 @@ system_prompt.txt
 requirements.txt
 train_unsloth_user_energy.py
 TEST_PLAN.md
+test_questions.jsonl
+run_lora_eval.py
+score_lora_eval.py
 ```
 
 ## Format
@@ -65,4 +68,17 @@ Kế hoạch test chi tiết nằm ở:
 
 ```text
 TEST_PLAN.md
+```
+
+Chạy bộ test tự động sau khi có thư mục `assistant-user-energy-lora/`:
+
+```bash
+python run_lora_eval.py \
+  --adapter_path assistant-user-energy-lora \
+  --questions test_questions.jsonl \
+  --output test_outputs/user_energy_eval_outputs.jsonl
+
+python score_lora_eval.py \
+  --input test_outputs/user_energy_eval_outputs.jsonl \
+  --report test_outputs/user_energy_eval_report.md
 ```
