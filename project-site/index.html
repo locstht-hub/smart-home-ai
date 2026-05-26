@@ -8,7 +8,7 @@
       name="description"
       content="Smart Home AI - hệ thống giám sát điện năng, điều khiển nhà thông minh và dự báo phụ tải bằng AI."
     />
-    <link rel="stylesheet" href="styles.css?v=20260526-floating-chat" />
+    <link rel="stylesheet" href="styles.css?v=20260526-polish" />
   </head>
   <body>
     <header class="topbar">
@@ -17,6 +17,7 @@
         <span>Smart Home AI</span>
       </a>
       <nav aria-label="Điều hướng">
+        <a href="#overview">Tổng quan</a>
         <a href="#architecture">Kiến trúc</a>
         <a href="#forecast">AI Forecast</a>
         <a href="#status">Tiến độ</a>
@@ -26,31 +27,54 @@
 
     <main id="top">
       <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-bg" aria-hidden="true"></div>
+        <div class="hero-grid" aria-hidden="true"></div>
         <div class="hero-inner">
           <p class="eyebrow">Smart Home Energy Monitoring</p>
-          <h1 id="hero-title">Giám sát điện năng và điều khiển nhà thông minh bằng AI</h1>
+          <h1 id="hero-title">Smart Home AI</h1>
+          <p class="hero-subtitle">Giám sát điện năng, điều khiển nhà thông minh và dự báo phụ tải bằng AI.</p>
           <p class="lead">
-            Đồ án kết hợp MFM384, PLC Siemens S7-1200 CPU 1215C, backend Flask,
-            app mobile và mô hình dự báo phụ tải để theo dõi năng lượng theo thời gian thực.
+            Đồ án kết nối MFM384, PLC Siemens S7-1200 CPU 1215C, backend Flask, app mobile
+            và các mô hình dự báo để theo dõi năng lượng theo thời gian thực.
           </p>
           <div class="hero-actions">
             <a class="primary-action" href="#architecture">Xem kiến trúc</a>
-            <button id="heroChatOpen" class="secondary-action" type="button">Hỏi chatbot</button>
+            <button id="heroChatOpen" class="secondary-action" type="button">Hỏi robot AI</button>
           </div>
           <div class="hero-strip" aria-label="Các thành phần chính">
             <span>MFM384</span>
             <span>PLC S7-1200</span>
             <span>Flask API</span>
+            <span>SQLite</span>
             <span>AI Forecast</span>
           </div>
         </div>
       </section>
 
-      <section id="metrics" class="section compact-section">
+      <section id="overview" class="section overview-section">
+        <div class="status-rail" aria-label="Tổng quan tiến độ">
+          <article>
+            <span class="rail-label done">Đã có</span>
+            <strong>App, backend, database, Forecast API và website</strong>
+          </article>
+          <article>
+            <span class="rail-label active">Đang làm</span>
+            <strong>Kiểm thử PLC, MFM384, relay/contactor và trạng thái vật lý</strong>
+          </article>
+          <article>
+            <span class="rail-label next">Tiếp theo</span>
+            <strong>Thu dữ liệu thật, retrain model và tích hợp assistant fine-tune</strong>
+          </article>
+        </div>
+      </section>
+
+      <section id="metrics" class="section metrics-section">
         <div class="section-heading centered">
           <p class="eyebrow">Dữ liệu điện năng</p>
-          <h2>Các chỉ số chính dùng cho dashboard và dự báo</h2>
+          <h2>Các chỉ số chính để app đọc, phân tích và cảnh báo</h2>
+          <p>
+            Website chỉ trình bày kiến trúc và demo luồng dữ liệu; số liệu chính thức sẽ được lấy từ backend
+            khi PLC/MFM384 được kiểm thử với hệ thống thật.
+          </p>
         </div>
         <div class="metric-grid" id="metricGrid"></div>
       </section>
@@ -58,10 +82,10 @@
       <section id="architecture" class="section architecture-section">
         <div class="section-heading">
           <p class="eyebrow">Kiến trúc hệ thống</p>
-          <h2>App không điều khiển PLC trực tiếp, mọi lệnh đi qua backend</h2>
+          <h2>Luồng dữ liệu rõ ràng, luồng điều khiển có lớp an toàn</h2>
           <p>
-            Cách tách lớp này giúp hệ thống dễ kiểm tra, ghi log và hạn chế thao tác nguy hiểm
-            khi chuyển từ mô hình phần mềm sang tủ điện, relay và tải thực tế.
+            App không gửi lệnh trực tiếp xuống PLC. Mọi lệnh đi qua backend để kiểm tra, ghi log,
+            rồi PLC mới xử lý relay/contactor và trả trạng thái thật về app.
           </p>
         </div>
         <div class="workflow-list" id="workflowList"></div>
@@ -71,19 +95,19 @@
             <strong>App -> Backend -> PLC -> Relay/Contactor -> Tải</strong>
           </div>
           <p>
-            Trạng thái vật lý từ nút nhấn hoặc tiếp điểm phản hồi cần được PLC cập nhật lại để app
-            hiển thị đồng bộ, thay vì chỉ tin vào lệnh đã gửi từ giao diện.
+            Nếu nút nhấn vật lý hoặc tiếp điểm phản hồi thay đổi, PLC cần cập nhật vào tag/Data Block
+            để backend đọc lại và app hiển thị đồng bộ.
           </p>
         </div>
       </section>
 
-      <section id="forecast" class="section split-section">
+      <section id="forecast" class="section forecast-section">
         <div class="section-heading">
           <p class="eyebrow">AI Forecast</p>
           <h2>Dự báo phụ tải là mô hình số, khác với chatbot hỏi đáp</h2>
           <p>
             Forecast API dùng dữ liệu lịch sử để ước lượng xu hướng tiêu thụ. Khi có dữ liệu thật
-            từ PLC/MFM384, mô hình cần được retrain để kết quả sát hệ thống thực tế hơn.
+            từ PLC/MFM384, mô hình cần được retrain để phản ánh đúng hệ thống thực tế.
           </p>
         </div>
         <div class="forecast-panel">
@@ -105,7 +129,7 @@
             <span style="height: 74%" class="predicted"></span>
             <span style="height: 64%" class="predicted"></span>
           </div>
-          <small>Dữ liệu minh họa; số liệu chính thức sẽ lấy từ backend/PLC khi kiểm thử thực tế.</small>
+          <small>Dữ liệu minh họa; kết quả thật phụ thuộc vào dữ liệu thu từ hệ thống thực tế.</small>
         </div>
       </section>
 
@@ -117,16 +141,15 @@
         </div>
         <div class="section-heading">
           <p class="eyebrow">Mobile App</p>
-          <h2>Dashboard tập trung vào dữ liệu người dùng cần đọc nhanh</h2>
+          <h2>Màn hình app tập trung vào dữ liệu cần đọc nhanh</h2>
           <p>
             App hiển thị phòng, thiết bị, công suất, điện năng, quota, forecast và cảnh báo.
-            Phần điều khiển tải thật chỉ nên bật sau khi PLC, relay và cơ chế phản hồi trạng thái
-            đã được kiểm thử an toàn.
+            Phần điều khiển tải thật nên bật sau khi PLC, relay và cơ chế phản hồi trạng thái đã được kiểm thử.
           </p>
           <div class="feature-list">
             <div>
               <strong>Theo dõi</strong>
-              <span>kW, kWh, điện áp, dòng điện, trạng thái thiết bị.</span>
+              <span>kW, kWh, điện áp, dòng điện và trạng thái thiết bị.</span>
             </div>
             <div>
               <strong>Phân tích</strong>
@@ -134,7 +157,7 @@
             </div>
             <div>
               <strong>Điều khiển</strong>
-              <span>Lệnh đi qua API, không gửi trực tiếp từ website xuống PLC.</span>
+              <span>Lệnh qua API, không gửi trực tiếp từ website xuống PLC.</span>
             </div>
           </div>
         </div>
@@ -143,39 +166,32 @@
       <section id="status" class="section status-section">
         <div class="section-heading centered">
           <p class="eyebrow">Trạng thái dự án</p>
-          <h2>Nền tảng phần mềm đã có, phần cứng thực tế là bước ưu tiên kế tiếp</h2>
+          <h2>Nên ưu tiên thực nghiệm phần cứng trước khi mở rộng AI Assistant</h2>
         </div>
         <div class="status-grid">
           <article class="status-card done">
-            <span>Đã hoàn thiện</span>
-            <strong>App, backend, database, forecast API và website giới thiệu</strong>
-            <p>
-              Đủ nền tảng để trình bày kiến trúc, workflow, dữ liệu hiển thị và chức năng AI dự báo.
-            </p>
+            <span>Hoàn thiện nền tảng</span>
+            <strong>App, backend, database, forecast API, website và tài liệu tiến độ</strong>
+            <p>Đủ để trình bày ý tưởng, kiến trúc phần mềm và cách dữ liệu được hiển thị.</p>
           </article>
           <article class="status-card active">
-            <span>Đang kiểm thử</span>
-            <strong>PLC S7-1200, MFM384, relay/contactor và đồng bộ trạng thái</strong>
-            <p>
-              Cần xác nhận dữ liệu đọc thật, lệnh điều khiển thật và phản hồi nút nhấn vật lý lên app.
-            </p>
+            <span>Ưu tiên hiện tại</span>
+            <strong>Đọc dữ liệu MFM384 và kiểm thử PLC với tải thật hoặc tải giả</strong>
+            <p>Cần xác nhận số liệu thật, lệnh điều khiển thật và phản hồi trạng thái vật lý.</p>
           </article>
           <article class="status-card next">
-            <span>Tiếp theo</span>
-            <strong>Thu dữ liệu thật rồi retrain model dự báo</strong>
-            <p>
-              AI Assistant fine-tune có thể phát triển sau, nhưng không nên che khuất phần thực nghiệm.
-            </p>
+            <span>Giai đoạn sau</span>
+            <strong>Retrain forecast và nối chatbot fine-tune qua backend inference API</strong>
+            <p>Model Unsloth có thể dùng cho chatbot, nhưng web tĩnh sẽ gọi qua backend/model server.</p>
           </article>
         </div>
         <a class="summary-link" href="progress.html">Xem bản tóm tắt tiến độ chi tiết</a>
       </section>
-
     </main>
 
     <footer>
       <span>Smart Home AI</span>
-      <span>Static landing page for Cloudflare Pages</span>
+      <span>Cloudflare Pages static project site</span>
     </footer>
 
     <aside class="floating-chat" aria-label="Chatbot nổi">
@@ -217,7 +233,7 @@
       </section>
     </aside>
 
-    <script src="knowledge.js?v=20260526-floating-chat"></script>
-    <script src="app.js?v=20260526-floating-chat"></script>
+    <script src="knowledge.js?v=20260526-polish"></script>
+    <script src="app.js?v=20260526-polish"></script>
   </body>
 </html>
