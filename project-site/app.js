@@ -139,9 +139,19 @@ function bindEvents() {
       setFloatingChatOpen(false);
     }
   });
+
+  window.addEventListener("hashchange", () => {
+    if (window.location.hash === "#assistant") {
+      setFloatingChatOpen(true);
+    }
+  });
 }
 
 renderMetrics();
 renderWorkflow();
 bindEvents();
 addMessage("bot", welcomeMessage);
+
+if (window.location.hash === "#assistant") {
+  setFloatingChatOpen(true);
+}
