@@ -15,6 +15,7 @@
       <nav aria-label="Điều hướng">
         <a href="#metrics">Thông số</a>
         <a href="#workflow">Workflow</a>
+        <a href="#project-summary">Tóm tắt</a>
         <a href="#assistant">Chatbot</a>
         <a href="progress.html">Tiến độ</a>
       </nav>
@@ -60,6 +61,40 @@
           <h2>Từ thiết bị đo đến app và website</h2>
         </div>
         <div class="workflow-list" id="workflowList"></div>
+      </section>
+
+      <section id="project-summary" class="section project-summary-section">
+        <div class="section-heading">
+          <p class="eyebrow">Tóm tắt dự án</p>
+          <h2>Đã có nền tảng phần mềm, đang chuẩn bị kiểm thử phần cứng thực tế</h2>
+        </div>
+        <div class="summary-grid">
+          <article class="summary-card done">
+            <span>Đã làm</span>
+            <strong>App, backend, database và AI forecast</strong>
+            <p>
+              Dự án đã có ứng dụng mobile, API server, SQLite, Forecast API và các model dự báo như
+              XGBoost, Random Forest, LSTM để trình bày prototype quản lý năng lượng.
+            </p>
+          </article>
+          <article class="summary-card pending">
+            <span>Chưa hoàn tất</span>
+            <strong>PLC, MFM384 và tải điện thực tế</strong>
+            <p>
+              Cần kiểm thử PLC nhận lệnh từ backend, đồng bộ nút nhấn vật lý lên app, đọc dữ liệu MFM384
+              và điều khiển relay/contactor với tải thật hoặc tải giả.
+            </p>
+          </article>
+          <article class="summary-card next">
+            <span>Tiếp theo</span>
+            <strong>Hoàn thiện báo cáo và kiểm thử phần cứng</strong>
+            <p>
+              Nên tạm dừng thêm tính năng lớn, tập trung viết bài báo, lập danh sách PLC tag/Data Block,
+              rồi thu thập dữ liệu thật để retrain model sau.
+            </p>
+          </article>
+        </div>
+        <a class="summary-link" href="progress.html">Xem trang tiến độ chi tiết</a>
       </section>
 
       <section class="section two-column">
