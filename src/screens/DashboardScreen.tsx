@@ -53,13 +53,15 @@ export default function DashboardScreen({ navigation }: any) {
     const totalPower = getTotalPower();
     const measuredPowerKw = typeof powerCurrent?.power_kw === 'number' ? powerCurrent.power_kw : null;
     const totalPowerKW = (measuredPowerKw ?? (totalPower / 1000)).toFixed(2);
+    const voltageValue = typeof powerCurrent?.voltage === 'number' ? `${powerCurrent.voltage.toFixed(1)} V` : '-- V';
+    const currentValue = typeof powerCurrent?.current === 'number' ? `${powerCurrent.current.toFixed(2)} A` : '-- A';
     const activeCount = getActiveDeviceCount();
     const elapsedHours = Math.max(1, now.getHours() + (now.getMinutes() / 60));
     const hasMeterEnergy = typeof powerCurrent?.energy_kwh === 'number';
     const todayKwhEstimate = typeof powerCurrent?.energy_kwh === 'number'
         ? powerCurrent.energy_kwh.toFixed(1)
         : ((totalPower / 1000) * elapsedHours * 0.22).toFixed(1);
-    const energyStatLabel = hasMeterEnergy ? 'Tổng kWh đồng hồ' : 'kWh ước tính hôm nay';
+    const energyStatLabel = hasMeterEnergy ? 'Điện năng (kWh)' : 'Điện năng ước tính (kWh)';
 
     const dayName = DAY_NAMES[now.getDay()];
     const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
@@ -150,7 +152,7 @@ export default function DashboardScreen({ navigation }: any) {
                     <View style={styles.powerHeader}>
                         <View style={styles.powerLabelRow}>
                             <Text style={{ fontSize: 16 }}>⚡</Text>
-                            <Text style={styles.powerLabel}>Công suất hiện tại</Text>
+                            <Text style={styles.powerLabel}>Công suất hiện tại (kW)</Text>
                         </View>
                         <View style={styles.realtimeBadge}><Text style={styles.realtimeText}>Real-time</Text></View>
                     </View>
@@ -169,6 +171,20 @@ export default function DashboardScreen({ navigation }: any) {
                     </View>
                     <Text style={styles.statValue}>{todayKwhEstimate}</Text>
                     <Text style={styles.statLabel}>{energyStatLabel}</Text>
+                </View>
+                <View style={styles.statCard}>
+                    <View style={[styles.statIcon, { backgroundColor: Colors.green[100] }]}>
+                        <Text>V</Text>
+                    </View>
+                    <Text style={styles.statValueSmall}>{voltageValue}</Text>
+                    <Text style={styles.statLabel}>Điện áp (V)</Text>
+                </View>
+                <View style={styles.statCard}>
+                    <View style={[styles.statIcon, { backgroundColor: Colors.orange[100] }]}>
+                        <Text>I</Text>
+                    </View>
+                    <Text style={styles.statValueSmall}>{currentValue}</Text>
+                    <Text style={styles.statLabel}>Dòng điện (I)</Text>
                 </View>
                 <View style={styles.statCard}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.primary[100] }]}>
@@ -391,8 +407,8 @@ const styles = StyleSheet.create({
     powerValue: { fontSize: 44, fontWeight: '700', color: '#fff' },
     powerUnit: { fontSize: 18, color: 'rgba(255,255,255,0.8)' },
     powerSubtext: { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
-    statsGrid: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-    statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+    statCard: { width: '48%', backgroundColor: '#fff', borderRadius: 14, padding: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
     statIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
     statValue: { fontSize: 22, fontWeight: '700', color: Colors.slate[800] },
     statValueSmall: { fontSize: 16, fontWeight: '700', color: Colors.slate[800] },

@@ -6,10 +6,10 @@ window.PROJECT_KNOWLEDGE = {
       "Đồ án xây dựng hệ thống đọc dữ liệu điện năng từ MFM384, đưa về PLC Siemens S7-1200 CPU 1215C, truyền dữ liệu lên Smart Home Server API và hiển thị trên app/web.",
   },
   metrics: [
-    { label: "Điện áp", value: "V1N", note: "Thông số từ MFM384/PLC" },
-    { label: "Dòng điện", value: "I1N", note: "Theo dõi tải theo thời gian" },
-    { label: "Công suất", value: "Total kW", note: "Dùng cho dashboard hiện tại" },
-    { label: "Điện năng", value: "Total kWh", note: "Dùng cho quota và forecast" },
+    { label: "Điện áp (V)", value: "V", note: "Tag đo có thể là V1N trên MFM384/PLC" },
+    { label: "Dòng điện (I)", value: "I", note: "Giá trị dòng điện hiển thị theo đơn vị A" },
+    { label: "Công suất (P)", value: "kW", note: "Công suất tức thời tại thời điểm đọc" },
+    { label: "Điện năng (E)", value: "kWh", note: "Tổng điện năng tiêu thụ theo thời gian" },
     { label: "Quota", value: "% hạn mức", note: "Cảnh báo khi dùng vượt mục tiêu" },
     { label: "Forecast", value: "Xu hướng", note: "Ước lượng từ dữ liệu lịch sử" },
   ],
@@ -57,7 +57,7 @@ window.PROJECT_KNOWLEDGE = {
     {
       question: "MFM384 đo thông số nào?",
       answer:
-        "Bản demo tập trung vào các thông số chính như V1N, I1N, Total kW và Total kWh. Các thông số này dùng cho dashboard, quota và mô hình dự báo phụ tải.",
+        "Bản demo tập trung vào các thông số chính: điện áp V, dòng điện I, công suất kW và điện năng kWh. Trong PLC/MFM384, tag có thể đặt tên như V1N, I1N, Total kW và Total kWh.",
       keywords: ["mfm384", "dien ap", "dong dien", "cong suat", "kwh"],
     },
     {
