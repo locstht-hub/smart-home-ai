@@ -14,9 +14,10 @@ Hoặc dùng extension Live Server trong VS Code.
 
 ## Deploy Cloudflare Pages
 
-Upload toàn bộ thư mục `project-site` bằng Cloudflare Pages Direct Upload.
+Cloudflare Pages đang lấy source từ GitHub. Khi commit và push lên nhánh được cấu hình deploy,
+Cloudflare sẽ tự build/deploy lại site.
 
-Custom domain nên dùng:
+Custom domain:
 
 ```text
 smarthomeai.id.vn

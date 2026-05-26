@@ -97,7 +97,7 @@ function findAnswer(query) {
     return (
       "Mình chưa tìm thấy câu trả lời sát với câu hỏi này trong bộ dữ liệu hiện tại.\n\n" +
       "Bạn có thể hỏi theo các chủ đề như: PLC S7-1200, MFM384, RS485, workflow dữ liệu, " +
-      "Server API, app hiển thị gì, AI dự báo phụ tải hoặc Cloudflare Tunnel."
+      "Server API, app hiển thị gì, AI dự báo phụ tải hoặc chatbot fine-tune."
     );
   }
 
@@ -134,5 +134,5 @@ bindEvents();
 
 addMessage(
   "bot",
-  "Xin chào, mình là AI Project Assistant. Bạn có thể hỏi về PLC S7-1200, MFM384, luồng dữ liệu, app, server API hoặc phần AI dự báo phụ tải.",
+  "Xin chào, mình là AI Project Assistant. Bạn có thể hỏi về PLC S7-1200, MFM384, luồng dữ liệu, app, server API, AI forecast hoặc hướng tích hợp model fine-tune.",
 );

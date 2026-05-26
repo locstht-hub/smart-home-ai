@@ -3,18 +3,20 @@ window.PROJECT_KNOWLEDGE = {
     name: "Smart Home AI",
     subtitle: "Giám sát điện năng và điều khiển nhà thông minh dùng PLC S7-1200",
     summary:
-      "Đồ án xây dựng hệ thống đọc dữ liệu điện năng từ MFM384, truyền về PLC Siemens S7-1200 CPU 1215C, đưa dữ liệu lên Smart Home Server API và hiển thị trên app/web.",
+      "Đồ án xây dựng hệ thống đọc dữ liệu điện năng từ MFM384, đưa về PLC Siemens S7-1200 CPU 1215C, truyền dữ liệu lên Smart Home Server API và hiển thị trên app/web.",
   },
   metrics: [
-    { label: "Điện áp", value: "V1N", note: "PLC tag MD200" },
-    { label: "Dòng điện", value: "I1N", note: "PLC tag MD212" },
-    { label: "Công suất", value: "Total kW", note: "PLC tag MD224" },
-    { label: "Điện năng", value: "Total kWh", note: "PLC tag MD228" },
+    { label: "Điện áp", value: "V1N", note: "Thông số từ MFM384/PLC" },
+    { label: "Dòng điện", value: "I1N", note: "Theo dõi tải theo thời gian" },
+    { label: "Công suất", value: "Total kW", note: "Dùng cho dashboard hiện tại" },
+    { label: "Điện năng", value: "Total kWh", note: "Dùng cho quota và forecast" },
+    { label: "Quota", value: "% hạn mức", note: "Cảnh báo khi dùng vượt mục tiêu" },
+    { label: "Forecast", value: "Xu hướng", note: "Ước lượng từ dữ liệu lịch sử" },
   ],
   workflow: [
     {
-      title: "Thiết bị đo MFM384",
-      text: "Đo điện áp, dòng điện, công suất và kWh của hệ thống điện dân dụng.",
+      title: "MFM384 Power Meter",
+      text: "Đo điện áp, dòng điện, công suất và điện năng tiêu thụ của hệ thống điện dân dụng.",
     },
     {
       title: "RS485 / Modbus RTU",
@@ -22,65 +24,77 @@ window.PROJECT_KNOWLEDGE = {
     },
     {
       title: "PLC S7-1200 CPU 1215C",
-      text: "PLC nhận dữ liệu, lưu vào vùng tag/MD và xử lý logic điều khiển thiết bị.",
+      text: "PLC nhận dữ liệu, xử lý logic, lưu tag/Data Block và phản hồi trạng thái thiết bị.",
     },
     {
       title: "Smart Home Server API",
-      text: "Backend Flask cung cấp REST API cho app đọc công suất, trạng thái thiết bị và gửi lệnh điều khiển.",
+      text: "Backend Flask làm lớp trung gian cho app đọc dữ liệu, gửi lệnh, ghi log và gọi AI forecast.",
     },
     {
-      title: "App và website",
-      text: "App hiển thị dashboard, phòng/thiết bị, phân tích phụ tải và chatbot; website giới thiệu kiến trúc đồ án.",
+      title: "App / Website",
+      text: "App hiển thị dashboard và điều khiển; website giới thiệu kiến trúc, tiến độ và chatbot dự án.",
     },
   ],
   faq: [
     {
       question: "Dự án này làm gì?",
       answer:
-        "Dự án giám sát điện năng và hỗ trợ điều khiển nhà thông minh. Dữ liệu được đo bằng MFM384, đưa về PLC S7-1200, sau đó server đọc và hiển thị lên app/web.",
+        "Dự án giám sát điện năng và hỗ trợ điều khiển nhà thông minh. Dữ liệu được đo bằng MFM384, đưa về PLC S7-1200, sau đó backend đọc và hiển thị lên app/web.",
       keywords: ["du an", "lam gi", "gioi thieu", "muc tieu", "smart home"],
     },
     {
       question: "Hệ thống gồm những thành phần nào?",
       answer:
-        "Hệ thống gồm thiết bị đo điện MFM384, PLC Siemens S7-1200 CPU 1215C, đường truyền RS485/Modbus RTU, Smart Home Server API, app Android và website giới thiệu.",
+        "Hệ thống gồm MFM384, PLC Siemens S7-1200 CPU 1215C, RS485/Modbus RTU, backend Flask, SQLite, app mobile, Forecast API và website giới thiệu.",
       keywords: ["thanh phan", "he thong", "kien truc", "phan cung"],
     },
     {
       question: "PLC S7-1200 có vai trò gì?",
       answer:
-        "PLC là bộ điều khiển trung tâm ở tầng thiết bị. PLC nhận dữ liệu từ MFM384, lưu vào tag/MD, xử lý logic và cung cấp dữ liệu để server đọc qua Ethernet.",
+        "PLC là lớp điều khiển tại hiện trường. PLC nhận dữ liệu từ MFM384, xử lý logic, lưu tag/Data Block và là nơi đồng bộ trạng thái nút nhấn vật lý hoặc relay về app.",
       keywords: ["plc", "s7", "1200", "1215", "siemens"],
     },
     {
       question: "MFM384 đo thông số nào?",
       answer:
-        "Bản demo tập trung vào 4 thông số chính: V1N, I1N, Total kW và Total kWh, tương ứng với điện áp, dòng điện, công suất và điện năng tiêu thụ.",
+        "Bản demo tập trung vào các thông số chính như V1N, I1N, Total kW và Total kWh. Các thông số này dùng cho dashboard, quota và mô hình dự báo phụ tải.",
       keywords: ["mfm384", "dien ap", "dong dien", "cong suat", "kwh"],
     },
     {
       question: "Dữ liệu đi từ MFM384 về app như thế nào?",
       answer:
-        "Luồng dữ liệu là MFM384 -> RS485/Modbus RTU -> PLC -> Ethernet -> Smart Home Server API -> app Android và website.",
+        "Luồng dữ liệu là MFM384 -> RS485/Modbus RTU -> PLC -> Ethernet -> Smart Home Server API -> app mobile/website.",
       keywords: ["du lieu", "rs485", "modbus", "api", "app", "workflow"],
     },
     {
-      question: "Server API có nhiệm vụ gì?",
+      question: "App có điều khiển PLC trực tiếp không?",
       answer:
-        "Server API là lớp trung gian giữa PLC và app/web. Nó trả về endpoint như /api/power/current, /api/devices và nhận lệnh điều khiển thiết bị khi cần.",
-      keywords: ["server", "api", "backend", "endpoint", "flask"],
+        "Không nên điều khiển trực tiếp. App gửi lệnh lên backend, backend kiểm tra quyền, ghi log rồi mới chuyển lệnh xuống PLC. Cách này an toàn và dễ kiểm toán hơn.",
+      keywords: ["dieu khien", "plc", "backend", "an toan", "lenh"],
     },
     {
-      question: "Cloudflare Tunnel dùng để làm gì?",
+      question: "Nút nhấn vật lý trên PLC có đồng bộ lên app không?",
       answer:
-        "Cloudflare Tunnel giúp public API từ laptop ra domain https://api.smarthomeai.id.vn mà không cần VPS. Laptop vẫn cần bật và có mạng để API hoạt động.",
-      keywords: ["cloudflare", "tunnel", "domain", "api", "vps"],
+        "Có thể đồng bộ nếu chương trình PLC cập nhật trạng thái thật vào tag/Data Block và backend đọc trạng thái đó để trả về app. App nên hiển thị trạng thái phản hồi, không chỉ hiển thị lệnh vừa bấm.",
+      keywords: ["nut nhan", "vat ly", "dong bo", "trang thai", "app"],
     },
     {
-      question: "AI dự báo phụ tải hoạt động ra sao?",
+      question: "Forecast API hoạt động ra sao?",
       answer:
-        "AI dùng dữ liệu lịch sử điện năng để dự đoán xu hướng tiêu thụ trong các giờ tiếp theo. Dự án đã chuẩn bị pipeline XGBoost, RandomForest, LSTM và CNN-LSTM.",
-      keywords: ["ai", "du bao", "phu tai", "xgboost", "randomforest", "lstm"],
+        "Forecast API dùng dữ liệu lịch sử điện năng để dự báo xu hướng tiêu thụ trong tương lai. Hiện có pipeline cho XGBoost, Random Forest, LSTM và CNN-LSTM; khi có dữ liệu thật từ PLC thì nên retrain lại.",
+      keywords: ["forecast", "ai", "du bao", "phu tai", "xgboost", "lstm"],
+    },
+    {
+      question: "Chatbot trên web có phải model fine-tune chưa?",
+      answer:
+        "Bản web hiện tại là chatbot tri thức tĩnh để trả lời nhanh trên Cloudflare Pages. Model fine-tune bằng Unsloth có thể thay thế sau, nhưng cần backend inference API hoặc model server để web gọi tới.",
+      keywords: ["chatbot", "fine tune", "unsloth", "model", "assistant"],
+    },
+    {
+      question: "Dự án đã hoàn thiện tới đâu?",
+      answer:
+        "Nền tảng phần mềm đã có app, backend, database, Forecast API, website và bộ dữ liệu assistant thử nghiệm. Phần cần ưu tiên tiếp theo là kiểm thử PLC/MFM384/tải thật và thu dữ liệu thực tế.",
+      keywords: ["tien do", "hoan thien", "da lam", "chua lam", "kiem thu"],
     },
   ],
 };

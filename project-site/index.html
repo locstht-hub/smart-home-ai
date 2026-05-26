@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Home AI</title>
+    <meta
+      name="description"
+      content="Smart Home AI - hệ thống giám sát điện năng, điều khiển nhà thông minh và dự báo phụ tải bằng AI."
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -13,119 +17,169 @@
         <span>Smart Home AI</span>
       </a>
       <nav aria-label="Điều hướng">
-        <a href="#metrics">Thông số</a>
-        <a href="#workflow">Workflow</a>
-        <a href="#project-summary">Tóm tắt</a>
+        <a href="#architecture">Kiến trúc</a>
+        <a href="#forecast">AI Forecast</a>
+        <a href="#status">Tiến độ</a>
         <a href="#assistant">Chatbot</a>
-        <a href="progress.html">Tiến độ</a>
+        <a href="progress.html">Bản tóm tắt</a>
       </nav>
     </header>
 
     <main id="top">
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Đồ án Smart Home Energy Monitoring</p>
-          <h1>Giám sát điện năng và điều khiển nhà thông minh</h1>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-bg" aria-hidden="true"></div>
+        <div class="hero-inner">
+          <p class="eyebrow">Smart Home Energy Monitoring</p>
+          <h1 id="hero-title">Giám sát điện năng và điều khiển nhà thông minh bằng AI</h1>
           <p class="lead">
-            Hệ thống dùng MFM384, PLC Siemens S7-1200 CPU 1215C, Smart Home Server API,
-            app Android và AI dự báo phụ tải để theo dõi điện năng theo thời gian thực.
+            Đồ án kết hợp MFM384, PLC Siemens S7-1200 CPU 1215C, backend Flask,
+            app mobile và mô hình dự báo phụ tải để theo dõi năng lượng theo thời gian thực.
           </p>
           <div class="hero-actions">
-            <a class="primary-action" href="#assistant">Hỏi chatbot</a>
-            <a class="secondary-action" href="#workflow">Xem workflow</a>
+            <a class="primary-action" href="#architecture">Xem kiến trúc</a>
+            <a class="secondary-action" href="#assistant">Hỏi chatbot</a>
           </div>
-        </div>
-        <div class="hero-visual" aria-label="Giao diện app Smart Home AI">
-          <div class="device-shell">
-            <img src="assets/screen1.png" alt="Ảnh giao diện app Smart Home AI" />
-          </div>
-          <div class="signal-panel">
+          <div class="hero-strip" aria-label="Các thành phần chính">
+            <span>MFM384</span>
             <span>PLC S7-1200</span>
-            <strong>CPU 1215C</strong>
-            <small>Ethernet -> Server API -> App</small>
+            <span>Flask API</span>
+            <span>AI Forecast</span>
           </div>
         </div>
       </section>
 
-      <section id="metrics" class="section">
-        <div class="section-heading">
+      <section id="metrics" class="section compact-section">
+        <div class="section-heading centered">
           <p class="eyebrow">Dữ liệu điện năng</p>
-          <h2>4 thông số chính đang đọc từ PLC</h2>
+          <h2>Các chỉ số chính dùng cho dashboard và dự báo</h2>
         </div>
         <div class="metric-grid" id="metricGrid"></div>
       </section>
 
-      <section id="workflow" class="section alt-section">
+      <section id="architecture" class="section architecture-section">
         <div class="section-heading">
-          <p class="eyebrow">Luồng dữ liệu</p>
-          <h2>Từ thiết bị đo đến app và website</h2>
-        </div>
-        <div class="workflow-list" id="workflowList"></div>
-      </section>
-
-      <section id="project-summary" class="section project-summary-section">
-        <div class="section-heading">
-          <p class="eyebrow">Tóm tắt dự án</p>
-          <h2>Đã có nền tảng phần mềm, đang chuẩn bị kiểm thử phần cứng thực tế</h2>
-        </div>
-        <div class="summary-grid">
-          <article class="summary-card done">
-            <span>Đã làm</span>
-            <strong>App, backend, database và AI forecast</strong>
-            <p>
-              Dự án đã có ứng dụng mobile, API server, SQLite, Forecast API và các model dự báo như
-              XGBoost, Random Forest, LSTM để trình bày prototype quản lý năng lượng.
-            </p>
-          </article>
-          <article class="summary-card pending">
-            <span>Chưa hoàn tất</span>
-            <strong>PLC, MFM384 và tải điện thực tế</strong>
-            <p>
-              Cần kiểm thử PLC nhận lệnh từ backend, đồng bộ nút nhấn vật lý lên app, đọc dữ liệu MFM384
-              và điều khiển relay/contactor với tải thật hoặc tải giả.
-            </p>
-          </article>
-          <article class="summary-card next">
-            <span>Tiếp theo</span>
-            <strong>Hoàn thiện báo cáo và kiểm thử phần cứng</strong>
-            <p>
-              Nên tạm dừng thêm tính năng lớn, tập trung viết bài báo, lập danh sách PLC tag/Data Block,
-              rồi thu thập dữ liệu thật để retrain model sau.
-            </p>
-          </article>
-        </div>
-        <a class="summary-link" href="progress.html">Xem trang tiến độ chi tiết</a>
-      </section>
-
-      <section class="section two-column">
-        <div>
-          <p class="eyebrow">AI trong đồ án</p>
-          <h2>Dự báo phụ tải và hỏi đáp dự án</h2>
+          <p class="eyebrow">Kiến trúc hệ thống</p>
+          <h2>App không điều khiển PLC trực tiếp, mọi lệnh đi qua backend</h2>
           <p>
-            Phần dự báo dùng dữ liệu lịch sử điện năng để ước lượng xu hướng tiêu thụ.
-            Chatbot trên website dùng bộ kiến thức dự án để trả lời câu hỏi cho người xem.
+            Cách tách lớp này giúp hệ thống dễ kiểm tra, ghi log và hạn chế thao tác nguy hiểm
+            khi chuyển từ mô hình phần mềm sang tủ điện, relay và tải thực tế.
           </p>
         </div>
-        <div class="feature-list">
+        <div class="workflow-list" id="workflowList"></div>
+        <div class="control-flow">
           <div>
-            <strong>Forecast</strong>
-            <span>XGBoost, RandomForest, LSTM, CNN-LSTM</span>
+            <span>Luồng điều khiển</span>
+            <strong>App -> Backend -> PLC -> Relay/Contactor -> Tải</strong>
           </div>
-          <div>
-            <strong>API riêng</strong>
-            <span>api.smarthomeai.id.vn qua Cloudflare Tunnel</span>
+          <p>
+            Trạng thái vật lý từ nút nhấn hoặc tiếp điểm phản hồi cần được PLC cập nhật lại để app
+            hiển thị đồng bộ, thay vì chỉ tin vào lệnh đã gửi từ giao diện.
+          </p>
+        </div>
+      </section>
+
+      <section id="forecast" class="section split-section">
+        <div class="section-heading">
+          <p class="eyebrow">AI Forecast</p>
+          <h2>Dự báo phụ tải là mô hình số, khác với chatbot hỏi đáp</h2>
+          <p>
+            Forecast API dùng dữ liệu lịch sử để ước lượng xu hướng tiêu thụ. Khi có dữ liệu thật
+            từ PLC/MFM384, mô hình cần được retrain để kết quả sát hệ thống thực tế hơn.
+          </p>
+        </div>
+        <div class="forecast-panel">
+          <div class="model-chip">XGBoost</div>
+          <div class="model-chip">Random Forest</div>
+          <div class="model-chip">LSTM</div>
+          <div class="model-chip">CNN-LSTM</div>
+          <div class="forecast-chart" aria-label="Biểu đồ minh họa dự báo phụ tải">
+            <span style="height: 42%"></span>
+            <span style="height: 58%"></span>
+            <span style="height: 48%"></span>
+            <span style="height: 72%"></span>
+            <span style="height: 63%"></span>
+            <span style="height: 84%"></span>
+            <span style="height: 76%"></span>
+            <span style="height: 68%"></span>
+            <span style="height: 88%" class="predicted"></span>
+            <span style="height: 92%" class="predicted"></span>
+            <span style="height: 74%" class="predicted"></span>
+            <span style="height: 64%" class="predicted"></span>
           </div>
-          <div>
-            <strong>An toàn</strong>
-            <span>Website giới thiệu không gửi lệnh xuống PLC thật</span>
+          <small>Dữ liệu minh họa; số liệu chính thức sẽ lấy từ backend/PLC khi kiểm thử thực tế.</small>
+        </div>
+      </section>
+
+      <section class="section mobile-section">
+        <div class="phone-showcase" aria-label="Giao diện app Smart Home AI">
+          <div class="device-shell">
+            <img src="assets/screen1.png" alt="Ảnh giao diện app Smart Home AI" />
           </div>
         </div>
+        <div class="section-heading">
+          <p class="eyebrow">Mobile App</p>
+          <h2>Dashboard tập trung vào dữ liệu người dùng cần đọc nhanh</h2>
+          <p>
+            App hiển thị phòng, thiết bị, công suất, điện năng, quota, forecast và cảnh báo.
+            Phần điều khiển tải thật chỉ nên bật sau khi PLC, relay và cơ chế phản hồi trạng thái
+            đã được kiểm thử an toàn.
+          </p>
+          <div class="feature-list">
+            <div>
+              <strong>Theo dõi</strong>
+              <span>kW, kWh, điện áp, dòng điện, trạng thái thiết bị.</span>
+            </div>
+            <div>
+              <strong>Phân tích</strong>
+              <span>So sánh lịch sử, quota và xu hướng tiêu thụ.</span>
+            </div>
+            <div>
+              <strong>Điều khiển</strong>
+              <span>Lệnh đi qua API, không gửi trực tiếp từ website xuống PLC.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="status" class="section status-section">
+        <div class="section-heading centered">
+          <p class="eyebrow">Trạng thái dự án</p>
+          <h2>Nền tảng phần mềm đã có, phần cứng thực tế là bước ưu tiên kế tiếp</h2>
+        </div>
+        <div class="status-grid">
+          <article class="status-card done">
+            <span>Đã hoàn thiện</span>
+            <strong>App, backend, database, forecast API và website giới thiệu</strong>
+            <p>
+              Đủ nền tảng để trình bày kiến trúc, workflow, dữ liệu hiển thị và chức năng AI dự báo.
+            </p>
+          </article>
+          <article class="status-card active">
+            <span>Đang kiểm thử</span>
+            <strong>PLC S7-1200, MFM384, relay/contactor và đồng bộ trạng thái</strong>
+            <p>
+              Cần xác nhận dữ liệu đọc thật, lệnh điều khiển thật và phản hồi nút nhấn vật lý lên app.
+            </p>
+          </article>
+          <article class="status-card next">
+            <span>Tiếp theo</span>
+            <strong>Thu dữ liệu thật rồi retrain model dự báo</strong>
+            <p>
+              AI Assistant fine-tune có thể phát triển sau, nhưng không nên che khuất phần thực nghiệm.
+            </p>
+          </article>
+        </div>
+        <a class="summary-link" href="progress.html">Xem bản tóm tắt tiến độ chi tiết</a>
       </section>
 
       <section id="assistant" class="section assistant-section">
-        <div class="section-heading">
+        <div class="section-heading centered">
           <p class="eyebrow">AI Project Assistant</p>
-          <h2>Chatbot giải đáp thắc mắc về đồ án</h2>
+          <h2>Chatbot hỏi đáp về dự án, kiến trúc và dữ liệu điện năng</h2>
+          <p>
+            Bản web hiện tại dùng bộ tri thức tĩnh để trả lời nhanh. Khi tích hợp model fine-tune,
+            giao diện này sẽ gọi backend inference API thay vì chạy model trực tiếp trong trình duyệt.
+          </p>
         </div>
         <div class="assistant-layout">
           <aside class="question-panel">
@@ -139,7 +193,7 @@
                 id="chatInput"
                 type="text"
                 autocomplete="off"
-                placeholder="Nhập câu hỏi về PLC, MFM384, workflow, AI..."
+                placeholder="Hỏi về PLC, MFM384, forecast, app, backend..."
                 aria-label="Nhập câu hỏi"
               />
               <button type="submit">Gửi</button>
@@ -151,7 +205,7 @@
 
     <footer>
       <span>Smart Home AI</span>
-      <span>Website giới thiệu tĩnh cho Cloudflare Pages</span>
+      <span>Static landing page for Cloudflare Pages</span>
     </footer>
 
     <script src="knowledge.js"></script>
