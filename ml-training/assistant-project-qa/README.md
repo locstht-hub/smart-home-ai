@@ -21,8 +21,8 @@ Phạm vi loại trừ theo yêu cầu:
 ## File
 
 ```text
-train.jsonl
-eval.jsonl
+train.jsonl  # 200 mẫu huấn luyện
+eval.jsonl   # 16 mẫu kiểm thử
 system_prompt.txt
 requirements.txt
 train_unsloth_project_qa.py
@@ -64,4 +64,4 @@ assistant-project-qa-lora/
 
 ## Ghi chú
 
-Dataset hiện tại là bản khởi đầu để kiểm tra pipeline. Nên mở rộng thêm câu hỏi trước khi fine-tune nghiêm túc.
+Dataset hiện tại đủ để train thử vòng đầu và đánh giá pipeline. Sau khi train thử, nên bổ sung tiếp các mẫu mà model còn trả lời yếu để tiến tới khoảng 500 mẫu chất lượng.
