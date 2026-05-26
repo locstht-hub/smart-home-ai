@@ -48,7 +48,10 @@ https://api-tenmiencuaban.com
 
 ```text
 GET  /health
+POST /api/auth/login
 GET  /api/auth/check
+GET  /api/me
+GET  /api/system/status
 GET  /api/power/current
 GET  /api/power/history
 POST /api/power/readings
@@ -59,6 +62,24 @@ POST /api/devices/<device_id>/turn-on
 POST /api/devices/<device_id>/turn-off
 POST /api/scenes/<scene>
 POST /api/assistant/chat
+
+GET    /api/homes/<home_id>/quota
+POST   /api/homes/<home_id>/quota
+GET    /api/homes/<home_id>/members
+POST   /api/homes/<home_id>/members
+PATCH  /api/homes/<home_id>/members/<user_id>/suspend
+PATCH  /api/homes/<home_id>/members/<user_id>/activate
+DELETE /api/homes/<home_id>/members/<user_id>
+
+GET   /api/admin/homes
+GET   /api/admin/users
+GET   /api/admin/audit-logs
+POST  /api/admin/owners
+PATCH /api/admin/users/<user_id>/suspend
+PATCH /api/admin/users/<user_id>/activate
+PATCH /api/admin/users/<user_id>/reset-password
+PATCH /api/admin/homes/<home_id>/suspend
+PATCH /api/admin/homes/<home_id>/activate
 ```
 
 ## Tai khoan va phan quyen
