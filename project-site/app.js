@@ -2,10 +2,16 @@ const knowledge = window.PROJECT_KNOWLEDGE;
 
 const metricGrid = document.querySelector("#metricGrid");
 const workflowList = document.querySelector("#workflowList");
-const suggestionList = document.querySelector("#suggestionList");
-const chatLog = document.querySelector("#chatLog");
-const chatForm = document.querySelector("#chatForm");
-const chatInput = document.querySelector("#chatInput");
+const heroChatOpen = document.querySelector("#heroChatOpen");
+const floatingChatToggle = document.querySelector("#floatingChatToggle");
+const floatingChatClose = document.querySelector("#floatingChatClose");
+const floatingChatPanel = document.querySelector("#floatingChatPanel");
+const floatingChatLog = document.querySelector("#floatingChatLog");
+const floatingChatForm = document.querySelector("#floatingChatForm");
+const floatingChatInput = document.querySelector("#floatingChatInput");
+
+const welcomeMessage =
+  "Xin chào, mình là AI Project Assistant. Bạn có thể hỏi về PLC S7-1200, MFM384, luồng dữ liệu, app, server API, AI forecast hoặc hướng tích hợp model fine-tune.";
 
 function normalizeText(value) {
   return value
@@ -46,25 +52,12 @@ function renderWorkflow() {
     .join("");
 }
 
-function renderSuggestions() {
-  suggestionList.innerHTML = knowledge.faq
-    .slice(0, 8)
-    .map(
-      (item) => `
-        <button type="button" data-question="${item.question}">
-          ${item.question}
-        </button>
-      `,
-    )
-    .join("");
-}
-
 function addMessage(role, text) {
   const message = document.createElement("div");
   message.className = `message ${role}`;
   message.textContent = text;
-  chatLog.appendChild(message);
-  chatLog.scrollTop = chatLog.scrollHeight;
+  floatingChatLog.appendChild(message);
+  floatingChatLog.scrollTop = floatingChatLog.scrollHeight;
 }
 
 function scoreFaq(query, faq) {
@@ -112,27 +105,43 @@ function askQuestion(question) {
   addMessage("bot", findAnswer(cleaned));
 }
 
+function setFloatingChatOpen(isOpen) {
+  floatingChatPanel.classList.toggle("is-open", isOpen);
+  floatingChatToggle.setAttribute("aria-expanded", String(isOpen));
+
+  if (isOpen) {
+    window.setTimeout(() => floatingChatInput.focus(), 80);
+  }
+}
+
 function bindEvents() {
-  suggestionList.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-question]");
-    if (!button) return;
-    askQuestion(button.dataset.question || button.textContent);
+  heroChatOpen.addEventListener("click", () => {
+    setFloatingChatOpen(true);
   });
 
-  chatForm.addEventListener("submit", (event) => {
+  floatingChatToggle.addEventListener("click", () => {
+    setFloatingChatOpen(!floatingChatPanel.classList.contains("is-open"));
+  });
+
+  floatingChatClose.addEventListener("click", () => {
+    setFloatingChatOpen(false);
+  });
+
+  floatingChatForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    const value = chatInput.value;
-    chatInput.value = "";
+    const value = floatingChatInput.value;
+    floatingChatInput.value = "";
     askQuestion(value);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      setFloatingChatOpen(false);
+    }
   });
 }
 
 renderMetrics();
 renderWorkflow();
-renderSuggestions();
 bindEvents();
-
-addMessage(
-  "bot",
-  "Xin chào, mình là AI Project Assistant. Bạn có thể hỏi về PLC S7-1200, MFM384, luồng dữ liệu, app, server API, AI forecast hoặc hướng tích hợp model fine-tune.",
-);
+addMessage("bot", welcomeMessage);
