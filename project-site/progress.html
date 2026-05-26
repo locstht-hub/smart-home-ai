@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tiến độ dự án | Smart Home AI</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="progress.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="Smart Home AI">
+        <img src="assets/smart-home-logo.png" alt="Smart Home AI logo" />
+        <span>Smart Home AI</span>
+      </a>
+      <nav aria-label="Điều hướng">
+        <a href="index.html">Trang chủ</a>
+        <a href="#done">Đã làm</a>
+        <a href="#pending">Chưa có</a>
+        <a href="#next">Tiếp theo</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="progress-hero">
+        <div class="progress-hero-copy">
+          <p class="eyebrow">Tóm tắt tiến độ</p>
+          <h1>Smart Home AI đã có nền tảng phần mềm, đang chuẩn bị kiểm thử phần cứng thực tế</h1>
+          <p class="lead">
+            Tài liệu này tóm tắt dự án đã làm được gì, phần nào chưa nên khẳng định hoàn tất,
+            và thứ tự công việc nên ưu tiên trước khi viết báo cáo/bài báo khoa học.
+          </p>
+        </div>
+        <div class="status-panel" aria-label="Trạng thái dự án">
+          <div>
+            <span>Trạng thái</span>
+            <strong>Prototype</strong>
+          </div>
+          <div>
+            <span>Commit mới nhất</span>
+            <strong>e2dc3b8</strong>
+          </div>
+          <div>
+            <span>Ngày cập nhật</span>
+            <strong>25/05/2026</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="progress-section">
+        <div class="section-heading">
+          <p class="eyebrow">Kiến trúc tổng quan</p>
+          <h2>Luồng phần mềm hiện tại</h2>
+        </div>
+        <div class="architecture-flow" aria-label="Luồng kiến trúc phần mềm">
+          <div>Mobile App</div>
+          <span>Gọi API</span>
+          <div>Backend API</div>
+          <span>Lưu dữ liệu</span>
+          <div>SQLite Database</div>
+          <span>Dữ liệu lịch sử</span>
+          <div>Forecast API / AI Model</div>
+        </div>
+      </section>
+
+      <section id="done" class="progress-section alt-section">
+        <div class="section-heading">
+          <p class="eyebrow">Phần đã làm được</p>
+          <h2>Các khối chính đã có trong dự án</h2>
+        </div>
+        <div class="progress-grid">
+          <article class="progress-item">
+            <span>01</span>
+            <h3>Ứng dụng mobile</h3>
+            <p>Đã có đăng nhập, quản lý nhà, thành viên, thiết bị, dữ liệu năng lượng, quota và màn hình dự báo AI.</p>
+          </article>
+          <article class="progress-item">
+            <span>02</span>
+            <h3>Backend API</h3>
+            <p>Làm lớp trung gian giữa app, database, Forecast API và phần cứng PLC dự kiến.</p>
+          </article>
+          <article class="progress-item">
+            <span>03</span>
+            <h3>Cơ sở dữ liệu</h3>
+            <p>Đang dùng SQLite cho prototype, phù hợp demo và phát triển nhanh ở giai đoạn hiện tại.</p>
+          </article>
+          <article class="progress-item">
+            <span>04</span>
+            <h3>AI dự báo phụ tải</h3>
+            <p>Đã có model artifact như XGBoost, Random Forest và LSTM trong thư mục huấn luyện.</p>
+          </article>
+          <article class="progress-item">
+            <span>05</span>
+            <h3>Tài liệu kỹ thuật</h3>
+            <p>Đã có README, tiến trình dự án, tài liệu phản biện, hướng dẫn PLC/server và bản thảo bài báo.</p>
+          </article>
+          <article class="progress-item">
+            <span>06</span>
+            <h3>GitHub</h3>
+            <p>Code chính đã được đẩy lên GitHub ở nhánh main, commit mới nhất là e2dc3b8.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="pending" class="progress-section">
+        <div class="section-heading">
+          <p class="eyebrow">Phần chưa có</p>
+          <h2>Những điểm chưa nên khẳng định là hoàn tất</h2>
+        </div>
+        <div class="check-list">
+          <div>
+            <strong>Chưa kiểm thử đầy đủ với PLC thực tế</strong>
+            <p>Cần xác nhận PLC nhận lệnh từ backend, điều khiển ngõ ra và trả trạng thái thật về app.</p>
+          </div>
+          <div>
+            <strong>Chưa có dữ liệu MFM384 thực tế</strong>
+            <p>Cần đọc điện áp, dòng điện, công suất, điện năng qua Modbus và lưu vào endpoint <code>/api/power/readings</code>.</p>
+          </div>
+          <div>
+            <strong>Chưa hoàn tất tủ điện và tải thật</strong>
+            <p>Cần bố trí PLC, relay trung gian, contactor, terminal, đèn báo, tải giả hoặc tải thật theo hướng an toàn.</p>
+          </div>
+          <div>
+            <strong>Chưa có auto load shedding hoàn chỉnh</strong>
+            <p>Quota đã có nền tảng, nhưng tự động cắt tải theo ưu tiên và điều kiện an toàn vẫn cần thiết kế/test.</p>
+          </div>
+          <div>
+            <strong>Chưa có auto retrain model</strong>
+            <p>Model hiện được train offline rồi Forecast API load artifact; chưa có pipeline tự động train lại bằng dữ liệu mới.</p>
+          </div>
+          <div>
+            <strong>Chưa cần fine-tune Unsloth ngay</strong>
+            <p>Unsloth phù hợp cho trợ lý tiếng Việt sau này, không phải thành phần bắt buộc để chứng minh AI dự báo phụ tải.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="progress-section alt-section">
+        <div class="section-heading">
+          <p class="eyebrow">Workflow AI</p>
+          <h2>Dự báo hiện tại hoạt động theo hướng train offline</h2>
+        </div>
+        <div class="timeline">
+          <div>
+            <span>1</span>
+            <p>Dữ liệu điện năng lịch sử được chuẩn bị cho huấn luyện.</p>
+          </div>
+          <div>
+            <span>2</span>
+            <p>Script trong <code>ml-training</code> train model và sinh artifact.</p>
+          </div>
+          <div>
+            <span>3</span>
+            <p>Forecast API load model <code>.joblib</code> hoặc <code>.keras</code>.</p>
+          </div>
+          <div>
+            <span>4</span>
+            <p>App/backend gọi API để lấy kết quả dự báo và hiển thị.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="next" class="progress-section">
+        <div class="section-heading">
+          <p class="eyebrow">Việc nên làm tiếp</p>
+          <h2>Thứ tự ưu tiên đề xuất</h2>
+        </div>
+        <ol class="next-list">
+          <li>Tạm dừng thêm tính năng lớn trên app để tập trung viết báo cáo/bài báo.</li>
+          <li>Lập danh sách tag/Data Block PLC: command, status, feedback và power readings.</li>
+          <li>Đấu thử PLC với ít nhất một tải nhỏ, một relay/contactor và một đèn báo.</li>
+          <li>Đọc dữ liệu thật từ MFM384 và ghi vào <code>/api/power/readings</code>.</li>
+          <li>Kiểm tra app có đồng bộ đúng khi bật/tắt bằng nút vật lý hay không.</li>
+          <li>Thu thập dữ liệu thật, sau đó mới retrain model để dự báo sát hơn.</li>
+        </ol>
+      </section>
+
+      <section class="summary-band">
+        <p>
+          Dự án đã hoàn thành nền tảng phần mềm và mô hình AI dự báo cho hệ thống quản lý năng lượng nhà thông minh;
+          bước tiếp theo là kiểm thử với PLC, đồng hồ điện và tải thực tế để biến prototype thành hệ thống vận hành thực nghiệm hoàn chỉnh.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <span>Smart Home AI</span>
+      <span>Trang tóm tắt tiến độ dự án</span>
+    </footer>
+  </body>
+</html>
