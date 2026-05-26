@@ -20,6 +20,7 @@ eval.jsonl
 system_prompt.txt
 requirements.txt
 train_unsloth_user_energy.py
+TEST_PLAN.md
 ```
 
 ## Format
@@ -59,3 +60,9 @@ assistant-user-energy-lora/
 ## Ghi chú
 
 Dataset này là bản đầu để train thử User Assistant. Sau khi train, nên test các câu hỏi thực tế từ app rồi bổ sung thêm các mẫu model trả lời yếu.
+
+Kế hoạch test chi tiết nằm ở:
+
+```text
+TEST_PLAN.md
+```
