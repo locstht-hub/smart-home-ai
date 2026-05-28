@@ -2,28 +2,39 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
   gap: 36px;
-  align-items: end;
-  padding: 72px 5vw 56px;
+  align-items: center;
+  padding: 80px 5vw 60px;
   background:
-    linear-gradient(90deg, rgba(15, 118, 110, 0.09), transparent 54%),
-    #eef5f4;
+    radial-gradient(circle at 10% 20%, rgba(13, 148, 136, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 45%),
+    linear-gradient(135deg, #030712 0%, #0d1527 50%, #030712 100%);
+  color: #f8fafc;
+  border-bottom: 1px solid var(--line);
+  animation: fadeInUp 0.7s ease-out;
 }
 
 .progress-hero h1 {
   max-width: 980px;
   margin: 0;
-  font-size: clamp(38px, 6vw, 72px);
-  line-height: 1.04;
-  letter-spacing: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(34px, 5.5vw, 62px);
+  line-height: 1.15;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #ffffff 30%, #a5f3fc 60%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .progress-hero .lead {
   max-width: 860px;
+  color: var(--muted);
+  margin-top: 16px;
 }
 
 .status-panel {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 .status-panel > div,
@@ -32,14 +43,27 @@
 .timeline > div {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 16px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: var(--transition);
 }
 
 .status-panel > div {
   display: grid;
-  gap: 4px;
-  min-height: 96px;
-  padding: 18px;
+  gap: 6px;
+  min-height: 100px;
+  padding: 20px;
+}
+
+.status-panel > div:hover,
+.progress-item:hover,
+.check-list > div:hover,
+.timeline > div:hover {
+  transform: translateY(-4px);
+  border-color: rgba(6, 182, 212, 0.25);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 }
 
 .status-panel span,
@@ -50,31 +74,52 @@
 }
 
 .status-panel strong {
-  font-size: 26px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 28px;
+  background: linear-gradient(135deg, #ffffff, #a5f3fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .progress-section {
-  padding: 72px 5vw;
+  padding: 90px 5vw;
+}
+
+.alt-section {
+  background: #060b18;
+  border-block: 1px solid var(--line);
 }
 
 .architecture-flow {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
   align-items: stretch;
 }
 
 .architecture-flow > div {
   display: grid;
   place-items: center;
-  min-height: 112px;
-  padding: 16px;
-  background: #ffffff;
+  min-height: 120px;
+  padding: 20px;
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  font-size: 20px;
-  font-weight: 900;
+  border-radius: 12px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  color: #f1f5f9;
   text-align: center;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition: var(--transition);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.architecture-flow > div:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(6, 182, 212, 0.3);
+  box-shadow: 0 15px 35px rgba(6, 182, 212, 0.15);
 }
 
 .architecture-flow span {
@@ -84,26 +129,37 @@
 .progress-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 20px;
 }
 
 .progress-item {
-  min-height: 220px;
-  padding: 20px;
+  min-height: 230px;
+  padding: 24px;
+  position: relative;
 }
 
 .progress-item span {
+  font-family: 'Outfit', sans-serif;
   font-weight: 900;
+  color: var(--cyan);
+  font-size: 14px;
 }
 
 .progress-item h3,
 .check-list strong {
-  color: var(--ink);
+  color: #ffffff;
 }
 
 .progress-item h3 {
   margin: 16px 0 10px;
-  font-size: 22px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.progress-item p {
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .progress-item p,
@@ -115,76 +171,126 @@
 .check-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .check-list > div {
   display: grid;
+  gap: 10px;
+  min-height: 140px;
+  padding: 22px;
+}
+
+.check-list strong {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
   gap: 8px;
-  min-height: 132px;
-  padding: 18px;
+}
+
+.check-list strong::before {
+  content: '⚡';
+  color: var(--amber);
+}
+
+.check-list p {
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 code {
-  padding: 2px 6px;
-  background: #edf2f7;
+  padding: 3px 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 6px;
-  color: #0f172a;
-  font-size: 0.94em;
+  color: #38bdf8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
 }
 
 .timeline {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .timeline > div {
-  min-height: 150px;
-  padding: 18px;
+  min-height: 160px;
+  padding: 22px;
 }
 
 .timeline span {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   margin-bottom: 16px;
   border-radius: 50%;
-  background: #e0f2f1;
-  color: var(--primary-dark);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15));
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  color: var(--cyan);
+  font-family: 'Outfit', sans-serif;
   font-weight: 900;
+  font-size: 15px;
+}
+
+.timeline p {
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .next-list {
   display: grid;
-  gap: 10px;
+  gap: 14px;
   margin: 0;
   padding-left: 24px;
-  color: #334155;
-  font-size: 18px;
+  color: #e2e8f0;
+  font-size: 17px;
+  line-height: 1.6;
 }
 
 .next-list li {
-  padding-left: 6px;
+  padding-left: 8px;
+}
+
+.next-list li::marker {
+  color: var(--cyan);
+  font-weight: 800;
 }
 
 .summary-band {
-  padding: 42px 5vw;
-  background: #0f766e;
+  padding: 60px 5vw;
+  background: linear-gradient(135deg, #0d9488 0%, #1e40af 100%);
   color: #ffffff;
+  border-top: 1px solid var(--line);
+  box-shadow: inset 0 20px 40px rgba(0,0,0,0.15);
 }
 
 .summary-band p {
   max-width: 1120px;
   margin: 0;
-  font-size: clamp(22px, 3vw, 34px);
-  font-weight: 850;
-  line-height: 1.25;
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(20px, 2.5vw, 30px);
+  font-weight: 800;
+  line-height: 1.3;
+  text-shadow: 0 4px 10px rgba(0,0,0,0.25);
 }
 
 @media (max-width: 980px) {
-  .progress-hero,
+  .progress-hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding-top: 60px;
+    padding-bottom: 40px;
+  }
+
+  .status-panel {
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
   .architecture-flow,
   .progress-grid,
   .check-list,
@@ -196,14 +302,14 @@ code {
 @media (max-width: 640px) {
   .progress-hero,
   .progress-section {
-    padding: 42px 5vw;
+    padding: 60px 5vw;
   }
 
   .progress-hero h1 {
-    font-size: 38px;
+    font-size: 34px;
   }
 
   .status-panel strong {
-    font-size: 22px;
+    font-size: 24px;
   }
 }

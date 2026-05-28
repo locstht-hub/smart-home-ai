@@ -13,6 +13,15 @@ const floatingChatInput = document.querySelector("#floatingChatInput");
 const welcomeMessage =
   "Xin chào, mình là AI Project Assistant. Bạn có thể hỏi về PLC S7-1200, MFM384, luồng dữ liệu, app, server API, AI forecast hoặc hướng tích hợp model fine-tune.";
 
+// Simulated real-time sensor state for MFM384 / PLC
+const liveData = {
+  voltage: 220.4,
+  current: 5.62,
+  power: 1.05,
+  energy: 142.8435,
+  quota: 72.4,
+};
+
 function normalizeText(value) {
   return value
     .toLowerCase()
@@ -25,17 +34,91 @@ function normalizeText(value) {
 }
 
 function renderMetrics() {
-  metricGrid.innerHTML = knowledge.metrics
-    .map(
-      (item) => `
-        <article class="metric-card">
-          <span>${item.label}</span>
-          <strong>${item.value}</strong>
-          <small>${item.note}</small>
-        </article>
-      `,
-    )
-    .join("");
+  metricGrid.innerHTML = `
+    <article class="metric-card">
+      <div class="live-pulse"></div>
+      <span>Điện áp (V)</span>
+      <strong id="live-voltage">220.4 V</strong>
+      <small>Đo V1N trên MFM384 (Thời gian thực)</small>
+    </article>
+    <article class="metric-card">
+      <div class="live-pulse"></div>
+      <span>Dòng điện (I)</span>
+      <strong id="live-current">5.62 A</strong>
+      <small>Dòng tải tổng ngõ vào MFM384</small>
+    </article>
+    <article class="metric-card">
+      <div class="live-pulse"></div>
+      <span>Công suất (P)</span>
+      <strong id="live-power">1.05 kW</strong>
+      <small>Công suất tức thời từ PLC</small>
+    </article>
+    <article class="metric-card">
+      <div class="live-pulse"></div>
+      <span>Điện năng (E)</span>
+      <strong id="live-energy">142.8435 kWh</strong>
+      <small>Tổng tích lũy điện năng tiêu thụ</small>
+    </article>
+    <article class="metric-card">
+      <div class="live-pulse"></div>
+      <span>Hạn mức (Quota)</span>
+      <strong id="live-quota">72.4%</strong>
+      <div class="quota-progress-container">
+        <div class="quota-progress-bar" id="live-quota-bar" style="width: 72.4%"></div>
+      </div>
+      <small>Cảnh báo vượt hạn mức tiêu thụ</small>
+    </article>
+    <article class="metric-card">
+      <div class="live-pulse"></div>
+      <span>Dự báo (Forecast)</span>
+      <strong id="live-forecast">Ổn định &rarr;</strong>
+      <small>Ước lượng từ các mô hình AI</small>
+    </article>
+  `;
+}
+
+function startLiveMetrics() {
+  setInterval(() => {
+    // Voltage fluctuates between 218.2V and 221.8V
+    liveData.voltage = (220.0 + (Math.random() - 0.5) * 3.6).toFixed(1);
+    // Current fluctuates between 4.2A and 7.8A
+    liveData.current = (5.5 + (Math.random() - 0.5) * 2.8).toFixed(2);
+    // Power in kW = V * I * cos(phi) / 1000, cos(phi) = 0.85
+    liveData.power = ((liveData.voltage * liveData.current * 0.85) / 1000).toFixed(2);
+    // Energy accumulates slowly based on power
+    liveData.energy = (parseFloat(liveData.energy) + parseFloat(liveData.power) * 0.00015).toFixed(4);
+    // Quota fluctuates slightly around 72.4%
+    liveData.quota = (72.4 + (Math.random() - 0.5) * 0.6).toFixed(1);
+
+    // Update DOM elements dynamically
+    const vEl = document.querySelector("#live-voltage");
+    const iEl = document.querySelector("#live-current");
+    const pEl = document.querySelector("#live-power");
+    const eEl = document.querySelector("#live-energy");
+    const qEl = document.querySelector("#live-quota");
+    const qBar = document.querySelector("#live-quota-bar");
+    const fEl = document.querySelector("#live-forecast");
+
+    if (vEl) vEl.textContent = `${liveData.voltage} V`;
+    if (iEl) iEl.textContent = `${liveData.current} A`;
+    if (pEl) pEl.textContent = `${liveData.power} kW`;
+    if (eEl) eEl.textContent = `${liveData.energy} kWh`;
+    if (qEl) qEl.textContent = `${liveData.quota}%`;
+    if (qBar) qBar.style.width = `${liveData.quota}%`;
+
+    if (fEl) {
+      if (parseFloat(liveData.power) > 1.25) {
+        fEl.innerHTML = `Tăng nhẹ &nearr;`;
+        fEl.style.color = "#fbbf24";
+      } else if (parseFloat(liveData.power) < 0.9) {
+        fEl.innerHTML = `Giảm nhẹ &searr;`;
+        fEl.style.color = "#34d399";
+      } else {
+        fEl.innerHTML = `Ổn định &rarr;`;
+        fEl.style.color = "#38bdf8";
+      }
+    }
+  }, 2000);
 }
 
 function renderWorkflow() {
@@ -52,12 +135,22 @@ function renderWorkflow() {
     .join("");
 }
 
-function addMessage(role, text) {
+function addMessage(role, text, isTyping = false) {
   const message = document.createElement("div");
   message.className = `message ${role}`;
-  message.textContent = text;
+  if (isTyping) {
+    message.classList.add("typing-indicator-msg");
+    message.innerHTML = `
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+    `;
+  } else {
+    message.textContent = text;
+  }
   floatingChatLog.appendChild(message);
   floatingChatLog.scrollTop = floatingChatLog.scrollHeight;
+  return message;
 }
 
 function scoreFaq(query, faq) {
@@ -102,17 +195,64 @@ function askQuestion(question) {
   if (!cleaned) return;
 
   addMessage("user", cleaned);
-  addMessage("bot", findAnswer(cleaned));
+  
+  // Show typing indicator
+  const typingIndicator = addMessage("bot", "", true);
+  
+  // Simulate AI latency
+  setTimeout(() => {
+    typingIndicator.remove();
+    addMessage("bot", findAnswer(cleaned));
+  }, 600 + Math.random() * 800);
 }
 
 function setFloatingChatOpen(isOpen) {
   floatingChatPanel.hidden = !isOpen;
-  floatingChatPanel.classList.toggle("is-open", isOpen);
-  floatingChatToggle.setAttribute("aria-expanded", String(isOpen));
-
   if (isOpen) {
-    window.setTimeout(() => floatingChatInput.focus(), 80);
+    floatingChatPanel.style.display = "flex";
+    // Trigger fade in animation frame delay
+    setTimeout(() => {
+      floatingChatPanel.classList.add("is-open");
+      floatingChatToggle.setAttribute("aria-expanded", "true");
+      floatingChatInput.focus();
+    }, 20);
+  } else {
+    floatingChatPanel.classList.remove("is-open");
+    floatingChatToggle.setAttribute("aria-expanded", "false");
+    setTimeout(() => {
+      floatingChatPanel.style.display = "none";
+    }, 300); // match transition speed
   }
+}
+
+function animateForecastChart() {
+  const chart = document.querySelector(".forecast-chart");
+  if (!chart) return;
+  const bars = chart.querySelectorAll("span");
+  
+  // Save heights
+  const heights = Array.from(bars).map(bar => bar.style.height || "50%");
+  
+  // Reset heights to 0% for animation
+  bars.forEach(bar => {
+    bar.style.height = "0%";
+  });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        // Cascade animation
+        bars.forEach((bar, idx) => {
+          setTimeout(() => {
+            bar.style.height = heights[idx];
+          }, idx * 60);
+        });
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  observer.observe(chart);
 }
 
 function bindEvents() {
@@ -121,7 +261,8 @@ function bindEvents() {
   });
 
   floatingChatToggle.addEventListener("click", () => {
-    setFloatingChatOpen(!floatingChatPanel.classList.contains("is-open"));
+    const isOpen = floatingChatPanel.classList.contains("is-open");
+    setFloatingChatOpen(!isOpen);
   });
 
   floatingChatClose.addEventListener("click", () => {
@@ -148,9 +289,12 @@ function bindEvents() {
   });
 }
 
+// Initial setup
 renderMetrics();
+startLiveMetrics();
 renderWorkflow();
 bindEvents();
+animateForecastChart();
 addMessage("bot", welcomeMessage);
 
 if (window.location.hash === "#assistant") {
