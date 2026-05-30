@@ -1,15 +1,15 @@
 # Smart Home AI User Energy Assistant Dataset
 
-Dataset này dùng để chuẩn bị fine-tune một trợ lý tiếng Việt bằng Unsloth cho **người dùng app Smart Home AI**.
+Dataset này dùng để fine-tune chatbot **User Energy Assistant** cho người dùng trong app Smart Home AI.
 
-Mục tiêu:
+## Mục tiêu
 
 - Giải thích dữ liệu điện năng bằng tiếng Việt dễ hiểu.
-- Hỗ trợ người dùng đọc quota/hạn mức.
-- Giải thích forecast/dự báo phụ tải ở mức người dùng cuối.
-- Gợi ý tiết kiệm điện dựa trên dữ liệu, quota và xu hướng.
-- Hướng dẫn người dùng xử lý lỗi dữ liệu, mất kết nối, biểu đồ trống hoặc forecast chưa có.
-- Tách khỏi Project Assistant, không trả lời về GitHub, bài báo, commit, phản biện đồ án hoặc tiến độ dự án.
+- Phân biệt đúng `V`, `I`, `kW`, `kWh`.
+- Hỗ trợ quota/hạn mức, cảnh báo vượt quota, tài khoản cha/con và quyền điều khiển.
+- Giải thích forecast, dữ liệu realtime, cache, mock, `plc-real`, biểu đồ và trạng thái thiết bị.
+- Dạy chatbot không bịa số liệu nếu backend/app chưa cung cấp dữ liệu thật.
+- Tách khỏi Project Assistant, không trả lời sâu về GitHub, bài báo, phản biện đồ án hoặc kỹ thuật PLC chuyên sâu.
 
 ## File
 
@@ -26,13 +26,16 @@ run_lora_eval.py
 score_lora_eval.py
 ```
 
-## Format
+## Dataset hiện tại
 
-Mỗi dòng JSONL dùng dạng chat messages:
+Sau khi chạy `build_dataset.py`:
 
-```json
-{"messages":[{"role":"user","content":"Câu hỏi"},{"role":"assistant","content":"Câu trả lời"}]}
+```text
+train.jsonl: 329 rows
+eval.jsonl: 39 rows
 ```
+
+`train.jsonl` dùng để model học. `eval.jsonl` dùng để theo dõi trong lúc train, không nên trộn ngược vào train.
 
 ## Sinh lại dataset
 
@@ -40,10 +43,11 @@ Mỗi dòng JSONL dùng dạng chat messages:
 python build_dataset.py
 ```
 
-## Chạy thử trên Colab
+## Train trên Colab
 
 ```bash
 pip install -r requirements.txt
+
 python train_unsloth_user_energy.py \
   --train_dataset train.jsonl \
   --eval_dataset eval.jsonl \
@@ -54,23 +58,13 @@ python train_unsloth_user_energy.py \
   --max_seq_length 1024
 ```
 
-Sau khi chạy xong, LoRA adapter sẽ nằm trong:
+Output adapter:
 
 ```text
 assistant-user-energy-lora/
 ```
 
-## Ghi chú
-
-Dataset này là bản đầu để train thử User Assistant. Sau khi train, nên test các câu hỏi thực tế từ app rồi bổ sung thêm các mẫu model trả lời yếu.
-
-Kế hoạch test chi tiết nằm ở:
-
-```text
-TEST_PLAN.md
-```
-
-Chạy bộ test tự động sau khi có thư mục `assistant-user-energy-lora/`:
+## Test sau train
 
 ```bash
 python run_lora_eval.py \
@@ -82,3 +76,7 @@ python score_lora_eval.py \
   --input test_outputs/user_energy_eval_outputs.jsonl \
   --report test_outputs/user_energy_eval_report.md
 ```
+
+## Nguyên tắc quan trọng
+
+Fine-tune chỉ dạy chatbot **cách trả lời, phạm vi và thái độ an toàn**. Số liệu thật như kWh hôm nay, quota còn lại, trạng thái thiết bị, log hoạt động hoặc forecast phải được backend/app đưa vào ngữ cảnh khi gọi chatbot.

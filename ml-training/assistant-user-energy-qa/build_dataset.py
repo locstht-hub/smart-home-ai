@@ -252,6 +252,155 @@ EVAL_ROWS = [
 ]
 
 
+EXTRA_TRAIN_ROWS = [
+    ("Điện áp V trong app nghĩa là gì?", "V là điện áp đang đo được từ hệ thống điện. Với người dùng app, chỉ cần hiểu đây là chỉ số giúp theo dõi nguồn điện có ổn định hay không; nếu thấy quá bất thường thì nên kiểm tra lại dữ liệu đo hoặc thiết bị điện."),
+    ("Dòng điện I là gì vậy?", "I là dòng điện, thường tính bằng ampe. Chỉ số này cho biết tải đang kéo dòng nhiều hay ít tại thời điểm đo. Nếu I tăng mạnh cùng lúc với kW, có thể có thiết bị đang hoạt động mạnh hơn bình thường."),
+    ("Công suất trên app phải là kW hay kWh?", "Công suất nên hiển thị bằng kW. kWh là điện năng đã tiêu thụ theo thời gian, thường dùng cho tổng ngày, tháng hoặc chỉ số công tơ."),
+    ("Điện năng tháng này nên xem kW hay kWh?", "Điện năng đã dùng trong tháng nên xem bằng kWh. kW chỉ cho biết mức công suất tại một thời điểm, còn kWh mới phù hợp để theo dõi tổng tiêu thụ và quota."),
+    ("Số công tơ 1800 kWh có phải hôm nay tôi dùng 1800 kWh không?", "Không nhất thiết. 1800 kWh có thể là chỉ số tích lũy của công tơ. Muốn biết hôm nay dùng bao nhiêu, app cần lấy chênh lệch giữa các mốc thời gian hoặc dữ liệu tiêu thụ trong ngày."),
+    ("Vì sao chỉ số công tơ đã rất lớn?", "Chỉ số công tơ thường là giá trị tích lũy tăng dần theo thời gian, nên có thể lớn sẵn khi bắt đầu đo. App cần phân biệt chỉ số tích lũy với lượng tiêu thụ trong ngày hoặc trong tháng."),
+    ("Tôi thấy energy_kwh tăng dần mãi có bình thường không?", "Có thể bình thường nếu đó là chỉ số tích lũy từ công tơ. Khi phân tích quota theo kỳ, app nên dùng phần chênh lệch trong kỳ chứ không lấy toàn bộ chỉ số tích lũy làm lượng dùng mới."),
+    ("Nếu dữ liệu PLC và dữ liệu mock khác nhau thì tin cái nào?", "Khi hệ thống đang ở chế độ PLC thật và dữ liệu cập nhật tốt, nên ưu tiên dữ liệu PLC. Dữ liệu mock chỉ phù hợp để demo giao diện hoặc thử app khi chưa kết nối phần cứng."),
+    ("App báo plc-real là sao?", "plc-real nghĩa là backend đang cố đọc dữ liệu từ PLC thật. Bạn vẫn nên xem thời gian cập nhật cuối để biết dữ liệu có mới và đáng tin hay không."),
+    ("App báo mock là sao?", "Mock nghĩa là app hoặc server đang dùng dữ liệu giả lập để demo. Dữ liệu này không phản ánh chính xác trạng thái điện trong nhà thật, nên không dùng để kết luận tiêu thụ thực tế."),
+    ("Server API chưa sẵn sàng thì chatbot có trả lời số liệu được không?", "Không nên trả lời số liệu cụ thể khi server API chưa sẵn sàng. Trợ lý chỉ nên hướng dẫn kiểm tra kết nối, tải lại app hoặc xem dữ liệu gần nhất nếu có cache."),
+    ("Nếu gateway trong nhà tắt thì app còn đọc được PLC không?", "Thông thường là không. Gateway hoặc backend cục bộ cần chạy để đọc PLC và gửi dữ liệu lên server. Khi gateway tắt, app chỉ có thể hiển thị dữ liệu cũ hoặc báo mất kết nối."),
+    ("Mất mạng thì dữ liệu trong app có còn đúng không?", "Dữ liệu có thể chỉ là dữ liệu cache gần nhất. Bạn nên xem thời gian cập nhật cuối; nếu đã quá lâu, không nên coi đó là trạng thái hiện tại."),
+    ("Tôi hỏi hôm nay dùng bao nhiêu điện mà app chưa có dữ liệu thì trả lời sao?", "Trợ lý nên nói chưa có đủ dữ liệu hiện tại để kết luận, khuyên người dùng kiểm tra kết nối và xem lại khi app cập nhật dữ liệu mới."),
+    ("Nếu người dùng đưa dữ liệu hôm nay 8 kWh, hôm qua 6 kWh thì nên trả lời sao?", "Có thể nói hôm nay đang cao hơn hôm qua khoảng một phần ba, nên người dùng nên xem thiết bị nào hoạt động nhiều hơn và theo dõi quota. Không cần phóng đại thành lỗi nếu chưa có dấu hiệu bất thường khác."),
+    ("Nếu dữ liệu ghi công suất 0 kW nhưng đèn vẫn bật thì sao?", "Có thể dữ liệu công suất chưa cập nhật, cảm biến chưa đo đúng tải nhỏ hoặc mapping dữ liệu chưa khớp. Người dùng nên kiểm tra thời gian cập nhật và trạng thái thiết bị trong app."),
+    ("Nếu điện áp hiển thị 0 V thì có chắc là mất điện không?", "Không chắc. 0 V có thể do mất điện thật, nhưng cũng có thể do lỗi đọc dữ liệu, mất kết nối PLC hoặc dữ liệu chưa cập nhật. Nên kiểm tra trạng thái server và thời gian cập nhật trước."),
+    ("Nếu dòng điện hiển thị quá cao thì làm gì?", "Bạn nên kiểm tra thiết bị đang bật, xem giá trị có lặp lại hay chỉ là một điểm lỗi, và tránh bật thêm thiết bị công suất lớn nếu chưa rõ nguyên nhân."),
+    ("Nếu kW quá cao nhưng kWh chưa tăng nhiều thì sao?", "kW là mức tải tức thời nên có thể tăng nhanh trong thời gian ngắn. kWh chỉ tăng đáng kể khi mức tải đó duy trì đủ lâu. Nên xem cả biểu đồ theo thời gian để đánh giá."),
+    ("Nếu kWh tăng nhưng kW hiện tại thấp thì có mâu thuẫn không?", "Không hẳn. kWh là tổng đã dùng trong kỳ, còn kW là công suất hiện tại. Có thể trước đó nhà dùng nhiều điện, nhưng hiện tại tải đã giảm."),
+    ("Chatbot có được tự bật đèn giúp tôi không?", "Trợ lý không nên tự khẳng định đã bật thiết bị nếu không có quyền điều khiển và phản hồi từ hệ thống. Người dùng nên dùng nút điều khiển trong app; nếu chatbot được tích hợp lệnh sau này thì vẫn cần xác nhận quyền và kết quả."),
+    ("Tôi nói bật đèn phòng khách thì assistant nên làm gì?", "Nếu chatbot chưa được nối với chức năng điều khiển, trợ lý nên hướng dẫn dùng nút trong app. Nếu đã tích hợp điều khiển, hệ thống cần kiểm tra quyền, quota và phản hồi trạng thái trước khi báo thành công."),
+    ("Tôi là tài khoản con, tôi có đổi quota được không?", "Thông thường tài khoản con không nên đổi quota. Việc đặt hạn mức và quản lý thành viên nên thuộc tài khoản cha hoặc admin của nhà."),
+    ("Tài khoản con vượt quota thì có được bật thiết bị không?", "Nếu hệ thống cấu hình chặn khi vượt quota, tài khoản con cần tài khoản cha cho phép hoặc điều chỉnh hạn mức trước khi tiếp tục điều khiển thiết bị."),
+    ("Tài khoản cha khác tài khoản con như thế nào?", "Tài khoản cha quản lý nhà, thành viên, quota và quyền điều khiển. Tài khoản con chủ yếu dùng app theo quyền được cấp và có thể bị giới hạn khi vượt quota."),
+    ("Ai được đổi mật khẩu tài khoản con?", "Tài khoản cha hoặc admin được cấp quyền quản lý thành viên mới nên đổi hoặc đặt lại mật khẩu tài khoản con. Người dùng thường không nên tự đổi mật khẩu của người khác."),
+    ("Log hoạt động trong nhà dùng để làm gì?", "Log giúp biết ai đăng nhập, ai bật tắt thiết bị, thời điểm thao tác và kết quả điều khiển. Điều này hữu ích khi nhiều người cùng dùng một nhà."),
+    ("Tôi muốn biết ai bật đèn hôm qua thì xem ở đâu?", "Bạn nên xem phần nhật ký hoạt động nếu app có hỗ trợ. Trợ lý chỉ nên trả lời theo dữ liệu log được hệ thống cung cấp, không tự đoán người thao tác."),
+    ("Nếu nhiều người cùng điều khiển một đèn thì app xử lý sao?", "App nên lưu lệnh, thời gian, người thao tác và trạng thái phản hồi để tránh nhầm lẫn. Trạng thái cuối cùng nên lấy từ PLC hoặc backend sau khi lệnh được xác nhận."),
+    ("Nếu tôi bấm bật nhưng thiết bị không đổi trạng thái thì sao?", "Có thể lệnh chưa tới PLC, thiết bị không phản hồi, hoặc trạng thái chưa cập nhật. Bạn nên chờ vài giây, kiểm tra kết nối và xem thông báo lỗi trong app."),
+    ("Nếu trạng thái đèn trên app khác công tắc vật lý thì sao?", "Trạng thái đáng tin nên là trạng thái phản hồi từ PLC sau khi đọc lại. Nếu app chưa đồng bộ, hãy tải lại dữ liệu hoặc chờ chu kỳ cập nhật tiếp theo."),
+    ("Công tắc vật lý bật thì app có biết không?", "Có nếu PLC cập nhật trạng thái thiết bị và backend đọc trạng thái đó về app. App không nên chỉ dựa vào lệnh đã gửi, mà nên đọc trạng thái thực tế từ PLC."),
+    ("Tại sao cần đọc trạng thái từ PLC sau khi gửi lệnh?", "Vì gửi lệnh không đảm bảo thiết bị đã đổi trạng thái. Đọc lại từ PLC giúp app biết kết quả thực tế và đồng bộ đúng giữa app, HMI và công tắc vật lý."),
+    ("Nếu quota vượt rồi nhưng tài khoản cha vẫn muốn bật thiết bị thì sao?", "Tài khoản cha có thể được phép xác nhận tiếp tục sử dụng tùy cấu hình. Trợ lý nên nhắc rằng việc vượt quota là cảnh báo quản lý tiêu thụ, không tự ý bỏ qua nếu chưa có quyền."),
+    ("Nếu tôi muốn tăng quota thì chatbot có tự tăng được không?", "Không nên tự tăng nếu chưa có xác nhận và quyền phù hợp. Trợ lý có thể giải thích ý nghĩa, còn thao tác đổi quota nên do tài khoản cha hoặc admin thực hiện trong app."),
+    ("Nếu tôi hỏi tiền điện cụ thể nhưng chưa có bảng giá thì sao?", "Trợ lý nên nói chưa thể tính chính xác vì thiếu bảng giá điện. Có thể giải thích rằng cần kWh trong kỳ và biểu giá phù hợp để ước lượng chi phí."),
+    ("Nếu có kWh nhưng không có giá điện thì có tính tiền được không?", "Không chính xác. Có thể chỉ nói mức tiêu thụ cao hay thấp theo kWh, còn tiền điện cần biểu giá hoặc đơn giá được cấu hình."),
+    ("Nếu có giá điện nhưng dữ liệu kWh thiếu thì sao?", "Cũng chưa thể tính đúng. Cần cả dữ liệu kWh trong kỳ và giá điện. Nếu thiếu một trong hai, kết quả chỉ nên là tham khảo hoặc chưa thể tính."),
+    ("Dữ liệu điện có cho biết thói quen sinh hoạt không?", "Có thể. Dữ liệu điện có thể phản ánh thời điểm có người ở nhà, thói quen dùng thiết bị và mức tiêu thụ, nên cần bảo vệ bằng đăng nhập và phân quyền."),
+    ("Người khác trong nhà có xem được dữ liệu của tôi không?", "Điều đó phụ thuộc quyền trong app. Dữ liệu nên được tách theo nhà và theo tài khoản, chỉ người được cấp quyền mới nên xem được."),
+    ("Tôi dùng nhiều nhà trong app thì quota tính chung hay riêng?", "Quota nên tính riêng cho từng nhà. Mỗi nhà có dữ liệu, thiết bị, thành viên và hạn mức riêng để tránh lẫn số liệu."),
+    ("Nếu chọn nhầm nhà thì số liệu có sai không?", "Có thể gây hiểu nhầm. Bạn nên kiểm tra nhà đang được chọn trước khi xem quota, biểu đồ hoặc điều khiển thiết bị."),
+    ("Tôi có thể so sánh hai nhà với nhau không?", "Có thể nếu app có quyền và dữ liệu của cả hai nhà. Khi so sánh, nên dùng cùng khoảng thời gian và cùng đơn vị kWh để công bằng."),
+    ("Nhà mới chưa có lịch sử thì assistant nên trả lời sao?", "Trợ lý nên nói dữ liệu lịch sử còn ít nên nhận xét và forecast chỉ mang tính tham khảo ban đầu. Hãy dùng app vài ngày để có xu hướng rõ hơn."),
+    ("Có nên train model từ dữ liệu nhà tôi ngay ngày đầu không?", "Không nên kỳ vọng cao ngay ngày đầu. Cần tích lũy dữ liệu đủ dài và sạch trước, sau đó mới đánh giá có nên cá nhân hóa hoặc retrain mô hình dự báo hay không."),
+    ("Khi chưa có dữ liệu nhà tôi thì AI dự báo có đáng tin không?", "Khi chưa có dữ liệu riêng, dự báo chỉ nên xem là tham khảo từ dữ liệu nền hoặc quy luật chung. Muốn phù hợp với nhà đó, hệ thống cần dữ liệu thực tế theo thời gian."),
+    ("Chatbot fine-tune có tự biết dữ liệu nhà tôi không?", "Không. Fine-tune chỉ giúp chatbot biết cách trả lời. Dữ liệu nhà bạn phải được backend cung cấp vào ngữ cảnh tại thời điểm hỏi."),
+    ("Fine-tune có thay thế backend không?", "Không. Backend vẫn cần đọc dữ liệu, kiểm tra quyền, tính quota và gửi ngữ cảnh cho chatbot. Fine-tune chỉ cải thiện phong cách và phạm vi trả lời."),
+    ("Nếu câu hỏi giống giống câu đã train thì chatbot hiểu không?", "Có thể hiểu nếu câu hỏi cùng ý nghĩa. Tuy nhiên với câu hỏi cần số liệu thật, chatbot vẫn cần dữ liệu từ backend và không được tự bịa con số."),
+    ("Nếu người dùng hỏi bằng từ địa phương hoặc viết sai chính tả thì sao?", "Trợ lý nên cố hiểu ý chính nếu vẫn liên quan đến app và điện năng. Nếu không rõ, hãy hỏi lại ngắn gọn thay vì đoán số liệu hoặc thao tác."),
+    ("Nếu người dùng hỏi quá mơ hồ như 'sao kỳ vậy' thì sao?", "Trợ lý nên hỏi rõ người dùng đang nói về số liệu, biểu đồ, quota, forecast hay điều khiển thiết bị. Không nên tự suy diễn lỗi cụ thể khi thiếu ngữ cảnh."),
+    ("Nếu người dùng hỏi 'xem giùm tôi' mà không có dữ liệu thì sao?", "Trợ lý nên nói cần dữ liệu hiện tại từ app hoặc backend để xem chính xác. Có thể gợi ý người dùng mở màn hình năng lượng, quota hoặc biểu đồ liên quan."),
+    ("Nếu người dùng yêu cầu lời khuyên tiết kiệm theo dữ liệu thật thì cần gì?", "Cần các dữ liệu như kWh hôm nay, kWh kỳ hiện tại, quota, lịch sử gần đây, thiết bị đang bật và forecast nếu có. Thiếu dữ liệu thì chỉ nên đưa gợi ý chung."),
+    ("Nếu công suất tăng lúc bật bếp thì có bất thường không?", "Chưa chắc bất thường. Một số thiết bị nấu nướng có thể làm công suất tăng trong thời gian ngắn. Nên xem mức tăng có phù hợp thời điểm sử dụng và có kéo dài bất thường không."),
+    ("Nếu phòng ngủ bật đèn mà công suất không tăng rõ thì sao?", "Đèn có thể tiêu thụ ít nên tổng công suất không tăng nhiều, hoặc dữ liệu cập nhật chậm. Nên xem trạng thái thiết bị và biểu đồ trong vài chu kỳ cập nhật."),
+    ("Nếu chỉ demo không tải thật thì dữ liệu điện có ý nghĩa không?", "Khi chạy không tải, dữ liệu điện chỉ giúp kiểm tra đường truyền và cách hiển thị. Để đánh giá tiêu thụ thật, cần tải thật hoặc tải giả phù hợp và an toàn."),
+    ("Nếu dùng tải giả thì assistant có cần biết không?", "Trợ lý chỉ cần giải thích rằng dữ liệu đang là demo nếu hệ thống cung cấp ngữ cảnh đó. Không nên xem tải giả là tiêu thụ sinh hoạt thật của gia đình."),
+    ("Nếu dữ liệu từ đồng hồ MFM bị sai kiểu DWord/Real thì chatbot trả lời sao?", "Trợ lý người dùng không nên đi sâu vào mapping kỹ thuật. Nó nên nói dữ liệu hiện tại có vẻ bất thường và cần kiểm tra cấu hình đo hoặc liên hệ người quản trị."),
+    ("Nếu số liệu rất dài như vài chục chữ số thì sao?", "Đó thường là dấu hiệu dữ liệu đọc hoặc giải mã sai. Trợ lý nên cảnh báo dữ liệu không hợp lệ và không dùng số đó để phân tích điện năng."),
+    ("Nếu dữ liệu vượt ngưỡng hợp lý thì có nên bỏ qua không?", "App nên đánh dấu là bất thường hoặc loại khỏi phân tích tùy cấu hình. Trợ lý nên giải thích rằng cần kiểm tra lại nguồn đo trước khi kết luận."),
+    ("Nếu biểu đồ có một điểm nhọn rồi trở lại bình thường thì sao?", "Một điểm nhọn đơn lẻ có thể do tải bật nhanh hoặc lỗi đọc dữ liệu. Nên xem nó có lặp lại không trước khi coi là vấn đề lớn."),
+    ("Nếu biểu đồ tăng đều cả ngày thì sao?", "Có thể nhà đang dùng điện liên tục hoặc có thiết bị chạy nền. Bạn nên xem thiết bị nào đang bật lâu và so sánh với quota trong ngày."),
+    ("Nếu tiêu thụ ban đêm cao hơn ban ngày thì sao?", "Nên kiểm tra thiết bị chạy nền như tủ lạnh, máy bơm, điều hòa hoặc thiết bị quên tắt. Nếu lặp lại nhiều đêm, đó là điểm đáng theo dõi."),
+    ("Nếu app dự báo vượt quota cuối tháng thì nên làm gì?", "Bạn nên giảm các thiết bị không cần thiết, theo dõi các ngày tiêu thụ cao và cân nhắc điều chỉnh quota nếu hạn mức ban đầu không còn phù hợp."),
+    ("Nếu forecast nói tăng nhưng hôm nay thực tế giảm thì sao?", "Forecast có thể sai khi hành vi sử dụng thay đổi. Dữ liệu thực tế mới hơn nên được ưu tiên khi đánh giá hiện tại, còn forecast dùng để tham khảo xu hướng."),
+    ("Nếu forecast thiếu dữ liệu nhà mới thì chatbot nên nói gì?", "Nên nói forecast có thể chưa ổn định vì nhà mới thiếu lịch sử tiêu thụ. Hãy theo dõi thêm vài ngày hoặc vài tuần để hệ thống có dữ liệu tốt hơn."),
+    ("Nếu người dùng hỏi 'AI có chắc không' thì sao?", "Trợ lý nên nói không chắc tuyệt đối. AI hỗ trợ phân tích xu hướng, còn quyết định sử dụng điện nên dựa trên dữ liệu thực tế, cảnh báo và nhu cầu của người dùng."),
+    ("Nếu người dùng hỏi 'tôi nên tin app hay đồng hồ điện' thì sao?", "Đồng hồ điện là nguồn đo gốc cho tiêu thụ thực tế. App giúp hiển thị và phân tích, nhưng nếu số liệu lệch nhiều thì cần kiểm tra cách đọc và đồng bộ dữ liệu."),
+    ("Nếu app hiển thị khác hóa đơn điện thì sao?", "Có thể do khác kỳ ghi điện, thiếu bảng giá, dữ liệu chưa đủ hoặc cách tính chưa giống điện lực. Trợ lý nên khuyên so sánh cùng kỳ và kiểm tra cấu hình giá điện."),
+    ("Nếu người dùng hỏi về an toàn điện thì assistant trả lời mức nào?", "Trợ lý chỉ nên đưa lời khuyên cơ bản và an toàn, như không tự sửa điện nếu không có chuyên môn. Các vấn đề điện nguy hiểm cần người có chuyên môn kiểm tra."),
+    ("Nếu người dùng hỏi cách đấu dây PLC thì sao?", "Đó là nội dung kỹ thuật chuyên sâu, không thuộc User Energy Assistant. Trợ lý nên khuyên liên hệ người có chuyên môn hoặc chuyển sang tài liệu kỹ thuật phù hợp."),
+    ("Nếu người dùng hỏi cách sửa tủ điện thì sao?", "Trợ lý người dùng không nên hướng dẫn sửa tủ điện chi tiết. Hãy ưu tiên an toàn và khuyên liên hệ kỹ thuật viên hoặc người có chuyên môn."),
+    ("Nếu người dùng hỏi 'đang vượt quota có nguy hiểm điện không' thì sao?", "Vượt quota chủ yếu là cảnh báo quản lý tiêu thụ, không đồng nghĩa nguy hiểm điện. Tuy nhiên nếu kW hoặc dòng điện tăng bất thường thì nên kiểm tra tải và an toàn thiết bị."),
+    ("Nếu cảnh báo quota làm phiền thì tắt được không?", "Có thể điều chỉnh thông báo nếu app hỗ trợ, nhưng nên giữ các cảnh báo quan trọng như vượt quota, mất dữ liệu hoặc tăng bất thường để tránh bỏ lỡ vấn đề."),
+    ("Nếu tài khoản con muốn xin dùng tiếp sau khi vượt quota thì sao?", "Tài khoản con nên gửi yêu cầu hoặc liên hệ tài khoản cha. Trợ lý nên giải thích rằng quyền cho phép tiếp tục thuộc về tài khoản cha hoặc admin nhà."),
+    ("Nếu người dùng hỏi tại sao không bật được thiết bị", "Có thể do mất kết nối, không đủ quyền, đang vượt quota hoặc PLC chưa phản hồi. Trợ lý nên khuyên kiểm tra thông báo lỗi và trạng thái server/PLC trong app."),
+    ("Nếu người dùng hỏi 'tôi có quyền gì' thì sao?", "Trợ lý nên giải thích dựa trên vai trò nếu hệ thống cung cấp: tài khoản cha quản lý nhà và quota, tài khoản con dùng theo quyền được cấp, tài khoản chỉ xem không điều khiển."),
+    ("Nếu người dùng hỏi đổi mật khẩu ở đâu?", "Trợ lý nên hướng dẫn vào phần tài khoản hoặc quản lý thành viên nếu có quyền. Không nên nói mật khẩu đã đổi nếu chưa có phản hồi thành công từ hệ thống."),
+    ("Nếu đăng nhập lại sau đổi mật khẩu không được thì sao?", "Bạn nên kiểm tra nhập đúng mật khẩu mới, kết nối mạng và hỏi tài khoản cha/admin nếu mật khẩu do người quản lý đặt lại."),
+    ("Nếu app báo phiên đăng nhập hết hạn thì sao?", "Bạn nên đăng nhập lại. Đây là cơ chế bảo vệ tài khoản, nhất là khi mật khẩu vừa được đổi hoặc phiên cũ bị thu hồi."),
+    ("Nếu người dùng hỏi 'dữ liệu của con tôi có riêng tư không' thì sao?", "Trợ lý nên nói dữ liệu tài khoản và hoạt động trong nhà cần được bảo vệ theo phân quyền. Tài khoản cha có thể xem thông tin quản lý nếu hệ thống cấp quyền."),
+    ("Nếu admin xem nhiều nhà thì dữ liệu có bị lẫn không?", "Không nên. Hệ thống cần tách dữ liệu theo từng homeId, thiết bị, thành viên và thời gian để admin xem đúng nhà."),
+    ("Nếu nhà có ba phòng demo thì chatbot trả lời sao?", "Trợ lý có thể nói dữ liệu demo đang đại diện cho từng phòng nếu hệ thống cung cấp ngữ cảnh. Không nên tự thêm thiết bị hoặc phòng chưa có trong dữ liệu."),
+    ("Nếu người dùng hỏi có bao nhiêu thiết bị trong nhà?", "Trợ lý chỉ nên trả lời khi backend cung cấp danh sách thiết bị hiện tại. Nếu không có dữ liệu, hãy nói cần xem màn hình thiết bị trong app."),
+    ("Nếu user hỏi thiết bị nào đang bật?", "Trợ lý cần trạng thái thiết bị từ app/backend. Nếu không có ngữ cảnh, không nên đoán mà nên hướng dẫn xem màn hình phòng hoặc thiết bị."),
+    ("Nếu user hỏi phòng khách đang dùng bao nhiêu điện?", "Trợ lý chỉ trả lời số cụ thể khi có dữ liệu theo phòng hoặc theo thiết bị. Nếu hệ thống chỉ có tổng điện năng, không nên chia ngầm cho từng phòng."),
+    ("Nếu user hỏi tại sao phòng bếp tốn điện?", "Cần dữ liệu theo phòng hoặc thiết bị bếp để kết luận. Nếu chưa có, trợ lý chỉ nên gợi ý kiểm tra thời điểm nấu nướng hoặc thiết bị công suất lớn."),
+    ("Nếu app chỉ đo tổng điện cả nhà thì có biết từng đèn tốn bao nhiêu không?", "Không. Nếu chỉ có tổng điện cả nhà, app không thể kết luận chính xác từng đèn tiêu thụ bao nhiêu nếu không có đo riêng theo thiết bị."),
+    ("Nếu dùng trạng thái bật tắt để ước lượng điện từng thiết bị được không?", "Có thể ước lượng nếu có công suất định mức từng thiết bị và thời gian bật, nhưng đó vẫn là ước lượng. Dữ liệu đo trực tiếp sẽ đáng tin hơn."),
+    ("Nếu chưa nhập công suất từng thiết bị thì ước lượng theo thiết bị có đúng không?", "Không đủ chính xác. Muốn ước lượng theo thiết bị, app cần công suất định mức hoặc dữ liệu đo riêng của từng thiết bị."),
+    ("Nếu người dùng nhập sai công suất thiết bị thì sao?", "Ước lượng điện theo thiết bị sẽ sai. Trợ lý nên khuyên kiểm tra lại thông số thiết bị hoặc dùng giá trị đo thực tế nếu có."),
+    ("Nếu muốn quản lý nhiều nhà thì assistant cần lưu ý gì?", "Trợ lý cần luôn dựa trên nhà đang chọn và dữ liệu của nhà đó. Không nên trộn quota, thiết bị hoặc lịch sử giữa các nhà."),
+    ("Nếu người dùng hỏi 'nhà A và nhà B ai dùng nhiều hơn' thì sao?", "Chỉ so sánh khi có dữ liệu của cả hai nhà trong cùng khoảng thời gian. Nếu thiếu dữ liệu hoặc thiếu quyền, trợ lý nên nói rõ chưa đủ căn cứ."),
+    ("Nếu người dùng hỏi bằng tiếng Anh đơn giản thì sao?", "Trợ lý có thể trả lời tiếng Việt nếu app hướng tới người dùng Việt, hoặc giải thích ngắn gọn nếu hiểu ý. Quan trọng là không bịa số liệu."),
+    ("Nếu câu hỏi vừa có điện năng vừa có dự án thì sao?", "Trợ lý nên ưu tiên phần liên quan người dùng app như điện năng, quota, forecast. Phần hỏi về dự án, GitHub hoặc phản biện nên nói thuộc Project Assistant."),
+    ("Nếu user yêu cầu xóa log hoạt động thì sao?", "Trợ lý không nên tự hứa đã xóa log. Hãy hướng dẫn liên hệ tài khoản cha/admin hoặc vào phần cài đặt nếu app có chức năng xóa theo quyền."),
+    ("Nếu user hỏi log dùng để theo dõi mình phải không?", "Trợ lý nên giải thích log dùng cho bảo mật và minh bạch thao tác trong nhà, như đăng nhập và điều khiển thiết bị. Việc xem log cần theo phân quyền rõ ràng."),
+    ("Nếu người dùng lo bị theo dõi thì trả lời sao?", "Trợ lý nên thừa nhận dữ liệu điện và log có tính riêng tư, giải thích mục đích sử dụng, và khuyên kiểm tra quyền tài khoản hoặc chính sách dữ liệu trong app."),
+    ("Nếu người dùng hỏi 'AI có gửi dữ liệu của tôi đi đâu không' thì sao?", "Trợ lý không nên khẳng định ngoài cấu hình hệ thống. Hãy nói dữ liệu nên chỉ gửi tới server của app theo chính sách đã công bố và cần được bảo vệ bằng phân quyền."),
+    ("Nếu backend gửi sẵn ngữ cảnh quota 90% thì trả lời sao?", "Có thể nói quota đang gần hết, người dùng nên theo dõi sát hơn và hạn chế thiết bị không cần thiết. Nên tránh nói đã vượt nếu chỉ mới 90%."),
+    ("Nếu backend gửi quota 105% và role member thì trả lời sao?", "Có thể nói tài khoản con đã vượt hạn mức và có thể bị chặn điều khiển tùy cấu hình. Người dùng nên xin tài khoản cha cho phép hoặc điều chỉnh hạn mức."),
+    ("Nếu backend gửi role owner và quota 105% thì trả lời sao?", "Có thể nói nhà đã vượt quota, nhưng tài khoản cha có quyền xem xét cho phép tiếp tục hoặc điều chỉnh hạn mức. Vẫn nên khuyên kiểm tra nguyên nhân tiêu thụ cao."),
+    ("Nếu backend gửi công suất hiện tại 1.2 kW thì có được nhắc số không?", "Có, nếu số liệu được backend cung cấp trong ngữ cảnh thì trợ lý có thể dùng số đó và giải thích rõ đó là công suất hiện tại theo dữ liệu app."),
+    ("Nếu không có ngữ cảnh mà người dùng hỏi còn 80% đúng không?", "Không nên xác nhận. Trợ lý nên nói cần xem dữ liệu quota mới nhất trong app để kiểm tra."),
+    ("Nếu người dùng hỏi 'dự báo ngày mai 12 kWh đúng không' mà không có context?", "Không nên xác nhận con số. Trợ lý nên nói cần dữ liệu forecast từ app hoặc backend để kiểm tra."),
+    ("Nếu người dùng hỏi 'nút bật không ăn' thì sao?", "Có thể do mất kết nối, không đủ quyền, quota bị chặn hoặc PLC chưa phản hồi. Nên kiểm tra trạng thái server/PLC, quyền tài khoản và thử lại sau vài giây."),
+    ("Nếu người dùng hỏi 'sao trạng thái cập nhật chậm' thì sao?", "Có thể do chu kỳ đọc PLC, mạng, backend hoặc app đang dùng cache. Trợ lý nên khuyên xem thời gian cập nhật cuối và chờ chu kỳ đồng bộ tiếp theo."),
+    ("Nếu người dùng hỏi 'tôi cần làm gì mỗi ngày với app'?", "Mỗi ngày nên xem tổng kWh, trạng thái quota, cảnh báo bất thường và xu hướng forecast nếu có. Chỉ cần kiểm tra kỹ hơn khi app cảnh báo hoặc số liệu tăng bất thường."),
+    ("Nếu người dùng hỏi 'một câu trả lời tốt nên dài không'?", "Trợ lý trong app nên trả lời ngắn, dễ hiểu và có hành động tiếp theo. Khi cần giải thích sâu, có thể chia thành vài ý rõ ràng."),
+]
+
+
+EXTRA_EVAL_ROWS = [
+    ("Công suất hiện tại phải xem đơn vị gì?", "Công suất hiện tại nên xem bằng kW. kWh dùng cho tổng điện năng đã tiêu thụ theo thời gian."),
+    ("Chỉ số công tơ 1800 kWh có phải quota đã dùng không?", "Không chắc. Đó có thể là chỉ số tích lũy của công tơ. Quota nên tính theo phần tiêu thụ trong kỳ, không tự lấy toàn bộ chỉ số tích lũy nếu chưa có mốc đầu kỳ."),
+    ("App đang mock thì số liệu có thật không?", "Không. Mock là dữ liệu giả lập để demo hoặc thử app, không nên dùng để kết luận tiêu thụ thật trong nhà."),
+    ("plc-real nhưng dữ liệu không cập nhật thì sao?", "Cần kiểm tra gateway/backend, kết nối PLC và thời gian cập nhật cuối. Không nên xem dữ liệu cũ là trạng thái hiện tại."),
+    ("Tôi là tài khoản con, vượt quota rồi bật thiết bị được không?", "Nếu hệ thống chặn theo quota, tài khoản con cần tài khoản cha cho phép hoặc điều chỉnh hạn mức trước khi tiếp tục điều khiển."),
+    ("Ai được chỉnh hạn mức điện?", "Tài khoản cha hoặc admin nhà mới nên chỉnh hạn mức điện. Tài khoản con thường chỉ xem và dùng theo quyền được cấp."),
+    ("Chatbot có bật đèn trực tiếp được không?", "Không nên khẳng định đã bật nếu chưa có tích hợp điều khiển, kiểm tra quyền và phản hồi thành công từ hệ thống."),
+    ("Công tắc vật lý bật thì app biết không?", "Có nếu PLC cập nhật trạng thái và backend đọc lại trạng thái đó về app. App nên ưu tiên trạng thái thực tế đọc từ PLC."),
+    ("Tôi muốn biết ai tắt đèn lúc 9 giờ", "Cần xem nhật ký hoạt động nếu app có dữ liệu log. Trợ lý không nên tự đoán người thao tác."),
+    ("Dữ liệu cache có dùng để tính quyết định quan trọng không?", "Chỉ nên tham khảo. Với quyết định quan trọng, cần dữ liệu mới nhất và thời gian cập nhật rõ ràng."),
+    ("Nếu số liệu dài bất thường mấy chục chữ số thì sao?", "Đó thường là dấu hiệu dữ liệu không hợp lệ hoặc giải mã sai. Không nên dùng số đó để phân tích."),
+    ("Nếu chỉ có tổng điện cả nhà thì biết phòng nào tốn nhất không?", "Không chính xác. Muốn biết từng phòng cần dữ liệu đo theo phòng, theo thiết bị hoặc cấu hình ước lượng rõ ràng."),
+    ("Chưa nhập công suất thiết bị thì app ước lượng từng thiết bị được không?", "Không đủ chính xác. Ước lượng theo thiết bị cần công suất định mức và thời gian bật hoặc dữ liệu đo riêng."),
+    ("Nhà mới chưa có dữ liệu thì forecast có đáng tin không?", "Forecast ban đầu chỉ nên xem là tham khảo vì thiếu lịch sử riêng của nhà đó."),
+    ("Fine-tune có tự biết hôm nay nhà tôi dùng bao nhiêu không?", "Không. Fine-tune chỉ dạy cách trả lời; số liệu hôm nay phải do backend cung cấp từ dữ liệu app."),
+    ("Tôi còn 80% quota đúng không?", "Không nên xác nhận nếu không có dữ liệu quota mới nhất. Hãy kiểm tra phần quota trong app."),
+    ("Dự báo ngày mai 12 kWh đúng không?", "Không nên xác nhận nếu không có dữ liệu forecast từ app hoặc backend."),
+    ("Tôi hỏi cách đấu dây PLC được không?", "Nội dung đó thuộc kỹ thuật chuyên sâu, không phải phạm vi User Energy Assistant. Nên liên hệ người có chuyên môn hoặc tài liệu kỹ thuật."),
+    ("Dữ liệu điện có riêng tư không?", "Có. Dữ liệu điện có thể phản ánh thói quen sinh hoạt nên cần đăng nhập, phân quyền và chính sách dữ liệu rõ ràng."),
+    ("Tôi chọn nhầm nhà thì quota có bị hiểu sai không?", "Có thể. Cần kiểm tra nhà đang chọn vì quota, thiết bị và dữ liệu phải được tách riêng theo từng nhà."),
+]
+
+
+def unique_rows(rows: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    seen: set[str] = set()
+    unique: list[tuple[str, str]] = []
+    for user, assistant in rows:
+        key = user.strip().lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append((user.strip(), assistant.strip()))
+    return unique
+
+
 def write_jsonl(path: Path, rows: list[tuple[str, str]]) -> None:
     with path.open("w", encoding="utf-8", newline="\n") as handle:
         for user, assistant in rows:
@@ -266,10 +415,12 @@ def write_jsonl(path: Path, rows: list[tuple[str, str]]) -> None:
 
 def main() -> None:
     base = Path(__file__).resolve().parent
-    write_jsonl(base / "train.jsonl", TRAIN_ROWS)
-    write_jsonl(base / "eval.jsonl", EVAL_ROWS)
-    print(f"train.jsonl: {len(TRAIN_ROWS)} rows")
-    print(f"eval.jsonl: {len(EVAL_ROWS)} rows")
+    train_rows = unique_rows(TRAIN_ROWS + EXTRA_TRAIN_ROWS)
+    eval_rows = unique_rows(EVAL_ROWS + EXTRA_EVAL_ROWS)
+    write_jsonl(base / "train.jsonl", train_rows)
+    write_jsonl(base / "eval.jsonl", eval_rows)
+    print(f"train.jsonl: {len(train_rows)} rows")
+    print(f"eval.jsonl: {len(eval_rows)} rows")
 
 
 if __name__ == "__main__":

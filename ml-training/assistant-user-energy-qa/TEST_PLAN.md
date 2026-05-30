@@ -7,6 +7,8 @@ Pham vi test:
 - Chatbot tra loi dung vai tro User Energy Assistant.
 - Tra loi bang tieng Viet de hieu.
 - Giai thich du lieu dien nang, quota, forecast, bieu do va canh bao.
+- Phan biet dung V, I, kW, kWh; mock va plc-real; chi so cong to tich luy va luong tieu thu trong ky.
+- Xu ly dung quyen tai khoan cha/con, log hoat dong, nhieu nha va trang thai dieu khien thiet bi.
 - Khong bia so lieu khi chua co du lieu.
 - Khong lan sang Project Assistant như GitHub, bai bao, commit, phan bien do an.
 - Biet noi ro khi thieu du lieu hoac cau hoi ngoai pham vi.
@@ -28,6 +30,7 @@ assistant-user-energy-lora/
 system_prompt.txt
 eval.jsonl
 train.jsonl
+test_questions.jsonl
 ```
 
 Neu test tren Colab, can dung GPU va da cai dependencies:
@@ -180,7 +183,21 @@ Day la nhom test quan trong vi User Assistant phai khac Project Assistant.
 
 ---
 
-## 6. Mau script test inference tren Colab
+## 6. Test bo sung ban nang cap
+
+Nhom nay phu hop voi ban app hien tai co PLC doc du lieu that, quota, tai khoan cha/con va kha nang mo rong nhieu nha.
+
+| ID | Nhom | Muc tieu |
+| --- | --- | --- |
+| UA-051 -> UA-053 | Cong to va che do du lieu | Phan biet chi so tich luy, mock va plc-real. |
+| UA-054 -> UA-058 | Quyen va log | Khong vuot quyen tai khoan con, khong tu nhan da dieu khien, biet can log. |
+| UA-059 -> UA-061 | Chat luong du lieu/thiet bi | Canh bao so lieu bat thuong, khong doan phong/thiet bi khi thieu du lieu. |
+| UA-062 -> UA-064 | Forecast va fine-tune | Khong xem forecast la chac chan, khong tu biet so lieu nha rieng. |
+| UA-065 -> UA-070 | Ngoai pham vi va van hanh app | Tu choi ky thuat sau, xu ly nhieu nha, cau hoi mo ho va loi nut dieu khien. |
+
+---
+
+## 7. Mau script test inference tren Colab
 
 Sau khi train xong va co thu muc:
 
@@ -240,7 +257,7 @@ ask("Commit mới nhất của dự án là gì?")
 
 ---
 
-## 7. Bang cham diem thu cong
+## 8. Bang cham diem thu cong
 
 Moi cau test cham theo thang 0-2:
 
@@ -260,9 +277,9 @@ Tong diem goi y:
 
 ---
 
-## 8. Quy trinh sau khi test
+## 9. Quy trinh sau khi test
 
-1. Chay 50 cau test trong file nay.
+1. Chay 70 cau test trong `test_questions.jsonl`.
 2. Ghi lai cau hoi nao bi sai hoac tra loi yeu.
 3. Viet cau tra loi chuan cho cac cau sai.
 4. Bo sung vao `build_dataset.py`.
@@ -277,7 +294,7 @@ python build_dataset.py
 
 ---
 
-## 9. Dieu kien truoc khi tich hop backend/app
+## 10. Dieu kien truoc khi tich hop backend/app
 
 Chi nen tich hop vao backend/app khi:
 
@@ -287,4 +304,3 @@ Chi nen tich hop vao backend/app khi:
 - Co co che fallback neu model khong load duoc.
 - Backend co timeout de tranh app bi treo khi inference cham.
 - App hien thi ro rang khi cau tra loi chi la goi y tham khao.
-
