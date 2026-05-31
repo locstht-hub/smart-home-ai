@@ -98,13 +98,12 @@ function formatDate(value) {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hour}:${minute}`;
 }
 
 function formatNumber(value, suffix = '') {
@@ -172,6 +171,13 @@ function statusBadge(status) {
 
 function deviceStatusBadge(isOn) {
   return `<span class="badge ${isOn ? 'active' : 'off'}">${isOn ? 'Đang bật' : 'Đang tắt'}</span>`;
+}
+
+function quotaStatusBadge(percent) {
+  if (!Number.isFinite(percent)) return '<span class="badge off">Chưa có quota</span>';
+  if (percent >= 100) return '<span class="badge quota-danger">Đã vượt hạn mức</span>';
+  if (percent >= 80) return '<span class="badge quota-warn">Sắp vượt</span>';
+  return '<span class="badge quota-ok">Bình thường</span>';
 }
 
 function roleBadge(role) {
@@ -339,9 +345,14 @@ function renderHomeDetail(home, detail) {
   const members = detail.members || [];
   const logs = detail.logs || [];
   const devices = detail.devices || [];
+  const devicesError = detail.devicesError || '';
   const used = Number(quota.currentMonthEnergyKwh || 0);
   const limit = Number(quota.energyLimitKwh || 0);
   const quotaPercent = limit > 0 ? Math.min((used / limit) * 100, 999) : 0;
+  const deviceCountValue = devicesError ? '<span class="muted-value">Chưa lấy được</span>' : escapeHtml(String(devices.length));
+  const deviceHint = devicesError
+    ? 'PLC/API thiết bị chưa sẵn sàng, bấm làm mới khi backend đọc được PLC'
+    : 'Đang lấy từ backend thiết bị hiện tại';
 
   els.detailHomeName.textContent = home?.name || 'Chi tiết nhà';
   els.detailHomeId.innerHTML = homeIdCell(home?.id || state.selectedHomeId);
@@ -354,8 +365,8 @@ function renderHomeDetail(home, detail) {
 
   els.homeOverviewGrid.innerHTML = `
     ${detailCard('Home ID', homeIdCell(home?.id || state.selectedHomeId), 'Mã dùng để gán PLC, thiết bị, phòng và quota')}
-    ${detailCard('Quota tháng', escapeHtml(`${formatNumber(used, ' kWh')} / ${formatNumber(limit, ' kWh')}`), `${formatNumber(quotaPercent, '%')} đã dùng`)}
-    ${detailCard('Thiết bị cấu hình', escapeHtml(String(devices.length)), 'Đang lấy từ backend thiết bị hiện tại')}
+    ${detailCard('Quota tháng', `${escapeHtml(`${formatNumber(used, ' kWh')} / ${formatNumber(limit, ' kWh')}`)} ${quotaStatusBadge(quotaPercent)}`, `${formatNumber(quotaPercent, '%')} đã dùng`)}
+    ${detailCard('Thiết bị cấu hình', deviceCountValue, deviceHint)}
     ${detailCard('Log của nhà', escapeHtml(String(logs.length)), 'Hoạt động gần nhất')}
   `;
 
@@ -367,7 +378,7 @@ function renderHomeDetail(home, detail) {
       <td>${deviceStatusBadge(device.isOn)}</td>
       <td>${escapeHtml(device.source || '-')}</td>
     </tr>
-  `).join('') || emptyRow(5, 'Chưa có cấu hình thiết bị riêng cho nhà này.');
+  `).join('') || emptyRow(5, devicesError ? 'Chưa lấy được thiết bị. Kiểm tra PLC/API rồi bấm làm mới chi tiết.' : 'Chưa có cấu hình thiết bị riêng cho nhà này.');
 
   els.homeMembersBody.innerHTML = members.map((member) => `
     <tr>
@@ -413,6 +424,7 @@ async function openHomeDetail(homeId) {
     members: membersResult.status === 'fulfilled' ? membersResult.value.members || [] : [],
     logs: logsResult.status === 'fulfilled' ? logsResult.value.logs || [] : [],
     devices: devicesResult.status === 'fulfilled' ? flattenDevices(devicesResult.value.devices) : [],
+    devicesError: devicesResult.status === 'rejected' ? devicesResult.reason?.message || 'Không lấy được thiết bị' : '',
   };
 
   renderHomeDetail(home, detail);
