@@ -8,6 +8,7 @@ const state = {
   homes: [],
   users: [],
   logs: [],
+  selectedHomeId: '',
 };
 
 const els = {
@@ -29,6 +30,7 @@ const els = {
     overview: document.getElementById('overviewView'),
     homes: document.getElementById('homesView'),
     users: document.getElementById('usersView'),
+    homeDetail: document.getElementById('homeDetailView'),
     logs: document.getElementById('logsView'),
   },
   homeCount: document.getElementById('homeCount'),
@@ -40,6 +42,17 @@ const els = {
   homesBody: document.getElementById('homesBody'),
   usersBody: document.getElementById('usersBody'),
   logsBody: document.getElementById('logsBody'),
+  backToHomesBtn: document.getElementById('backToHomesBtn'),
+  refreshHomeDetailBtn: document.getElementById('refreshHomeDetailBtn'),
+  detailHomeName: document.getElementById('detailHomeName'),
+  detailHomeId: document.getElementById('detailHomeId'),
+  homeDetailSummary: document.getElementById('homeDetailSummary'),
+  homeOverviewGrid: document.getElementById('homeOverviewGrid'),
+  homeDevicesBody: document.getElementById('homeDevicesBody'),
+  homeMembersBody: document.getElementById('homeMembersBody'),
+  homeLogsBody: document.getElementById('homeLogsBody'),
+  detailTabs: Array.from(document.querySelectorAll('.detail-tab')),
+  detailTabPanels: Array.from(document.querySelectorAll('.detail-tab-panel')),
   ownerModal: document.getElementById('ownerModal'),
   ownerForm: document.getElementById('ownerForm'),
   ownerFormMessage: document.getElementById('ownerFormMessage'),
@@ -56,6 +69,7 @@ const titles = {
   overview: 'Tổng quan hệ thống',
   homes: 'Danh sách nhà',
   users: 'Danh sách tài khoản',
+  homeDetail: 'Chi tiết nhà',
   logs: 'Lịch sử hoạt động',
 };
 
@@ -91,6 +105,23 @@ function formatDate(value) {
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+function formatNumber(value, suffix = '') {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '-';
+  return `${number.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}${suffix}`;
+}
+
+function roomLabel(roomId) {
+  const labels = {
+    living: 'Phòng khách',
+    kitchen: 'Phòng bếp',
+    bedroom: 'Phòng ngủ',
+    bathroom: 'Nhà vệ sinh',
+    garage: 'Nhà xe',
+  };
+  return labels[roomId] || roomId || '-';
 }
 
 async function apiFetch(path, options = {}) {
@@ -139,10 +170,39 @@ function statusBadge(status) {
   return `<span class="badge ${safe}">${escapeHtml(label)}</span>`;
 }
 
+function deviceStatusBadge(isOn) {
+  return `<span class="badge ${isOn ? 'active' : 'off'}">${isOn ? 'Đang bật' : 'Đang tắt'}</span>`;
+}
+
 function roleBadge(role) {
   const safe = escapeHtml(role || 'unknown');
   const label = roleLabels[role] || safe;
   return `<span class="role ${safe}">${escapeHtml(label)}</span>`;
+}
+
+function homeIdCell(homeId) {
+  const safeHomeId = escapeHtml(homeId || '-');
+  if (!homeId) return '<span class="empty-row">-</span>';
+
+  return `
+    <div class="home-id-cell">
+      <code>${safeHomeId}</code>
+      <button class="copy-id-btn" data-copy-home-id="${safeHomeId}" type="button" title="Sao chép Home ID">
+        Copy
+      </button>
+    </div>
+  `;
+}
+
+function homeIdsCell(homeIds) {
+  const ids = Array.isArray(homeIds) ? homeIds.filter(Boolean) : [];
+  if (ids.length === 0) return '<span class="empty-row">-</span>';
+
+  return `
+    <div class="home-id-list">
+      ${ids.map((homeId) => homeIdCell(homeId)).join('')}
+    </div>
+  `;
 }
 
 function emptyRow(colspan, text) {
@@ -159,6 +219,9 @@ function homeActions(home) {
   const mode = home.status === 'suspended' ? 'ok' : 'warn';
   return `
     <div class="row-actions">
+      <button class="action-btn" data-home-detail-id="${escapeHtml(home.id)}" type="button">
+        Chi tiết
+      </button>
       <button class="action-btn ${mode}" data-home-action="${action}" data-home-id="${escapeHtml(home.id)}" type="button">
         ${label}
       </button>
@@ -190,6 +253,7 @@ function renderHomes() {
   const rows = state.homes.map((home) => `
     <tr>
       <td><strong>${escapeHtml(home.name)}</strong></td>
+      <td>${homeIdCell(home.id)}</td>
       <td>${escapeHtml(home.ownerName || '-')}</td>
       <td>${escapeHtml(home.ownerUsername || '-')}</td>
       <td>${escapeHtml(home.memberCount ?? 0)}</td>
@@ -199,15 +263,16 @@ function renderHomes() {
     </tr>
   `).join('');
 
-  els.homesBody.innerHTML = rows || emptyRow(7, 'Chưa có nhà nào trong hệ thống.');
+  els.homesBody.innerHTML = rows || emptyRow(8, 'Chưa có nhà nào trong hệ thống.');
   els.recentHomesBody.innerHTML = state.homes.slice(0, 5).map((home) => `
     <tr>
       <td><strong>${escapeHtml(home.name)}</strong></td>
+      <td>${homeIdCell(home.id)}</td>
       <td>${escapeHtml(home.ownerName || '-')}</td>
       <td>${escapeHtml(home.memberCount ?? 0)}</td>
       <td>${statusBadge(home.status)}</td>
     </tr>
-  `).join('') || emptyRow(4, 'Chưa có dữ liệu nhà.');
+  `).join('') || emptyRow(5, 'Chưa có dữ liệu nhà.');
 }
 
 function renderUsers() {
@@ -215,13 +280,14 @@ function renderUsers() {
     <tr>
       <td><strong>${escapeHtml(user.name)}</strong></td>
       <td>${escapeHtml(user.username)}</td>
+      <td>${homeIdsCell(user.homeIds)}</td>
       <td>${escapeHtml(user.phone || '-')}</td>
       <td>${roleBadge(user.role)}</td>
       <td>${formatDate(user.lastActive)}</td>
       <td>${statusBadge(user.status)}</td>
       <td>${userActions(user)}</td>
     </tr>
-  `).join('') || emptyRow(7, 'Chưa có tài khoản nào trong hệ thống.');
+  `).join('') || emptyRow(8, 'Chưa có tài khoản nào trong hệ thống.');
 }
 
 function renderLogs() {
@@ -249,6 +315,108 @@ function renderOverview() {
   els.userCount.textContent = state.users.length;
   els.ownerCount.textContent = state.users.filter((user) => user.role === 'owner').length;
   els.logCount.textContent = state.logs.length;
+}
+
+function detailCard(label, value, hint = '') {
+  return `
+    <article class="detail-card">
+      <span>${escapeHtml(label)}</span>
+      <div class="detail-card-value">${value}</div>
+      ${hint ? `<small>${escapeHtml(hint)}</small>` : ''}
+    </article>
+  `;
+}
+
+function flattenDevices(devicesByRoom) {
+  if (!devicesByRoom || typeof devicesByRoom !== 'object') return [];
+  return Object.entries(devicesByRoom).flatMap(([roomId, devices]) =>
+    (Array.isArray(devices) ? devices : []).map((device) => ({ ...device, roomId: device.roomId || roomId })),
+  );
+}
+
+function renderHomeDetail(home, detail) {
+  const quota = detail.quota || {};
+  const members = detail.members || [];
+  const logs = detail.logs || [];
+  const devices = detail.devices || [];
+  const used = Number(quota.currentMonthEnergyKwh || 0);
+  const limit = Number(quota.energyLimitKwh || 0);
+  const quotaPercent = limit > 0 ? Math.min((used / limit) * 100, 999) : 0;
+
+  els.detailHomeName.textContent = home?.name || 'Chi tiết nhà';
+  els.detailHomeId.innerHTML = homeIdCell(home?.id || state.selectedHomeId);
+  els.homeDetailSummary.innerHTML = `
+    ${detailCard('Chủ nhà', escapeHtml(home?.ownerName || '-'), home?.ownerUsername || '')}
+    ${detailCard('Trạng thái nhà', statusBadge(home?.status || 'unknown'))}
+    ${detailCard('Thành viên', escapeHtml(String(home?.memberCount ?? members.length ?? 0)), 'Tài khoản trong nhà')}
+    ${detailCard('Ngày tạo', escapeHtml(formatDate(home?.createdAt)))}
+  `;
+
+  els.homeOverviewGrid.innerHTML = `
+    ${detailCard('Home ID', homeIdCell(home?.id || state.selectedHomeId), 'Mã dùng để gán PLC, thiết bị, phòng và quota')}
+    ${detailCard('Quota tháng', escapeHtml(`${formatNumber(used, ' kWh')} / ${formatNumber(limit, ' kWh')}`), `${formatNumber(quotaPercent, '%')} đã dùng`)}
+    ${detailCard('Thiết bị cấu hình', escapeHtml(String(devices.length)), 'Đang lấy từ backend thiết bị hiện tại')}
+    ${detailCard('Log của nhà', escapeHtml(String(logs.length)), 'Hoạt động gần nhất')}
+  `;
+
+  els.homeDevicesBody.innerHTML = devices.map((device) => `
+    <tr>
+      <td><strong>${escapeHtml(device.name || device.id || '-')}</strong></td>
+      <td>${escapeHtml(roomLabel(device.roomId))}</td>
+      <td>${formatNumber(device.power, ' W')}</td>
+      <td>${deviceStatusBadge(device.isOn)}</td>
+      <td>${escapeHtml(device.source || '-')}</td>
+    </tr>
+  `).join('') || emptyRow(5, 'Chưa có cấu hình thiết bị riêng cho nhà này.');
+
+  els.homeMembersBody.innerHTML = members.map((member) => `
+    <tr>
+      <td><strong>${escapeHtml(member.name || '-')}</strong></td>
+      <td>${escapeHtml(member.username || '-')}</td>
+      <td>${escapeHtml(roleLabels[member.roleInHome] || member.roleInHome || member.role || '-')}</td>
+      <td>${member.canManageDevices ? 'Có' : 'Không'}</td>
+      <td>${statusBadge(member.status)}</td>
+    </tr>
+  `).join('') || emptyRow(5, 'Chưa có thành viên nào trong nhà này.');
+
+  els.homeLogsBody.innerHTML = logs.map((log) => `
+    <tr>
+      <td>${formatDate(log.createdAt)}</td>
+      <td>${escapeHtml(log.actorUsername || '-')}</td>
+      <td><strong>${escapeHtml(log.action || '-')}</strong></td>
+      <td>${escapeHtml(log.targetName || log.targetId || log.targetType || '-')}</td>
+      <td>${escapeHtml(log.ipAddress || '-')}</td>
+    </tr>
+  `).join('') || emptyRow(5, 'Chưa có nhật ký riêng cho nhà này.');
+}
+
+async function openHomeDetail(homeId) {
+  const home = state.homes.find((item) => item.id === homeId);
+  if (!home) {
+    setApiStatus('Không tìm thấy Home ID trong danh sách nhà', 'error');
+    return;
+  }
+
+  state.selectedHomeId = homeId;
+  switchView('homeDetail');
+  setApiStatus(`Đang tải chi tiết ${homeId}...`, '');
+
+  const [quotaResult, membersResult, logsResult, devicesResult] = await Promise.allSettled([
+    apiFetch(`/api/homes/${encodeURIComponent(homeId)}/quota`),
+    apiFetch(`/api/homes/${encodeURIComponent(homeId)}/members`),
+    apiFetch(`/api/homes/${encodeURIComponent(homeId)}/activity?limit=80`),
+    apiFetch(`/api/devices?homeId=${encodeURIComponent(homeId)}`),
+  ]);
+
+  const detail = {
+    quota: quotaResult.status === 'fulfilled' ? quotaResult.value.quota : null,
+    members: membersResult.status === 'fulfilled' ? membersResult.value.members || [] : [],
+    logs: logsResult.status === 'fulfilled' ? logsResult.value.logs || [] : [],
+    devices: devicesResult.status === 'fulfilled' ? flattenDevices(devicesResult.value.devices) : [],
+  };
+
+  renderHomeDetail(home, detail);
+  setApiStatus(`Đã tải chi tiết Home ID: ${homeId}`, 'ok');
 }
 
 function renderAll() {
@@ -335,7 +503,7 @@ async function createOwnerHome(event) {
   els.ownerFormMessage.textContent = '';
 
   try {
-    await apiFetch('/api/admin/owners', {
+    const result = await apiFetch('/api/admin/owners', {
       method: 'POST',
       body: JSON.stringify({
         ownerName: els.ownerNameInput.value.trim(),
@@ -348,7 +516,8 @@ async function createOwnerHome(event) {
     closeOwnerModal();
     await loadDashboard();
     switchView('homes');
-    setApiStatus('API: đã tạo chủ nhà mới', 'ok');
+    const createdHomeId = result.home?.id ? ` - Home ID: ${result.home.id}` : '';
+    setApiStatus(`API: đã tạo chủ nhà mới${createdHomeId}`, 'ok');
   } catch (error) {
     els.ownerFormMessage.textContent = error.message || 'Không thể tạo chủ nhà';
     setApiStatus(`API: ${error.message}`, 'error');
@@ -384,7 +553,30 @@ async function updateHomeAction(homeId, action) {
   setApiStatus(action === 'suspend' ? 'API: đã khóa nhà' : 'API: đã mở nhà', 'ok');
 }
 
+async function copyHomeId(homeId) {
+  if (!homeId) return;
+
+  try {
+    await navigator.clipboard.writeText(homeId);
+    setApiStatus(`Đã copy Home ID: ${homeId}`, 'ok');
+  } catch {
+    window.prompt('Copy Home ID này:', homeId);
+  }
+}
+
 async function handleAdminTableAction(event) {
+  const copyButton = event.target.closest('button[data-copy-home-id]');
+  if (copyButton) {
+    await copyHomeId(copyButton.dataset.copyHomeId);
+    return;
+  }
+
+  const detailButton = event.target.closest('button[data-home-detail-id]');
+  if (detailButton) {
+    await openHomeDetail(detailButton.dataset.homeDetailId);
+    return;
+  }
+
   const button = event.target.closest('button[data-user-action], button[data-home-action]');
   if (!button) return;
 
@@ -403,6 +595,15 @@ async function handleAdminTableAction(event) {
   }
 }
 
+function switchHomeTab(tabName) {
+  els.detailTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.homeTab === tabName);
+  });
+  els.detailTabPanels.forEach((panel) => {
+    panel.classList.toggle('hidden', panel.dataset.homeTabPanel !== tabName);
+  });
+}
+
 els.loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   els.loginMessage.textContent = '';
@@ -416,13 +617,24 @@ els.loginForm.addEventListener('submit', async (event) => {
 
 els.logoutBtn.addEventListener('click', logout);
 els.refreshAllBtn.addEventListener('click', refreshDashboard);
+els.backToHomesBtn.addEventListener('click', () => switchView('homes'));
+els.refreshHomeDetailBtn.addEventListener('click', () => {
+  if (state.selectedHomeId) {
+    openHomeDetail(state.selectedHomeId).catch((error) => setApiStatus(`API: ${error.message}`, 'error'));
+  }
+});
 els.createOwnerTopBtn.addEventListener('click', openOwnerModal);
 els.createOwnerHomeBtn.addEventListener('click', openOwnerModal);
 els.closeOwnerModalBtn.addEventListener('click', closeOwnerModal);
 els.cancelOwnerModalBtn.addEventListener('click', closeOwnerModal);
 els.ownerForm.addEventListener('submit', createOwnerHome);
+els.recentHomesBody.addEventListener('click', handleAdminTableAction);
 els.homesBody.addEventListener('click', handleAdminTableAction);
 els.usersBody.addEventListener('click', handleAdminTableAction);
+els.detailHomeId.addEventListener('click', handleAdminTableAction);
+els.detailTabs.forEach((tab) => {
+  tab.addEventListener('click', () => switchHomeTab(tab.dataset.homeTab));
+});
 els.ownerModal.addEventListener('click', (event) => {
   if (event.target === els.ownerModal) closeOwnerModal();
 });

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Smart Home AI Admin</title>
-  <link rel="stylesheet" href="./styles.css?v=20260522-admin-actions">
+  <link rel="stylesheet" href="./styles.css?v=20260531-home-id">
 </head>
 <body>
   <main class="shell">
@@ -116,6 +116,7 @@
                   <thead>
                     <tr>
                       <th>Tên nhà</th>
+                      <th>Home ID</th>
                       <th>Chủ nhà</th>
                       <th>Thành viên</th>
                       <th>Trạng thái</th>
@@ -155,6 +156,7 @@
                 <thead>
                   <tr>
                     <th>Tên nhà</th>
+                    <th>Home ID</th>
                     <th>Owner</th>
                     <th>Username</th>
                     <th>Thành viên</th>
@@ -184,6 +186,7 @@
                   <tr>
                     <th>Tên</th>
                     <th>Username</th>
+                    <th>Home ID</th>
                     <th>SĐT</th>
                     <th>Role</th>
                     <th>Hoạt động cuối</th>
@@ -193,6 +196,86 @@
                 </thead>
                 <tbody id="usersBody"></tbody>
               </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view hidden" id="homeDetailView">
+          <section class="panel">
+            <div class="panel-head detail-head">
+              <div>
+                <button class="back-link" id="backToHomesBtn" type="button">← Danh sách nhà</button>
+                <h2 id="detailHomeName">Chi tiết nhà</h2>
+                <div class="detail-id" id="detailHomeId"></div>
+              </div>
+              <div class="panel-actions">
+                <button class="refresh-btn" id="refreshHomeDetailBtn" type="button">Làm mới chi tiết</button>
+              </div>
+            </div>
+            <div class="detail-body">
+              <div class="detail-summary" id="homeDetailSummary"></div>
+
+              <div class="detail-tabs" role="tablist" aria-label="Chi tiết nhà">
+                <button class="detail-tab active" data-home-tab="overview" type="button">Tổng quan</button>
+                <button class="detail-tab" data-home-tab="devices" type="button">Thiết bị</button>
+                <button class="detail-tab" data-home-tab="members" type="button">Thành viên</button>
+                <button class="detail-tab" data-home-tab="logs" type="button">Nhật ký</button>
+              </div>
+
+              <section class="detail-tab-panel" data-home-tab-panel="overview">
+                <div class="detail-grid" id="homeOverviewGrid"></div>
+              </section>
+
+              <section class="detail-tab-panel hidden" data-home-tab-panel="devices">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Thiết bị</th>
+                        <th>Phòng</th>
+                        <th>Công suất định mức</th>
+                        <th>Trạng thái</th>
+                        <th>Nguồn</th>
+                      </tr>
+                    </thead>
+                    <tbody id="homeDevicesBody"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="detail-tab-panel hidden" data-home-tab-panel="members">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Tên</th>
+                        <th>Username</th>
+                        <th>Quyền trong nhà</th>
+                        <th>Điều khiển</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody id="homeMembersBody"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="detail-tab-panel hidden" data-home-tab-panel="logs">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Thời gian</th>
+                        <th>Người thực hiện</th>
+                        <th>Hành động</th>
+                        <th>Đối tượng</th>
+                        <th>IP</th>
+                      </tr>
+                    </thead>
+                    <tbody id="homeLogsBody"></tbody>
+                  </table>
+                </div>
+              </section>
             </div>
           </section>
         </section>
@@ -264,6 +347,6 @@
       </div>
     </form>
   </div>
-  <script src="./app.js?v=20260522-admin-actions"></script>
+  <script src="./app.js?v=20260531-home-id"></script>
 </body>
 </html>

@@ -396,8 +396,23 @@ class AuthStore:
 
     def list_admin_users(self) -> list[dict[str, Any]]:
         with self.connect() as conn:
-            rows = conn.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()
-            return [self.public_user(row) for row in rows]
+            rows = conn.execute(
+                """
+                SELECT users.*,
+                       GROUP_CONCAT(home_members.home_id) AS home_ids
+                FROM users
+                LEFT JOIN home_members ON home_members.user_id = users.id
+                GROUP BY users.id
+                ORDER BY users.created_at DESC
+                """
+            ).fetchall()
+
+            result: list[dict[str, Any]] = []
+            for row in rows:
+                user = self.public_user(row)
+                user["homeIds"] = [item for item in str(row["home_ids"] or "").split(",") if item]
+                result.append(user)
+            return result
 
     def create_owner_with_home(
         self,
