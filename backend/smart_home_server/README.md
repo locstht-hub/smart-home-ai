@@ -261,7 +261,7 @@ CPU Properties -> Protection & Security
 
 ```json
 {
-  "mode": "plc-real"
+  "mode": "auto"
 }
 ```
 
@@ -271,6 +271,8 @@ CPU Properties -> Protection & Security
 
 - `mock` mode dung de app test khong can PLC.
 - `plc-real` mode doc power tag va device status tag bang `python-snap7`.
+- `auto` mode uu tien PLC that khi ket noi duoc; neu PLC chua cam hoac Snap7 loi thi endpoint doc se fallback mock kem `plcError`, khong ghi mock fallback vao lich su dien that.
+- Lenh dieu khien trong `auto` van phai ghi duoc xuong PLC moi bao thanh cong; backend khong gia vo bat/tat thiet bi neu PLC dang mat ket noi.
 - Lenh dieu khien uu tien `onCommandTag`/`offCommandTag`: backend gui xung Start/Stop, PLC SET/RESET output roi cap nhat lai `statusTag`.
 - Mapping demo hien tai: Lamp1 status `DB1.DBX1.2`, Lamp2 `DB1.DBX1.3`, Lamp3 `DB1.DBX1.4`; command Start/Stop nam tren `DB7.DBX0.0 -> DB7.DBX0.5`.
 - Endpoint `/api/assistant/chat` hien la rule fallback. Sau nay co the thay bang Unsloth/LLM de tra JSON intent.

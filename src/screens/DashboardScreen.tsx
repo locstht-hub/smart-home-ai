@@ -130,9 +130,24 @@ export default function DashboardScreen({ navigation }: any) {
             ? 'Chỉ số công tơ (kWh)'
             : 'Ước tính hôm nay (kWh)';
 
-    const serverIssueTitle = systemStatus?.mode === 'plc-real' ? 'PLC chưa sẵn sàng' : 'Server API chưa sẵn sàng';
-    const runtimeLabel = systemStatus?.mode === 'plc-real' ? 'PLC thật' : systemStatus ? 'Mock demo' : 'Chưa đọc';
-    const powerSourceLabel = systemStatus?.powerSource === 'plc-s7-1200' ? 'PLC S7-1200' : systemStatus ? 'Mô phỏng' : 'Chưa rõ';
+    const effectiveMode = systemStatus?.effectiveMode || systemStatus?.mode;
+    const isPlcConfigured = systemStatus?.mode === 'plc-real' || systemStatus?.mode === 'auto';
+    const isPlcEffective = effectiveMode === 'plc-real';
+    const serverIssueTitle = isPlcConfigured ? 'PLC chưa sẵn sàng' : 'Server API chưa sẵn sàng';
+    const runtimeLabel = isPlcEffective
+        ? 'PLC thật'
+        : systemStatus?.mode === 'auto'
+            ? 'Auto fallback'
+            : systemStatus
+                ? 'Mock demo'
+                : 'Chưa đọc';
+    const powerSourceLabel = systemStatus?.powerSource === 'plc-s7-1200'
+        ? 'PLC S7-1200'
+        : systemStatus?.powerSource === 'mock-fallback'
+            ? 'Mô phỏng dự phòng'
+            : systemStatus
+                ? 'Mô phỏng'
+                : 'Chưa rõ';
     const accountRoleLabel = user?.serverRole === 'owner'
         ? 'Tài khoản cha'
         : user?.serverRole === 'member'
@@ -213,8 +228,8 @@ export default function DashboardScreen({ navigation }: any) {
 
             <View style={styles.systemSummaryCard}>
                 <View style={styles.systemSummaryRow}>
-                    <View style={[styles.systemPill, systemStatus?.mode === 'plc-real' ? styles.systemPillOk : styles.systemPillWarn]}>
-                        <Text style={[styles.systemPillText, systemStatus?.mode === 'plc-real' ? styles.systemPillTextOk : styles.systemPillTextWarn]}>
+                    <View style={[styles.systemPill, isPlcEffective ? styles.systemPillOk : styles.systemPillWarn]}>
+                        <Text style={[styles.systemPillText, isPlcEffective ? styles.systemPillTextOk : styles.systemPillTextWarn]}>
                             {runtimeLabel}
                         </Text>
                     </View>

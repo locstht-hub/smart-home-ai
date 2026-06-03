@@ -428,7 +428,11 @@ async function openHomeDetail(homeId) {
   };
 
   renderHomeDetail(home, detail);
-  setApiStatus(`Đã tải chi tiết Home ID: ${homeId}`, 'ok');
+  if (detail.devicesError) {
+    setApiStatus(`Đã tải chi tiết Home ID: ${homeId}, nhưng thiết bị PLC chưa sẵn sàng`, 'error');
+  } else {
+    setApiStatus(`Đã tải chi tiết Home ID: ${homeId}`, 'ok');
+  }
 }
 
 function renderAll() {

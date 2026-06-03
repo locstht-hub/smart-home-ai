@@ -51,12 +51,16 @@ export default function SettingsScreen() {
 
     const runtimeLabel = useMemo(() => {
         if (!systemStatus) return 'Chưa đọc được';
-        return systemStatus.mode === 'plc-real' ? 'PLC thật' : 'Mock demo';
+        if ((systemStatus.effectiveMode || systemStatus.mode) === 'plc-real') return 'PLC thật';
+        if (systemStatus.mode === 'auto') return 'Auto fallback';
+        return 'Mock demo';
     }, [systemStatus]);
 
     const sourceLabel = useMemo(() => {
         if (!systemStatus) return 'Chưa rõ';
-        return systemStatus.powerSource === 'plc-s7-1200' ? 'PLC S7-1200' : 'Dữ liệu mô phỏng';
+        if (systemStatus.powerSource === 'plc-s7-1200') return 'PLC S7-1200';
+        if (systemStatus.powerSource === 'mock-fallback') return 'Mô phỏng dự phòng';
+        return 'Dữ liệu mô phỏng';
     }, [systemStatus]);
 
     const handleChangePassword = async () => {

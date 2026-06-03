@@ -11,7 +11,7 @@ const floatingChatForm = document.querySelector("#floatingChatForm");
 const floatingChatInput = document.querySelector("#floatingChatInput");
 
 const welcomeMessage =
-  "Xin chào, mình là AI Project Assistant. Bạn có thể hỏi về PLC S7-1200, MFM384, luồng dữ liệu, app, server API, AI forecast hoặc hướng tích hợp model fine-tune.";
+  "Xin chào, mình là trợ lý giới thiệu dự án Smart Home AI. Bạn có thể hỏi về PLC S7-1200, MFM384, luồng dữ liệu, app, server API, AI forecast hoặc hướng tích hợp model fine-tune.";
 
 // Simulated real-time sensor state for MFM384 / PLC
 const liveData = {
@@ -39,25 +39,25 @@ function renderMetrics() {
       <div class="live-pulse"></div>
       <span>Điện áp (V)</span>
       <strong id="live-voltage">220.4 V</strong>
-      <small>Đo V1N trên MFM384 (Thời gian thực)</small>
+      <small>Minh họa tag V1N trên MFM384</small>
     </article>
     <article class="metric-card">
       <div class="live-pulse"></div>
       <span>Dòng điện (I)</span>
       <strong id="live-current">5.62 A</strong>
-      <small>Dòng tải tổng ngõ vào MFM384</small>
+      <small>Minh họa dòng tải tổng ngõ vào MFM384</small>
     </article>
     <article class="metric-card">
       <div class="live-pulse"></div>
       <span>Công suất (P)</span>
       <strong id="live-power">1.05 kW</strong>
-      <small>Công suất tức thời từ PLC</small>
+      <small>Minh họa công suất tức thời từ PLC</small>
     </article>
     <article class="metric-card">
       <div class="live-pulse"></div>
       <span>Điện năng (E)</span>
       <strong id="live-energy">142.8435 kWh</strong>
-      <small>Tổng tích lũy điện năng tiêu thụ</small>
+      <small>Minh họa tổng tích lũy điện năng tiêu thụ</small>
     </article>
     <article class="metric-card">
       <div class="live-pulse"></div>
@@ -66,13 +66,13 @@ function renderMetrics() {
       <div class="quota-progress-container">
         <div class="quota-progress-bar" id="live-quota-bar" style="width: 72.4%"></div>
       </div>
-      <small>Cảnh báo vượt hạn mức tiêu thụ</small>
+      <small>Minh họa cảnh báo vượt hạn mức tiêu thụ</small>
     </article>
     <article class="metric-card">
       <div class="live-pulse"></div>
       <span>Dự báo (Forecast)</span>
       <strong id="live-forecast">Ổn định &rarr;</strong>
-      <small>Ước lượng từ các mô hình AI</small>
+      <small>Minh họa ước lượng từ các mô hình AI</small>
     </article>
   `;
 }

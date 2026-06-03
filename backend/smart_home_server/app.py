@@ -403,6 +403,8 @@ def create_app() -> Flask:
     devices = list(config.get("devices", []))
     validate_plc_memory_layout(config, devices)
     mode = str(config.get("mode", "mock")).strip().lower()
+    if mode not in {"mock", "plc-real", "auto"}:
+        mode = "mock"
     collector_config = dict(config.get("powerCollector", {}))
     collector_interval = max(5, int(collector_config.get("intervalSeconds", 60)))
     collector_enabled = bool(collector_config.get("enabled", False))
@@ -561,18 +563,46 @@ def create_app() -> Flask:
         except Exception as exc:
             app.logger.warning("Could not write audit log: %s", exc)
 
+    def plc_should_be_used() -> bool:
+        return mode in {"plc-real", "auto"}
+
+    def read_states_with_source() -> tuple[dict[str, bool], str, str | None]:
+        if not plc_should_be_used():
+            return state_store.load(), "mock", None
+
+        try:
+            return s7.read_device_states(devices), "plc-s7-1200", None
+        except Exception as exc:
+            if mode == "auto":
+                return state_store.load(), "mock-fallback", str(exc)
+            raise
+
     def read_states() -> dict[str, bool]:
-        if mode == "plc-real":
-            return s7.read_device_states(devices)
-        return state_store.load()
+        states, _source, _error = read_states_with_source()
+        return states
 
     def read_power_measurement() -> dict[str, Any]:
         nonlocal mock_energy_kwh, last_mock_energy_update
 
-        if mode == "plc-real":
-            values = s7.read_power(config.get("powerTags", {}))
-            source = "plc-s7-1200"
+        plc_error: str | None = None
+        if plc_should_be_used():
+            try:
+                values = s7.read_power(config.get("powerTags", {}))
+                source = "plc-s7-1200"
+                effective_mode = "plc-real"
+            except Exception as exc:
+                if mode != "auto":
+                    raise
+                plc_error = str(exc)
+                values = {}
+                source = "mock-fallback"
+                effective_mode = "mock"
         else:
+            values = {}
+            source = "mock"
+            effective_mode = "mock"
+
+        if source != "plc-s7-1200":
             states = state_store.load()
             active_power_w = sum(float(item["power"]) for item in devices if states.get(str(item["id"]), False))
             power_kw = round(active_power_w / 1000.0, 4)
@@ -582,13 +612,18 @@ def create_app() -> Flask:
                 mock_energy_kwh = round(mock_energy_kwh + power_kw * elapsed_hours, 6)
                 last_mock_energy_update = now
                 energy_kwh = mock_energy_kwh
-            values = {
-                "voltage": 220.0,
-                "current": round(active_power_w / 220.0, 4),
-                "power_kw": power_kw,
-                "energy_kwh": energy_kwh,
-            }
-            source = "mock"
+            values.update(
+                {
+                    "voltage": 220.0,
+                    "current": round(active_power_w / 220.0, 4),
+                    "power_kw": power_kw,
+                    "energy_kwh": energy_kwh,
+                }
+            )
+
+        warnings = list(values.get("_warnings", []))
+        if plc_error:
+            warnings.append(f"PLC not ready, using mock fallback: {plc_error}")
 
         return {
             "voltage": values.get("voltage"),
@@ -597,7 +632,10 @@ def create_app() -> Flask:
             "energy_kwh": values.get("energy_kwh"),
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "source": source,
-            "warnings": values.get("_warnings", []),
+            "mode": mode,
+            "effectiveMode": effective_mode,
+            "plcError": plc_error,
+            "warnings": warnings,
         }
 
     def update_collector_status(**updates: Any) -> None:
@@ -614,6 +652,13 @@ def create_app() -> Flask:
             return {"ok": True, "readings": 0, "homeIds": []}
 
         reading = read_power_measurement()
+        if mode == "auto" and reading.get("source") == "mock-fallback":
+            return {
+                "ok": True,
+                "readings": 0,
+                "homeIds": [home["id"] for home in homes],
+                "warning": reading.get("plcError") or "PLC not ready",
+            }
         saved_ids: list[str] = []
         for home in homes:
             saved = auth_store.record_power_reading(
@@ -624,7 +669,12 @@ def create_app() -> Flask:
                 power_kw=optional_float(reading.get("power_kw")),
                 energy_kwh=optional_float(reading.get("energy_kwh")),
                 source=f"{reading.get('source')}-collector",
-                metadata={"mode": mode, "kind": "collector", "intervalSeconds": collector_interval},
+                metadata={
+                    "mode": mode,
+                    "effectiveMode": reading.get("effectiveMode"),
+                    "kind": "collector",
+                    "intervalSeconds": collector_interval,
+                },
             )
             saved_ids.append(saved["id"])
             auth_store.record_audit_log(
@@ -646,6 +696,10 @@ def create_app() -> Flask:
             try:
                 result = run_power_collector_once()
                 readings_count = int(result.get("readings", 0))
+                if result.get("warning"):
+                    update_collector_status(lastError=str(result["warning"]), lastReadingCount=readings_count)
+                    app.logger.warning("Power collector using fallback: %s", result["warning"])
+                    continue
                 with collector_status_lock:
                     collector_status["lastSuccessAt"] = datetime.now(timezone.utc).isoformat()
                     collector_status["lastError"] = None
@@ -712,7 +766,7 @@ def create_app() -> Flask:
         try:
             context["power"] = read_power_measurement()
         except Exception as exc:
-            context["power"] = {"error": str(exc), "source": mode}
+                context["power"] = {"error": str(exc), "source": mode}
 
         if home_id:
             try:
@@ -743,6 +797,8 @@ def create_app() -> Flask:
         home_id = access_home_id(access)
         if not home_id:
             return None
+        if mode == "auto" and reading.get("source") == "mock-fallback":
+            return None
 
         saved = auth_store.record_power_reading(
             home_id=home_id,
@@ -752,7 +808,7 @@ def create_app() -> Flask:
             power_kw=optional_float(reading.get("power_kw")),
             energy_kwh=optional_float(reading.get("energy_kwh")),
             source=str(reading.get("source") or "unknown"),
-            metadata={"mode": mode, "kind": "snapshot"},
+            metadata={"mode": mode, "effectiveMode": reading.get("effectiveMode"), "kind": "snapshot"},
         )
         audit(
             "power.reading_recorded",
@@ -784,7 +840,19 @@ def create_app() -> Flask:
     def system_status() -> Any:
         current_user = get_current_user()
         database_path = configured_db_path.resolve()
-        power_source = "plc-s7-1200" if mode == "plc-real" else "mock"
+        collector_snapshot = current_collector_status()
+        if mode == "mock":
+            effective_mode = "mock"
+            power_source = "mock"
+        elif collector_snapshot.get("lastSuccessAt") and not collector_snapshot.get("lastError"):
+            effective_mode = "plc-real"
+            power_source = "plc-s7-1200"
+        elif mode == "auto":
+            effective_mode = "mock"
+            power_source = "mock-fallback"
+        else:
+            effective_mode = "plc-real"
+            power_source = "plc-s7-1200"
         plc = config.get("plc", {})
         assistant = assistant_config(config)
 
@@ -793,8 +861,9 @@ def create_app() -> Flask:
                 "ok": True,
                 "service": "smart-home-server",
                 "mode": mode,
+                "effectiveMode": effective_mode,
                 "powerSource": power_source,
-                "plcConfigured": mode == "plc-real",
+                "plcConfigured": plc_should_be_used(),
                 "plcHost": plc.get("host"),
                 "plcRack": plc.get("rack", 0),
                 "plcSlot": plc.get("slot", 1),
@@ -802,7 +871,7 @@ def create_app() -> Flask:
                 "statePath": str(STATE_PATH.resolve()),
                 "serverTime": datetime.now(timezone.utc).isoformat(),
                 "authUser": current_user,
-                "powerCollector": current_collector_status(),
+                "powerCollector": collector_snapshot,
                 "assistant": {
                     "provider": assistant["provider"],
                     "model": assistant["model"],
@@ -1350,7 +1419,16 @@ def create_app() -> Flask:
             return access
 
         try:
-            return jsonify({"devices": group_devices(devices, read_states())})
+            states, source, plc_error = read_states_with_source()
+            return jsonify(
+                {
+                    "devices": group_devices(devices, states),
+                    "mode": mode,
+                    "effectiveMode": "plc-real" if source == "plc-s7-1200" else "mock",
+                    "source": source,
+                    "plcError": plc_error,
+                }
+            )
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc)}), 500
 
@@ -1397,7 +1475,7 @@ def create_app() -> Flask:
             return {**quota_block, "device_id": device_id, "isOn": is_on}
 
         try:
-            if mode == "plc-real":
+            if plc_should_be_used():
                 s7.write_device_command(device, is_on)
 
             state_store.set_state(device_id, is_on)
@@ -1460,7 +1538,7 @@ def create_app() -> Flask:
         try:
             for device_id, is_on in target.items():
                 device = next(item for item in devices if str(item["id"]) == device_id)
-                if mode == "plc-real":
+                if plc_should_be_used():
                     s7.write_device_command(device, is_on)
                 states[device_id] = is_on
 

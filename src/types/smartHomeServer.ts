@@ -18,6 +18,10 @@ export interface PowerCurrentResponse {
     energy_kwh: number | null;
     timestamp: string;
     source?: string;
+    mode?: 'mock' | 'plc-real' | 'auto' | string;
+    effectiveMode?: 'mock' | 'plc-real' | string;
+    plcError?: string | null;
+    warnings?: string[];
     recorded?: boolean;
     readingId?: string | null;
 }
@@ -44,8 +48,9 @@ export interface PowerHistoryResponse {
 export interface SystemStatusResponse {
     ok: boolean;
     service: string;
-    mode: 'mock' | 'plc-real' | string;
-    powerSource: 'mock' | 'plc-s7-1200' | string;
+    mode: 'mock' | 'plc-real' | 'auto' | string;
+    effectiveMode?: 'mock' | 'plc-real' | string;
+    powerSource: 'mock' | 'mock-fallback' | 'plc-s7-1200' | string;
     plcConfigured: boolean;
     plcHost?: string;
     plcRack?: number;
