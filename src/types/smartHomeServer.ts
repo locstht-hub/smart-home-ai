@@ -121,8 +121,25 @@ export interface CreateMemberPayload {
     canManageDevices?: boolean;
 }
 
+export interface HomeActivityLog {
+    id: string;
+    actorUserId?: string | null;
+    actorUsername?: string | null;
+    actorRole?: string | null;
+    action: string;
+    targetType?: string | null;
+    targetId?: string | null;
+    targetName?: string | null;
+    homeId?: string | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+    metadata?: Record<string, unknown>;
+    createdAt: string;
+}
+
 export interface HomeQuota {
     homeId: string;
     energyLimitKwh: number;
     currentMonthEnergyKwh: number;
+    quotaSource?: string;
 }

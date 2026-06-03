@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { Colors } from '../constants/colors';
-import { HomeMember } from '../types/smartHomeServer';
+import { HomeActivityLog, HomeMember } from '../types/smartHomeServer';
 
 const ROLE_LABELS: Record<string, string> = {
     owner: 'Chủ nhà',
@@ -27,9 +27,11 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
     const { user } = useAuth();
     const { client } = useSmartHomeServer();
     const [members, setMembers] = useState<HomeMember[]>([]);
+    const [activityLogs, setActivityLogs] = useState<HomeActivityLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [resetPasswordMember, setResetPasswordMember] = useState<HomeMember | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
     // Add member form state
@@ -39,6 +41,7 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
     const [newPassword, setNewPassword] = useState('');
     const [newRole, setNewRole] = useState<'member' | 'viewer'>('member');
     const [newCanManageDevices, setNewCanManageDevices] = useState(true);
+    const [resetPassword, setResetPassword] = useState('');
 
     const homeId = user?.homeId;
     const homeName = user?.homeName || 'Nhà của tôi';
@@ -46,11 +49,15 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
     const fetchMembers = useCallback(async () => {
         if (!homeId) return;
         try {
-            const list = await client.getHomeMembers(homeId);
+            const [list, logs] = await Promise.all([
+                client.getHomeMembers(homeId),
+                client.getHomeActivity(homeId, 80),
+            ]);
             setMembers(list);
+            setActivityLogs(logs);
         } catch (error) {
             console.error('Error fetching members:', error);
-            Alert.alert('Lỗi', 'Không thể tải danh sách thành viên.');
+            Alert.alert('Lỗi', 'Không thể tải danh sách thành viên hoặc nhật ký hoạt động.');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -165,6 +172,79 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
         );
     };
 
+    const handleResetPassword = async () => {
+        if (!homeId || !resetPasswordMember) return;
+        if (resetPassword.length < 6) {
+            Alert.alert('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự.');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            await client.resetHomeMemberPassword(homeId, resetPasswordMember.id, resetPassword);
+            Alert.alert('Thành công', `Đã đổi mật khẩu cho "${resetPasswordMember.name}". Tài khoản này cần đăng nhập lại bằng mật khẩu mới.`);
+            setResetPasswordMember(null);
+            setResetPassword('');
+            void fetchMembers();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Không thể đổi mật khẩu thành viên.';
+            Alert.alert('Lỗi', message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const formatDateTime = (iso: string) => {
+        const date = new Date(iso);
+        return date.toLocaleString('vi-VN', { hour12: false });
+    };
+
+    const getActivityText = (log: HomeActivityLog) => {
+        const actor = log.actorUsername || 'Hệ thống';
+        const target = log.targetName ? ` "${log.targetName}"` : '';
+        const state = typeof log.metadata?.isOn === 'boolean'
+            ? (log.metadata.isOn ? 'bật' : 'tắt')
+            : '';
+
+        switch (log.action) {
+            case 'auth.login_success':
+                return `${actor} đăng nhập vào app`;
+            case 'auth.login_failed':
+                return `Đăng nhập thất bại cho tài khoản${target}`;
+            case 'device.turn_on':
+                return `${actor} bật thiết bị${target}`;
+            case 'device.turn_off':
+                return `${actor} tắt thiết bị${target}`;
+            case 'scene.apply':
+                return `${actor} kích hoạt cảnh${target}`;
+            case 'home.quota_updated':
+                if (typeof log.metadata?.oldLimit === 'number' && typeof log.metadata?.newLimit === 'number') {
+                    return `${actor} cập nhật hạn mức HEMS từ ${log.metadata.oldLimit} kWh lên ${log.metadata.newLimit} kWh`;
+                }
+                return `${actor} cập nhật hạn mức HEMS`;
+            case 'device.control_blocked_quota':
+                return `${actor} bị chặn điều khiển thiết bị${target} vì vượt hạn mức HEMS`;
+            case 'scene.blocked_quota':
+                return `${actor} bị chặn kích hoạt cảnh${target} vì vượt hạn mức HEMS`;
+            case 'assistant.chat':
+                return `${actor} gửi câu hỏi/lệnh cho Chat AI`;
+            case 'assistant.provider_reply':
+                return `Chat AI phản hồi qua ${log.metadata?.provider || 'provider'}`;
+            case 'home.create_member':
+                return `${actor} tạo tài khoản thành viên${target}`;
+            case 'home.suspend_member':
+                return `${actor} tạm khóa thành viên${target}`;
+            case 'home.activate_member':
+                return `${actor} kích hoạt thành viên${target}`;
+            case 'home.delete_member':
+                return `${actor} xóa thành viên${target}`;
+            case 'home.reset_member_password':
+                return `${actor} đổi mật khẩu thành viên${target}`;
+            default:
+                return `${actor} ${state ? `${state} ` : ''}${log.action}${target}`;
+        }
+    };
+
     const renderMemberCard = ({ item }: { item: HomeMember }) => {
         const isOwner = item.roleInHome === 'owner';
         const roleStyle = ROLE_COLORS[item.roleInHome] || ROLE_COLORS.viewer;
@@ -214,6 +294,12 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                                 <Text style={styles.activateBtnText}>Kích hoạt</Text>
                             </TouchableOpacity>
                         )}
+                        <TouchableOpacity style={[styles.actionBtn, styles.passwordBtn]} onPress={() => {
+                            setResetPasswordMember(item);
+                            setResetPassword('');
+                        }}>
+                            <Text style={styles.passwordBtnText}>Mật khẩu</Text>
+                        </TouchableOpacity>
                         <TouchableOpacity style={[styles.actionBtn, styles.deleteBtn]} onPress={() => handleDelete(item)}>
                             <Text style={styles.deleteBtnText}>Xóa</Text>
                         </TouchableOpacity>
@@ -260,6 +346,29 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                         <Text style={styles.emptyIcon}>👥</Text>
                         <Text style={styles.emptyTitle}>Chưa có thành viên nào</Text>
                         <Text style={styles.emptySub}>Nhấn nút bên dưới để thêm thành viên vào nhà.</Text>
+                    </View>
+                }
+                ListFooterComponent={
+                    <View style={styles.activitySection}>
+                        <View style={styles.activityHeader}>
+                            <Text style={styles.activityTitle}>Nhật ký hoạt động</Text>
+                            <TouchableOpacity onPress={handleRefresh}>
+                                <Text style={styles.activityRefresh}>Đọc lại</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {activityLogs.length === 0 ? (
+                            <View style={styles.activityEmpty}>
+                                <Text style={styles.activityEmptyText}>Chưa có hoạt động nào trong nhà.</Text>
+                            </View>
+                        ) : activityLogs.slice(0, 20).map((log) => (
+                            <View key={log.id} style={styles.activityItem}>
+                                <View style={styles.activityDot} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.activityText}>{getActivityText(log)}</Text>
+                                    <Text style={styles.activityTime}>{formatDateTime(log.createdAt)}</Text>
+                                </View>
+                            </View>
+                        ))}
                     </View>
                 }
             />
@@ -350,6 +459,40 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
+
+            <Modal visible={!!resetPasswordMember} transparent animationType="slide">
+                <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Đổi mật khẩu thành viên</Text>
+                        <Text style={styles.modalHint}>
+                            Mật khẩu mới sẽ áp dụng cho tài khoản {resetPasswordMember?.username}. Phiên đăng nhập cũ của thành viên sẽ bị đăng xuất.
+                        </Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="Mật khẩu mới (ít nhất 6 ký tự)"
+                            value={resetPassword}
+                            onChangeText={setResetPassword}
+                            secureTextEntry
+                            placeholderTextColor={Colors.slate[400]}
+                        />
+                        <View style={styles.modalBtnRow}>
+                            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => {
+                                setResetPasswordMember(null);
+                                setResetPassword('');
+                            }} disabled={submitting}>
+                                <Text style={styles.modalCancelText}>Hủy</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalSaveBtn} onPress={() => { void handleResetPassword(); }} disabled={submitting}>
+                                {submitting ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.modalSaveText}>Lưu mật khẩu</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
         </View>
     );
 }
@@ -409,6 +552,8 @@ const styles = StyleSheet.create({
     suspendBtnText: { color: Colors.amber[700], fontWeight: '600', fontSize: 13 },
     activateBtn: { backgroundColor: Colors.green[50], borderWidth: 1, borderColor: Colors.green[400] },
     activateBtnText: { color: Colors.green[700], fontWeight: '600', fontSize: 13 },
+    passwordBtn: { backgroundColor: Colors.blue[50], borderWidth: 1, borderColor: Colors.blue[200] },
+    passwordBtnText: { color: Colors.blue[700], fontWeight: '600', fontSize: 13 },
     deleteBtn: { backgroundColor: Colors.red[50], borderWidth: 1, borderColor: Colors.red[200] },
     deleteBtnText: { color: Colors.red[600], fontWeight: '600', fontSize: 13 },
     ownerNote: { paddingVertical: 8, alignItems: 'center' },
@@ -419,6 +564,43 @@ const styles = StyleSheet.create({
     emptyIcon: { fontSize: 48, marginBottom: 12 },
     emptyTitle: { fontSize: 18, fontWeight: '600', color: Colors.slate[600], marginBottom: 6 },
     emptySub: { fontSize: 13, color: Colors.slate[400], textAlign: 'center', paddingHorizontal: 40 },
+
+    // Activity log
+    activitySection: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 16,
+        marginTop: 8,
+        marginBottom: 96,
+        borderWidth: 1,
+        borderColor: Colors.slate[100],
+        shadowColor: '#000',
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    activityHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    activityTitle: { fontSize: 16, fontWeight: '700', color: Colors.slate[800] },
+    activityRefresh: { fontSize: 13, fontWeight: '600', color: Colors.primary[600] },
+    activityEmpty: { paddingVertical: 14, alignItems: 'center' },
+    activityEmptyText: { color: Colors.slate[400], fontSize: 13 },
+    activityItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: Colors.slate[100],
+    },
+    activityDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: Colors.primary[500],
+        marginTop: 5,
+        marginRight: 10,
+    },
+    activityText: { color: Colors.slate[700], fontSize: 13, lineHeight: 18 },
+    activityTime: { color: Colors.slate[400], fontSize: 11, marginTop: 3 },
 
     // FAB
     fab: {

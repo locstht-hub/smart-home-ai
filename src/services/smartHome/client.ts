@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Device } from '../../constants/data';
-import { CreateMemberPayload, HomeMember, HomeQuota, LoginResponse, PowerCurrentResponse, PowerHistoryResponse, PowerReading, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
+import { CreateMemberPayload, HomeActivityLog, HomeMember, HomeQuota, LoginResponse, PowerCurrentResponse, PowerHistoryResponse, PowerReading, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
 
 interface DevicesResponse {
     devices: Record<string, Device[]>;
@@ -30,6 +30,55 @@ const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
 const DEFAULT_LOCAL_API_URL = 'http://172.16.50.47:5001';
 const USER_KEY = 'currentUser';
 const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
+
+const CHAT_REPLY_REPLACEMENTS: Array<[string, string]> = [
+    ['Ban hay nhap lenh can dieu khien hoac cau hoi ve dien nang.', 'Bạn hãy nhập lệnh cần điều khiển hoặc câu hỏi về điện năng.'],
+    ['Khong the doc du lieu dien nang', 'Không thể đọc dữ liệu điện năng'],
+    ['Cong suat hien tai khoang', 'Công suất hiện tại khoảng'],
+    ['Khong the tat tat ca thiet bi', 'Không thể tắt tất cả thiết bị'],
+    ['Khong the bat tat ca thiet bi', 'Không thể bật tất cả thiết bị'],
+    ['Khong the kich hoat canh', 'Không thể kích hoạt cảnh'],
+    ['Khong tim thay thiet bi', 'Không tìm thấy thiết bị'],
+    ['Chi gui duoc lenh cho', 'Chỉ gửi được lệnh cho'],
+    ['thiet bi loi', 'thiết bị lỗi'],
+    ['thiet bi phu hop', 'thiết bị phù hợp'],
+    ['Da gui lenh tat tat ca thiet bi.', 'Đã gửi lệnh tắt tất cả thiết bị.'],
+    ['Da gui lenh bat tat ca thiet bi.', 'Đã gửi lệnh bật tất cả thiết bị.'],
+    ['Da kich hoat canh', 'Đã kích hoạt cảnh'],
+    ['Da gui lenh bat', 'Đã gửi lệnh bật'],
+    ['Da gui lenh tat', 'Đã gửi lệnh tắt'],
+    ['Da gui lenh cho', 'Đã gửi lệnh cho'],
+    ['He thong dang co', 'Hệ thống đang có'],
+    ['thiet bi trong', 'thiết bị trong'],
+    ['khu vuc', 'khu vực'],
+    ['Chuc nang du bao se doc Forecast API sau khi co du lieu lich su tu PLC.', 'Chức năng dự báo sẽ đọc Forecast API sau khi có dữ liệu lịch sử từ PLC.'],
+    ['server loi', 'server lỗi'],
+    ['Den phong khach', 'Đèn phòng khách'],
+    ['Den phong bep', 'Đèn phòng bếp'],
+    ['Den phong ngu', 'Đèn phòng ngủ'],
+];
+
+function repairMojibake(text: string): string {
+    if (!/[ÃÄ]|áº/.test(text)) return text;
+    try {
+        const bytes = Array.from(text, ch => ch.charCodeAt(0));
+        if (bytes.some(code => code > 255)) return text;
+        const repaired = decodeURIComponent(bytes.map(code => `%${code.toString(16).padStart(2, '0')}`).join(''));
+        const before = (text.match(/[ÃÄ]|áº/g) || []).length;
+        const after = (repaired.match(/[ÃÄ]|áº/g) || []).length;
+        return after < before ? repaired : text;
+    } catch {
+        return text;
+    }
+}
+
+function polishChatReply(value: string): string {
+    let text = repairMojibake(value || '');
+    for (const [from, to] of CHAT_REPLY_REPLACEMENTS) {
+        text = text.split(from).join(to);
+    }
+    return text;
+}
 
 export class SmartHomeApiClient {
     private readonly config: SmartHomeServerConfig;
@@ -104,6 +153,13 @@ export class SmartHomeApiClient {
         return response.members;
     }
 
+    async getHomeActivity(homeId: string, limit = 80): Promise<HomeActivityLog[]> {
+        const response = await this.request<{ ok: boolean; logs: HomeActivityLog[] }>(
+            `/api/homes/${encodeURIComponent(homeId)}/activity?limit=${encodeURIComponent(String(limit))}`,
+        );
+        return response.logs;
+    }
+
     async createHomeMember(homeId: string, data: CreateMemberPayload): Promise<HomeMember> {
         const response = await this.request<{ ok: boolean; member: HomeMember }>(`/api/homes/${encodeURIComponent(homeId)}/members`, {
             method: 'POST',
@@ -127,6 +183,13 @@ export class SmartHomeApiClient {
     async deleteHomeMember(homeId: string, userId: string): Promise<void> {
         await this.request(`/api/homes/${encodeURIComponent(homeId)}/members/${encodeURIComponent(userId)}`, {
             method: 'DELETE',
+        });
+    }
+
+    async resetHomeMemberPassword(homeId: string, userId: string, password: string): Promise<void> {
+        await this.request(`/api/homes/${encodeURIComponent(homeId)}/members/${encodeURIComponent(userId)}/reset-password`, {
+            method: 'PATCH',
+            body: JSON.stringify({ password }),
         });
     }
 
@@ -157,7 +220,7 @@ export class SmartHomeApiClient {
         }, { preferCloudFirst: this.config.preferLocalApi !== true });
         const response = result.data;
         return {
-            reply: response.reply || response.text || response.message || 'Server đã nhận lệnh của bạn.',
+            reply: polishChatReply(response.reply || response.text || response.message || 'Server đã nhận lệnh của bạn.'),
             elapsedMs: Date.now() - startedAt,
             endpoint: this.isLocalBaseUrl(result.baseUrl) ? 'local' : 'cloud',
             baseUrl: result.baseUrl,
@@ -229,7 +292,8 @@ export class SmartHomeApiClient {
 
         try {
             const headers: Record<string, string> = {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json; charset=utf-8',
+                Accept: 'application/json; charset=utf-8',
                 ...((init.headers as Record<string, string>) || {}),
             };
             const savedUser = await this.readSavedUser();
@@ -262,7 +326,7 @@ export class SmartHomeApiClient {
                 if (response.status === 403 && parsedError === 'Home is suspended') {
                     throw new Error('Nhà đang bị tạm khóa');
                 }
-                throw new Error(parsedError || `Server API tra ve ma ${response.status}`);
+                throw new Error(parsedError || `Server API trả về mã ${response.status}`);
             }
 
             return response.json() as Promise<T>;

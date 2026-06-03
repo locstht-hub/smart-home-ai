@@ -24,6 +24,15 @@ export default function SettingsScreen() {
     const [apiToken, setApiToken] = useState(config.apiToken || '');
     const [forecastApiUrl, setForecastApiUrl] = useState(config.forecastApiUrl || '');
     const [forecastModel, setForecastModel] = useState<'xgboost' | 'lstm'>(config.forecastModel || 'xgboost');
+    const accountRoleLabel = user?.serverRole === 'owner'
+        ? 'Tài khoản cha'
+        : user?.serverRole === 'member'
+            ? 'Tài khoản con'
+            : user?.serverRole === 'viewer'
+                ? 'Chỉ xem'
+                : user?.role === 'admin'
+                    ? 'Admin'
+                    : 'User';
 
     useEffect(() => {
         setApiBaseUrl(config.apiBaseUrl);
@@ -116,7 +125,7 @@ export default function SettingsScreen() {
                     <Text style={styles.profilePhone}>{user?.phone}</Text>
                     <View style={styles.badgeRow}>
                         <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{user?.role === 'admin' ? 'Admin' : 'User'}</Text>
+                            <Text style={styles.badgeText}>{accountRoleLabel}</Text>
                         </View>
                     </View>
                 </View>
@@ -125,7 +134,7 @@ export default function SettingsScreen() {
             <Text style={styles.sectionLabel}>TÀI KHOẢN</Text>
             <View style={styles.menuCard}>
                 <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    Alert.alert('Thông tin cá nhân', `Họ tên: ${user?.name}\nSĐT: ${user?.phone}\nVai trò: ${user?.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}\nTrạng thái: Đang hoạt động`);
+                    Alert.alert('Thông tin cá nhân', `Họ tên: ${user?.name}\nSĐT: ${user?.phone}\nVai trò: ${accountRoleLabel}\nTrạng thái: Đang hoạt động`);
                 }}>
                     <View style={styles.menuLeft}>
                         <View style={styles.menuIcon}><Text>U</Text></View>

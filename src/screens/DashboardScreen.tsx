@@ -1,19 +1,57 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, TextInput } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, TextInput, Animated, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { PowerCurrentResponse, HomeQuota } from '../types/smartHomeServer';
 import { Colors } from '../constants/colors';
+import { roomIconImages } from '../constants/roomAssets';
 
 const POWER_REFRESH_MS = 30000;
-const DAY_NAMES = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+const ICONS: Record<string, string> = {
+    bell: '!',
+    flash: '⚡',
+    'trending-up': '↗',
+    'stats-chart': '▥',
+    'sine-wave': '~',
+    'current-ac': 'I',
+    clock: '◷',
+    'edit-3': '✎',
+    power: '⏻',
+    moon: '☾',
+    home: '⌂',
+    'home-lightning-bolt': '⌂',
+};
+
+function IconText({ name, size = 16, color = '#000', style }: { name: string; size?: number; color?: string; style?: any }) {
+    return (
+        <Text
+            style={[
+                {
+                    color,
+                    fontSize: size,
+                    lineHeight: Math.ceil(size * 1.15),
+                    fontWeight: '800',
+                    textAlign: 'center',
+                    includeFontPadding: false,
+                },
+                style,
+            ]}
+        >
+            {ICONS[name] || name}
+        </Text>
+    );
+}
+
+const Feather = IconText;
+const Ionicons = IconText;
+const MaterialCommunityIcons = IconText;
 
 export default function DashboardScreen({ navigation }: any) {
     const { user } = useAuth();
     const { rooms, getTotalPower, getActiveDeviceCount, turnAllOff, applyScene, serverError, isHomeSuspended, isServerControlled } = useData();
-    const { client, isConfigured, config } = useSmartHomeServer();
+    const { client, isConfigured, config, systemStatus } = useSmartHomeServer();
     const [now, setNow] = useState(new Date());
     const [powerCurrent, setPowerCurrent] = useState<PowerCurrentResponse | null>(null);
     const [quota, setQuota] = useState<HomeQuota | null>(null);
@@ -22,6 +60,27 @@ export default function DashboardScreen({ navigation }: any) {
     const [isSubmittingQuota, setIsSubmittingQuota] = useState(false);
 
     const isOwner = user?.serverRole === 'owner';
+
+    const pulseAnim = useRef(new Animated.Value(0.4)).current;
+
+    useEffect(() => {
+        const pulse = Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 0.4,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        pulse.start();
+        return () => pulse.stop();
+    }, [pulseAnim]);
 
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
@@ -57,15 +116,37 @@ export default function DashboardScreen({ navigation }: any) {
     const currentValue = typeof powerCurrent?.current === 'number' ? `${powerCurrent.current.toFixed(2)} A` : '-- A';
     const activeCount = getActiveDeviceCount();
     const elapsedHours = Math.max(1, now.getHours() + (now.getMinutes() / 60));
-    const hasMeterEnergy = typeof powerCurrent?.energy_kwh === 'number';
-    const todayKwhEstimate = typeof powerCurrent?.energy_kwh === 'number'
-        ? powerCurrent.energy_kwh.toFixed(1)
-        : ((totalPower / 1000) * elapsedHours * 0.22).toFixed(1);
-    const energyStatLabel = hasMeterEnergy ? 'Điện năng (kWh)' : 'Điện năng ước tính (kWh)';
+    const monthlyEnergyKwh = typeof quota?.currentMonthEnergyKwh === 'number' ? quota.currentMonthEnergyKwh : null;
+    const meterEnergyKwh = typeof powerCurrent?.energy_kwh === 'number' ? powerCurrent.energy_kwh : null;
+    const estimatedEnergyKwh = (totalPower / 1000) * elapsedHours * 0.22;
+    const energyStatValue = monthlyEnergyKwh !== null
+        ? monthlyEnergyKwh.toFixed(2)
+        : meterEnergyKwh !== null
+            ? meterEnergyKwh.toFixed(1)
+            : estimatedEnergyKwh.toFixed(1);
+    const energyStatLabel = monthlyEnergyKwh !== null
+        ? 'Đã dùng tháng (kWh)'
+        : meterEnergyKwh !== null
+            ? 'Chỉ số công tơ (kWh)'
+            : 'Ước tính hôm nay (kWh)';
 
-    const dayName = DAY_NAMES[now.getDay()];
-    const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
-    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    const serverIssueTitle = systemStatus?.mode === 'plc-real' ? 'PLC chưa sẵn sàng' : 'Server API chưa sẵn sàng';
+    const runtimeLabel = systemStatus?.mode === 'plc-real' ? 'PLC thật' : systemStatus ? 'Mock demo' : 'Chưa đọc';
+    const powerSourceLabel = systemStatus?.powerSource === 'plc-s7-1200' ? 'PLC S7-1200' : systemStatus ? 'Mô phỏng' : 'Chưa rõ';
+    const accountRoleLabel = user?.serverRole === 'owner'
+        ? 'Tài khoản cha'
+        : user?.serverRole === 'member'
+            ? 'Tài khoản con'
+            : user?.serverRole === 'viewer'
+                ? 'Chỉ xem'
+                : user?.role === 'admin'
+                    ? 'Admin'
+                    : 'User';
+    const permissionLabel = isOwner
+        ? 'Được quản lý hạn mức và thành viên'
+        : user?.canManageDevices
+            ? 'Được điều khiển thiết bị'
+            : 'Không có quyền điều khiển';
 
     const getProgressBarColor = (ratio: number) => {
         if (ratio >= 0.9) return Colors.red[500];
@@ -126,9 +207,25 @@ export default function DashboardScreen({ navigation }: any) {
                     <Text style={styles.welcomeTitle}>{getGreeting()}</Text>
                 </View>
                 <TouchableOpacity style={styles.notifBadge} onPress={() => navigation.navigate('Analysis')}>
-                    <Text style={styles.notifIcon}>🔔</Text>
-                    <View style={styles.notifDot}><Text style={styles.notifDotText}>2</Text></View>
+                    <Feather name="bell" size={20} color={Colors.slate[600]} />
                 </TouchableOpacity>
+            </View>
+
+            <View style={styles.systemSummaryCard}>
+                <View style={styles.systemSummaryRow}>
+                    <View style={[styles.systemPill, systemStatus?.mode === 'plc-real' ? styles.systemPillOk : styles.systemPillWarn]}>
+                        <Text style={[styles.systemPillText, systemStatus?.mode === 'plc-real' ? styles.systemPillTextOk : styles.systemPillTextWarn]}>
+                            {runtimeLabel}
+                        </Text>
+                    </View>
+                    <View style={styles.systemPill}>
+                        <Text style={styles.systemPillText}>{powerSourceLabel}</Text>
+                    </View>
+                    <View style={styles.systemPill}>
+                        <Text style={styles.systemPillText}>{accountRoleLabel}</Text>
+                    </View>
+                </View>
+                <Text style={styles.systemSummaryText}>{permissionLabel}</Text>
             </View>
 
             {isHomeSuspended && (
@@ -140,7 +237,7 @@ export default function DashboardScreen({ navigation }: any) {
 
             {!isHomeSuspended && serverError && isServerControlled && (
                 <View style={styles.errorBanner}>
-                    <Text style={styles.errorTitle}>Server API chưa sẵn sàng</Text>
+                    <Text style={styles.errorTitle}>{serverIssueTitle}</Text>
                     <Text style={styles.errorText}>{serverError}</Text>
                 </View>
             )}
@@ -151,54 +248,46 @@ export default function DashboardScreen({ navigation }: any) {
                 <View style={{ zIndex: 1 }}>
                     <View style={styles.powerHeader}>
                         <View style={styles.powerLabelRow}>
-                            <Text style={{ fontSize: 16 }}>⚡</Text>
+                            <Ionicons name="flash" size={15} color="rgba(255,255,255,0.9)" />
                             <Text style={styles.powerLabel}>Công suất hiện tại (kW)</Text>
                         </View>
-                        <View style={styles.realtimeBadge}><Text style={styles.realtimeText}>Real-time</Text></View>
+                        <View style={styles.realtimeBadge}>
+                            <Animated.View style={[styles.realtimeDot, { opacity: pulseAnim }]} />
+                            <Text style={styles.realtimeText}>Real-time</Text>
+                        </View>
                     </View>
                     <View style={styles.powerValueRow}>
                         <Text style={styles.powerValue}>{totalPowerKW}</Text>
                         <Text style={styles.powerUnit}>kW</Text>
                     </View>
-                    <Text style={styles.powerSubtext}>📈 {activeCount} thiết bị đang hoạt động</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                        <Ionicons name="trending-up" size={14} color="rgba(255,255,255,0.8)" />
+                        <Text style={styles.powerSubtext}> {activeCount} thiết bị đang hoạt động</Text>
+                    </View>
                 </View>
             </LinearGradient>
 
             <View style={styles.statsGrid}>
                 <View style={styles.statCard}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.blue[100] }]}>
-                        <Text>⚡</Text>
+                        <Ionicons name="stats-chart" size={16} color={Colors.blue[600]} />
                     </View>
-                    <Text style={styles.statValue}>{todayKwhEstimate}</Text>
+                    <Text style={styles.statValue}>{energyStatValue}</Text>
                     <Text style={styles.statLabel}>{energyStatLabel}</Text>
                 </View>
                 <View style={styles.statCard}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.green[100] }]}>
-                        <Text>V</Text>
+                        <MaterialCommunityIcons name="sine-wave" size={16} color={Colors.green[600]} />
                     </View>
                     <Text style={styles.statValueSmall}>{voltageValue}</Text>
                     <Text style={styles.statLabel}>Điện áp (V)</Text>
                 </View>
                 <View style={styles.statCard}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.orange[100] }]}>
-                        <Text>I</Text>
+                        <MaterialCommunityIcons name="current-ac" size={16} color={Colors.orange[600]} />
                     </View>
                     <Text style={styles.statValueSmall}>{currentValue}</Text>
                     <Text style={styles.statLabel}>Dòng điện (I)</Text>
-                </View>
-                <View style={styles.statCard}>
-                    <View style={[styles.statIcon, { backgroundColor: Colors.primary[100] }]}>
-                        <Text>📅</Text>
-                    </View>
-                    <Text style={styles.statValueSmall}>{dayName}</Text>
-                    <Text style={styles.statLabel}>{dateStr}</Text>
-                </View>
-                <View style={styles.statCard}>
-                    <View style={[styles.statIcon, { backgroundColor: Colors.orange[100] }]}>
-                        <Text>🕐</Text>
-                    </View>
-                    <Text style={styles.statValue}>{timeStr}</Text>
-                    <Text style={styles.statLabel}>Giờ hiện tại</Text>
                 </View>
             </View>
 
@@ -207,7 +296,7 @@ export default function DashboardScreen({ navigation }: any) {
                 <View style={styles.quotaCard}>
                     <View style={styles.quotaHeader}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={{ fontSize: 16 }}>📊</Text>
+                            <Feather name="trending-up" size={18} color={Colors.slate[700]} />
                             <Text style={styles.quotaTitle}>Hạn mức điện năng HEMS</Text>
                         </View>
                         {isOwner && (
@@ -215,7 +304,9 @@ export default function DashboardScreen({ navigation }: any) {
                                 setQuotaInput(quota?.energyLimitKwh ? String(quota.energyLimitKwh) : '');
                                 setIsQuotaModalVisible(true);
                             }} style={styles.quotaEditBtn}>
-                                <Text style={styles.quotaEditBtnText}>✏️ Thiết lập</Text>
+                                <Text style={styles.quotaEditBtnText}>
+                                    <Feather name="edit-3" size={12} color={Colors.primary[600]} /> Thiết lập
+                                </Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -292,11 +383,11 @@ export default function DashboardScreen({ navigation }: any) {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Cài Đặt Hạn Mức Điện Năng</Text>
-                        <Text style={styles.modalSubtitle}>Nhập hạn mức năng lượng tiêu thụ mong muốn cho căn hộ của bạn (kWh/tháng):</Text>
+                        <Text style={styles.modalSubtitle}>Nhập hạn mức điện năng cho nhà trong tháng này (kWh/tháng):</Text>
 
                         <TextInput
                             style={styles.modalInput}
-                            placeholder="Ví dụ: 150, 200, 300"
+                            placeholder="Ví dụ: 2500"
                             placeholderTextColor={Colors.slate[400]}
                             keyboardType="numeric"
                             value={quotaInput}
@@ -328,24 +419,27 @@ export default function DashboardScreen({ navigation }: any) {
 
             <Text style={styles.sectionTitle}>Thao tác nhanh</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActions}>
-                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.red[200], backgroundColor: Colors.red[50] }]} onPress={() => { void turnAllOff(); }}>
-                    <Text style={{ color: Colors.red[600], fontWeight: '500', fontSize: 13 }}>🔌 Tắt tất cả</Text>
+                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.red[200], backgroundColor: Colors.red[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} onPress={() => { void turnAllOff(); }}>
+                    <MaterialCommunityIcons name="power" size={14} color={Colors.red[600]} />
+                    <Text style={{ color: Colors.red[600], fontWeight: '500', fontSize: 13 }}>Tắt tất cả</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.blue[200], backgroundColor: Colors.blue[50] }]} onPress={() => {
-                    Alert.alert('Chế độ đêm', 'Tắt đèn và quạt, giữ nguyên máy lạnh?', [
+                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.blue[200], backgroundColor: Colors.blue[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} onPress={() => {
+                    Alert.alert('Chế độ đêm', 'Tắt các thiết bị đèn/quạt trong hệ thống?', [
                         { text: 'Hủy', style: 'cancel' },
-                        { text: 'Bật', onPress: () => { void applyScene('sleep'); Alert.alert('Thành công', 'Đã bật chế độ đêm - đèn và quạt đã tắt'); } },
+                        { text: 'Bật', onPress: () => { void applyScene('sleep'); Alert.alert('Thành công', 'Đã bật chế độ đêm'); } },
                     ]);
                 }}>
-                    <Text style={{ color: Colors.blue[600], fontWeight: '500', fontSize: 13 }}>🕐 Chế độ đêm</Text>
+                    <Feather name="moon" size={14} color={Colors.blue[600]} />
+                    <Text style={{ color: Colors.blue[600], fontWeight: '500', fontSize: 13 }}>Chế độ đêm</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.amber[200], backgroundColor: Colors.amber[50] }]} onPress={() => {
+                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.amber[200], backgroundColor: Colors.amber[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} onPress={() => {
                     Alert.alert('Chế độ vắng nhà', 'Tắt tất cả thiết bị trong nhà?', [
                         { text: 'Hủy', style: 'cancel' },
                         { text: 'Tắt tất cả', style: 'destructive', onPress: () => { void turnAllOff(); Alert.alert('Thành công', 'Đã tắt tất cả thiết bị'); } },
                     ]);
                 }}>
-                    <Text style={{ color: Colors.amber[600], fontWeight: '500', fontSize: 13 }}>🏠 Vắng nhà</Text>
+                    <Feather name="home" size={14} color={Colors.amber[600]} />
+                    <Text style={{ color: Colors.amber[600], fontWeight: '500', fontSize: 13 }}>Vắng nhà</Text>
                 </TouchableOpacity>
             </ScrollView>
 
@@ -359,8 +453,12 @@ export default function DashboardScreen({ navigation }: any) {
             {rooms.slice(0, 3).map(room => (
                 <TouchableOpacity key={room.id} style={styles.roomCard} onPress={() => navigation.navigate('RoomList', { roomId: room.id, timestamp: Date.now() })}>
                     <View style={styles.roomCardLeft}>
-                        <View style={[styles.roomIcon, { backgroundColor: room.active > 0 ? Colors.green[100] : Colors.slate[100] }]}>
-                            <Text style={{ fontSize: 20 }}>🏠</Text>
+                        <View style={[styles.roomIcon, room.active > 0 && styles.roomIconActive]}>
+                            {roomIconImages[room.id] ? (
+                                <Image source={roomIconImages[room.id]} style={styles.roomIconImage} resizeMode="cover" />
+                            ) : (
+                                <MaterialCommunityIcons name="home-lightning-bolt" size={22} color={room.active > 0 ? Colors.green[600] : Colors.slate[400]} />
+                            )}
                         </View>
                         <View>
                             <Text style={styles.roomName}>{room.name}</Text>
@@ -395,13 +493,23 @@ const styles = StyleSheet.create({
     notifIcon: { fontSize: 18 },
     notifDot: { position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: 8, backgroundColor: Colors.red[500], alignItems: 'center', justifyContent: 'center' },
     notifDotText: { color: '#fff', fontSize: 9, fontWeight: '700' },
+    systemSummaryCard: { backgroundColor: '#fff', borderRadius: 14, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: Colors.slate[100], shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    systemSummaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+    systemPill: { backgroundColor: Colors.slate[100], paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+    systemPillOk: { backgroundColor: Colors.green[100] },
+    systemPillWarn: { backgroundColor: Colors.amber[100] },
+    systemPillText: { fontSize: 11, fontWeight: '700', color: Colors.slate[600] },
+    systemPillTextOk: { color: Colors.green[700] },
+    systemPillTextWarn: { color: Colors.amber[700] },
+    systemSummaryText: { fontSize: 12, color: Colors.slate[500], lineHeight: 17 },
     powerCard: { borderRadius: 20, padding: 20, marginBottom: 16, overflow: 'hidden' },
     powerCardCircle1: { position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' },
     powerCardCircle2: { position: 'absolute', bottom: -30, left: -30, width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.05)' },
     powerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     powerLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     powerLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
-    realtimeBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+    realtimeBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    realtimeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#34d399' },
     realtimeText: { fontSize: 11, color: '#fff' },
     powerValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginBottom: 4 },
     powerValue: { fontSize: 44, fontWeight: '700', color: '#fff' },
@@ -420,7 +528,9 @@ const styles = StyleSheet.create({
     actionBtn: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, marginRight: 10 },
     roomCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
     roomCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    roomIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    roomIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: Colors.slate[100] },
+    roomIconActive: { borderWidth: 2, borderColor: Colors.green[400] },
+    roomIconImage: { width: '100%', height: '100%', borderRadius: 12 },
     roomName: { fontSize: 15, fontWeight: '500', color: Colors.slate[800] },
     roomSub: { fontSize: 12, color: Colors.slate[500], marginTop: 2 },
     roomPower: { fontSize: 15, fontWeight: '600', color: Colors.slate[800] },

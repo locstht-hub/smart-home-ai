@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Colors } from '../constants/colors';
+import { roomIconImages } from '../constants/roomAssets';
 
 export default function RoomsScreen({ route }: any) {
     const { user } = useAuth();
@@ -34,6 +35,9 @@ export default function RoomsScreen({ route }: any) {
                     <TouchableOpacity onPress={() => setSelectedRoom(null)} style={styles.backBtn}>
                         <Text style={{ fontSize: 22 }}>←</Text>
                     </TouchableOpacity>
+                    {roomIconImages[room.id] && (
+                        <Image source={roomIconImages[room.id]} style={styles.roomHeaderImage} resizeMode="cover" />
+                    )}
                     <View style={{ flex: 1 }}>
                         <Text style={styles.roomTitle}>{room.name}</Text>
                         <Text style={styles.roomSubtitle}>{activeDevices}/{roomDevices.length} thiết bị hoạt động</Text>
@@ -210,7 +214,7 @@ export default function RoomsScreen({ route }: any) {
 
             {!isHomeSuspended && serverError && isServerControlled && (
                 <View style={styles.adminHintCard}>
-                    <Text style={styles.adminHintTitle}>Server API chưa sẵn sàng</Text>
+                    <Text style={styles.adminHintTitle}>PLC/Server chưa sẵn sàng</Text>
                     <Text style={styles.adminHintText}>{serverError}</Text>
                 </View>
             )}
@@ -228,8 +232,12 @@ export default function RoomsScreen({ route }: any) {
                     return (
                         <TouchableOpacity key={room.id} style={[styles.roomCard, isActive && styles.roomCardActive]} onPress={() => setSelectedRoom(room.id)}>
                             {isActive && <View style={styles.roomActiveDot} />}
-                            <View style={[styles.roomCardIcon, { backgroundColor: isActive ? Colors.green[100] : Colors.slate[100] }]}>
-                                <Text style={{ fontSize: 22 }}>🏠</Text>
+                            <View style={[styles.roomCardIcon, isActive && styles.roomCardIconActive]}>
+                                {roomIconImages[room.id] ? (
+                                    <Image source={roomIconImages[room.id]} style={styles.roomCardIconImage} resizeMode="cover" />
+                                ) : (
+                                    <Text style={{ fontSize: 22 }}>🏠</Text>
+                                )}
                             </View>
                             <Text style={styles.roomCardName}>{room.name}</Text>
                             <Text style={styles.roomCardSub}>{room.active}/{room.devices} thiết bị</Text>
@@ -306,7 +314,9 @@ const styles = StyleSheet.create({
     roomCard: { width: '48%' as any, backgroundColor: '#fff', borderRadius: 14, padding: 14, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2, position: 'relative' },
     roomCardActive: { borderWidth: 2, borderColor: Colors.green[400] },
     roomActiveDot: { position: 'absolute', top: 10, right: 10, width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.green[500] },
-    roomCardIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+    roomCardIcon: { width: 58, height: 58, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 10, overflow: 'hidden', backgroundColor: Colors.slate[100] },
+    roomCardIconActive: { borderWidth: 2, borderColor: Colors.green[400] },
+    roomCardIconImage: { width: '100%', height: '100%', borderRadius: 14 },
     roomCardName: { fontSize: 15, fontWeight: '600', color: Colors.slate[800] },
     roomCardSub: { fontSize: 12, color: Colors.slate[500], marginTop: 2, marginBottom: 6 },
     roomCardStats: { flexDirection: 'row', gap: 10 },
@@ -320,6 +330,7 @@ const styles = StyleSheet.create({
     energyBarBg: { height: 8, backgroundColor: Colors.slate[100], borderRadius: 4, overflow: 'hidden' },
     energyBarFill: { height: '100%', borderRadius: 4 },
     roomHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.slate[200], marginBottom: 14, backgroundColor: '#fff', marginHorizontal: -16, paddingHorizontal: 16 },
+    roomHeaderImage: { width: 46, height: 46, borderRadius: 14 },
     backBtn: { padding: 6 },
     roomTitle: { fontSize: 18, fontWeight: '600', color: Colors.slate[800] },
     roomSubtitle: { fontSize: 13, color: Colors.slate[500] },

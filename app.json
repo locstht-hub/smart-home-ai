@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/icon.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,10 +16,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#05122A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/icon.png"
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -34,10 +34,10 @@
     "plugins": [
       "expo-sharing",
       [
-          "react-native-voicekit",
-          {
-          "speechRecognitionPermission": "Cho phép Smart Home App nhận dạng giọng nói để xử lý lệnh điều khiển nhà thông minh.",
-          "microphonePermission": "Cho phép Smart Home App sử dụng microphone để ghi nhận lệnh giọng nói."
+        "react-native-voicekit",
+        {
+          "speechRecognitionPermission": "Allow Smart Home App to recognize speech for smart home commands.",
+          "microphonePermission": "Allow Smart Home App to use the microphone for voice commands."
         }
       ]
     ]

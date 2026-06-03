@@ -13,12 +13,26 @@ import {
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVoice, VoiceEvent, VoiceKit, VoiceMode } from 'react-native-voicekit';
+import * as Speech from 'expo-speech';
 import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { useData } from '../contexts/DataContext';
 import { Colors } from '../constants/colors';
 
 const APP_AVATAR = require('../../assets/icon.png');
+
+const ICONS: Record<string, string> = {
+    'volume-mute': 'Mute',
+    'volume-high': 'Vol',
+    mic: 'Mic',
+    'mic-outline': 'Mic',
+    stop: 'Stop',
+    send: 'Send',
+};
+
+function Ionicons({ name, size = 16, color = '#000', style }: { name: string; size?: number; color?: string; style?: any }) {
+    return <Text style={[{ color, fontSize: Math.max(10, Math.round(size * 0.62)), fontWeight: '700' }, style]}>{ICONS[name] || name}</Text>;
+}
 
 const QUICK_REPLIES = [
     'bật đèn phòng khách',
@@ -33,7 +47,6 @@ export default function ChatScreen() {
     const { refresh: refreshDevices } = useData();
     const tabBarHeight = useBottomTabBarHeight();
     const lastHandledTranscriptRef = useRef('');
-
     const initialMessages = useMemo<IMessage[]>(() => [
         {
             _id: 'welcome-1',
@@ -50,6 +63,7 @@ export default function ChatScreen() {
     const [messages, setMessages] = useState<IMessage[]>(initialMessages);
     const [voiceError, setVoiceError] = useState<string | null>(null);
     const [isVoiceStarting, setIsVoiceStarting] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
     const {
         available: isVoiceAvailable,
         listening: isListening,
@@ -76,8 +90,15 @@ export default function ChatScreen() {
         return () => clearInterval(keepWarmInterval);
     }, [client, isConfigured]);
 
-    const pushBotReply = useCallback((text: string) => {
-        const botReply: IMessage = {
+    // Cleanup speech on unmount
+    useEffect(() => {
+        return () => {
+            Speech.stop();
+        };
+    }, []);
+
+    const pushBotReply = useCallback((text: string, metadata?: { endpoint: string; elapsedMs: number }) => {
+        const botReply: any = {
             _id: `bot-${Date.now()}`,
             text,
             createdAt: new Date(),
@@ -86,10 +107,16 @@ export default function ChatScreen() {
                 name: 'Smart Home AI',
                 avatar: APP_AVATAR,
             },
+            metadata,
         };
 
         setMessages(previous => GiftedChat.append(previous, [botReply]));
-    }, []);
+
+        if (!isMuted) {
+            Speech.stop();
+            Speech.speak(text, { language: 'vi-VN' });
+        }
+    }, [isMuted]);
 
     const buildUserMessage = useCallback((text: string): IMessage => ({
         _id: `user-${Date.now()}`,
@@ -113,10 +140,12 @@ export default function ChatScreen() {
         try {
             const result = await client.chatWithTiming(userMessage);
             await refreshDevices();
-            const sourceLabel = result.endpoint === 'local' ? 'local' : 'domain';
-            const diagnosticNote = `\n\nNguon API: ${sourceLabel} - ${(result.elapsedMs / 1000).toFixed(1)} giay.`;
-            const timingNote = diagnosticNote;
-            pushBotReply(`${result.reply || `Mình đã chuyển câu lệnh "${userMessage}" tới server riêng.`}${timingNote}`);
+            const replyText = result.reply || `Mình đã chuyển câu lệnh "${userMessage}" tới server riêng.`;
+
+            pushBotReply(replyText, {
+                endpoint: result.endpoint,
+                elapsedMs: result.elapsedMs,
+            });
         } catch (error) {
             console.error('Error processing Smart Home server chat:', error);
             if (error instanceof Error && (error.message === 'Nhà đang bị tạm khóa' || error.message === 'Nha dang bi tam khoa')) {
@@ -128,6 +157,7 @@ export default function ChatScreen() {
     }, [client, isConfigured, pushBotReply, refreshDevices]);
 
     const onSend = useCallback(async (newMessages: IMessage[] = [], options?: { skipAppend?: boolean }) => {
+        Speech.stop(); // Stop any bot speaking immediately upon user sending message
         if (!options?.skipAppend) {
             setMessages(previous => GiftedChat.append(previous, newMessages));
         }
@@ -173,6 +203,7 @@ export default function ChatScreen() {
 
     const handleVoicePress = useCallback(async () => {
         setVoiceError(null);
+        Speech.stop(); // Stop speech when starting recording
 
         if (!isVoiceAvailable) {
             pushBotReply('Thiết bị này chưa sẵn sàng cho speech-to-text. Bạn cần dùng APK build mới và cấp quyền microphone.');
@@ -224,8 +255,6 @@ export default function ChatScreen() {
         return 'Nhấn mic, nói lệnh, app sẽ gửi transcript sang Server API.';
     }, [isListening, isVoiceAvailable, transcript, voiceError]);
 
-    const micLabel = isListening ? 'STOP' : 'MIC';
-
     return (
         <View style={styles.container}>
             <LinearGradient colors={['#0b2f5b', '#0f4a8a']} style={styles.header}>
@@ -241,6 +270,17 @@ export default function ChatScreen() {
                         </Text>
                     </View>
                 </View>
+                <TouchableOpacity
+                    style={styles.muteButton}
+                    onPress={() => setIsMuted(prev => !prev)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons
+                        name={isMuted ? 'volume-mute' : 'volume-high'}
+                        size={22}
+                        color="#ffffff"
+                    />
+                </TouchableOpacity>
             </LinearGradient>
 
             <ScrollView
@@ -256,30 +296,22 @@ export default function ChatScreen() {
                 ))}
             </ScrollView>
 
-            <View style={styles.voiceBanner}>
-                <View style={styles.voiceBannerTextWrap}>
-                    <Text style={styles.voiceBannerTitle}>
-                        {isListening ? 'Đang nhận diện giọng nói' : 'Lệnh giọng nói'}
-                    </Text>
-                    <Text style={styles.voiceBannerSubtitle}>{voiceHint}</Text>
+            {isListening && (
+                <View style={styles.voiceBanner}>
+                    <Ionicons name="mic" size={20} color={Colors.red[500]} style={styles.voiceBannerIcon} />
+                    <View style={styles.voiceBannerTextWrap}>
+                        <Text style={styles.voiceBannerTitle}>Đang nhận diện giọng nói...</Text>
+                        <Text style={styles.voiceBannerSubtitle}>{voiceHint}</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.voiceStopButton}
+                        onPress={() => void stopListening()}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="stop" size={16} color="#ffffff" />
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                    style={[
-                        styles.voiceButton,
-                        isListening && styles.voiceButtonActive,
-                        !isVoiceAvailable && styles.voiceButtonDisabled,
-                    ]}
-                    onPress={() => void handleVoicePress()}
-                    disabled={isVoiceStarting && !isListening}
-                    activeOpacity={0.85}
-                >
-                    {isVoiceStarting && !isListening ? (
-                        <ActivityIndicator color="#ffffff" />
-                    ) : (
-                        <Text style={styles.voiceButtonIcon}>{micLabel}</Text>
-                    )}
-                </TouchableOpacity>
-            </View>
+            )}
 
             <GiftedChat
                 messages={messages}
@@ -291,9 +323,7 @@ export default function ChatScreen() {
                 }}
                 placeholder="Nhập nội dung chat ở đây..."
                 alwaysShowSend
-                minInputToolbarHeight={108}
-                minComposerHeight={74}
-                maxComposerHeight={180}
+                minInputToolbarHeight={54}
                 keyboardShouldPersistTaps="handled"
                 bottomOffset={tabBarHeight}
                 textInputProps={{
@@ -303,19 +333,29 @@ export default function ChatScreen() {
                     autoCapitalize: 'sentences',
                     keyboardType: 'default',
                     multiline: true,
-                    textAlignVertical: 'top',
-                    style: styles.textInput,
+                    textAlignVertical: 'center',
                 }}
                 renderBubble={(props) => (
                     <Bubble
                         {...props}
                         wrapperStyle={{
-                            right: { backgroundColor: Colors.primary[600] },
-                            left: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: Colors.slate[200] },
+                            right: {
+                                backgroundColor: Colors.primary[600],
+                                borderRadius: 18,
+                                paddingVertical: 4,
+                                paddingHorizontal: 4,
+                            },
+                            left: {
+                                backgroundColor: Colors.slate[100],
+                                borderWidth: 0,
+                                borderRadius: 18,
+                                paddingVertical: 4,
+                                paddingHorizontal: 4,
+                            },
                         }}
                         textStyle={{
-                            right: { color: '#ffffff' },
-                            left: { color: Colors.slate[800] },
+                            right: { color: '#ffffff', fontSize: 15, lineHeight: 22 },
+                            left: { color: Colors.slate[800], fontSize: 15, lineHeight: 22 },
                         }}
                     />
                 )}
@@ -334,7 +374,11 @@ export default function ChatScreen() {
                                 styles.micAccessory,
                                 isListening && styles.micAccessoryActive,
                             ]}>
-                                <Text style={styles.micAccessoryIcon}>{micLabel}</Text>
+                                <Ionicons
+                                    name={isListening ? 'mic' : 'mic-outline'}
+                                    size={22}
+                                    color={isListening ? '#ffffff' : Colors.slate[600]}
+                                />
                             </View>
                         )}
                         containerStyle={styles.micAccessoryContainer}
@@ -348,21 +392,49 @@ export default function ChatScreen() {
                         placeholderTextColor={Colors.slate[400]}
                     />
                 )}
+                renderCustomView={(props) => {
+                    const message = props.currentMessage as any;
+                    if (message && message.metadata) {
+                        const { endpoint, elapsedMs } = message.metadata;
+                        const isLocal = endpoint === 'local';
+                        const icon = isLocal ? '⚡' : '☁️';
+                        const label = isLocal ? 'Local API' : 'Cloud API';
+                        const time = (elapsedMs / 1000).toFixed(1);
+                        return (
+                            <View style={styles.metadataContainer}>
+                                <View style={[
+                                    styles.metadataBadge,
+                                    isLocal ? styles.metadataBadgeLocal : styles.metadataBadgeCloud
+                                ]}>
+                                    <Text style={[
+                                        styles.metadataBadgeText,
+                                        isLocal ? styles.metadataBadgeTextLocal : styles.metadataBadgeTextCloud
+                                    ]}>
+                                        {icon} {label} • {time}s
+                                    </Text>
+                                </View>
+                            </View>
+                        );
+                    }
+                    return null;
+                }}
                 renderMessageText={(props) => (
                     <MessageText
                         {...props}
                         textStyle={{
-                            right: { color: '#ffffff' },
-                            left: { color: Colors.slate[800] },
+                            right: { color: '#ffffff', fontSize: 15, lineHeight: 22 },
+                            left: { color: Colors.slate[800], fontSize: 15, lineHeight: 22 },
                         }}
-                        customTextStyle={{ lineHeight: 20 }}
                         textProps={{ selectable: true }}
                     />
                 )}
                 renderSend={(props) => (
                     <Send {...props} containerStyle={styles.sendContainer}>
-                        <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.sendPill}>
-                            <Text style={styles.sendText}>Gửi</Text>
+                        <LinearGradient
+                            colors={[Colors.primary[500], Colors.primary[700]]}
+                            style={styles.sendCircle}
+                        >
+                            <Ionicons name="send" size={18} color="#ffffff" />
                         </LinearGradient>
                     </Send>
                 )}
@@ -397,6 +469,14 @@ const styles = StyleSheet.create({
     statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
     statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#34d399' },
     headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.88)' },
+    muteButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     quickReplyRow: {
         maxHeight: 58,
         backgroundColor: '#fff',
@@ -438,80 +518,105 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         color: Colors.slate[500],
     },
-    voiceButton: {
-        width: 52,
-        height: 52,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 26,
-        backgroundColor: Colors.primary[600],
+    voiceBannerIcon: {
+        marginRight: 4,
     },
-    voiceButtonActive: {
+    voiceStopButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         backgroundColor: Colors.red[500],
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    voiceButtonDisabled: {
-        backgroundColor: Colors.slate[400],
+    metadataContainer: {
+        paddingHorizontal: 12,
+        paddingBottom: 8,
+        paddingTop: 2,
+        flexDirection: 'row',
     },
-    voiceButtonIcon: {
-        color: '#fff',
-        fontSize: 11,
-        fontWeight: '800',
+    metadataBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 3,
+        paddingHorizontal: 8,
+        borderRadius: 999,
+    },
+    metadataBadgeLocal: {
+        backgroundColor: Colors.amber[50],
+    },
+    metadataBadgeCloud: {
+        backgroundColor: Colors.primary[50],
+    },
+    metadataBadgeText: {
+        fontSize: 10,
+        fontWeight: '600',
+    },
+    metadataBadgeTextLocal: {
+        color: Colors.amber[800],
+    },
+    metadataBadgeTextCloud: {
+        color: Colors.primary[800],
     },
     toolbar: {
         borderTopWidth: 1,
         borderTopColor: Colors.slate[200],
         backgroundColor: '#fff',
         paddingHorizontal: 10,
-        paddingTop: 12,
-        paddingBottom: 12,
+        paddingTop: 8,
+        paddingBottom: Platform.OS === 'ios' ? 24 : 8,
     },
-    toolbarPrimary: { alignItems: 'center', minHeight: 82 },
+    toolbarPrimary: { alignItems: 'center', minHeight: 52 },
     micAccessoryContainer: {
         justifyContent: 'center',
         alignItems: 'center',
-        marginLeft: 4,
-        marginRight: 2,
+        marginLeft: 0,
+        marginRight: 6,
         marginBottom: 0,
-        width: 54,
+        width: 40,
+        height: 40,
     },
     micAccessory: {
-        width: 42,
-        height: 42,
+        width: 40,
+        height: 40,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 21,
-        backgroundColor: Colors.slate[200],
+        borderRadius: 20,
+        backgroundColor: Colors.slate[100],
     },
     micAccessoryActive: {
         backgroundColor: Colors.red[500],
     },
-    micAccessoryIcon: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: Colors.slate[800],
-    },
     textInput: {
+        flex: 1,
         color: Colors.slate[800],
-        backgroundColor: Colors.slate[50],
-        borderRadius: 24,
+        backgroundColor: Colors.slate[100],
+        borderRadius: 20,
         borderWidth: 1,
         borderColor: Colors.slate[200],
-        paddingHorizontal: 18,
-        paddingTop: 16,
-        paddingBottom: 16,
-        minHeight: 74,
-        fontSize: 17,
+        paddingHorizontal: 16,
+        paddingTop: 8,
+        paddingBottom: 8,
+        minHeight: 40,
+        fontSize: 16,
+        lineHeight: 20,
         marginTop: 0,
         marginLeft: 0,
         marginRight: 8,
-        maxHeight: 180,
+        maxHeight: 120,
     },
     sendContainer: {
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 0,
-        marginRight: 2,
+        width: 40,
+        height: 40,
     },
-    sendPill: { borderRadius: 20, paddingVertical: 11, paddingHorizontal: 14 },
-    sendText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    sendCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
