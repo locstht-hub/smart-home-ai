@@ -10,6 +10,7 @@ from typing import Any
 
 
 SESSION_DAYS = 30
+DEFAULT_HOME_ENERGY_LIMIT_KWH = 2500.0
 
 
 def utc_now() -> str:
@@ -67,7 +68,7 @@ class AuthStore:
                     name TEXT NOT NULL,
                     owner_id TEXT NOT NULL REFERENCES users(id),
                     status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'suspended')),
-                    energy_limit_kwh REAL NOT NULL DEFAULT 0.0,
+                    energy_limit_kwh REAL NOT NULL DEFAULT 2500.0,
                     created_at TEXT NOT NULL
                 );
 
@@ -133,7 +134,9 @@ class AuthStore:
             for row in conn.execute("PRAGMA table_info(homes)").fetchall()
         }
         if "energy_limit_kwh" not in home_columns:
-            conn.execute("ALTER TABLE homes ADD COLUMN energy_limit_kwh REAL NOT NULL DEFAULT 0.0")
+            conn.execute(
+                f"ALTER TABLE homes ADD COLUMN energy_limit_kwh REAL NOT NULL DEFAULT {DEFAULT_HOME_ENERGY_LIMIT_KWH}"
+            )
 
     def seed_defaults(self, conn: sqlite3.Connection) -> None:
         count = conn.execute("SELECT COUNT(*) AS count FROM users").fetchone()["count"]
@@ -438,10 +441,10 @@ class AuthStore:
             )
             conn.execute(
                 """
-                INSERT INTO homes (id, name, owner_id, status, created_at)
-                VALUES (?, ?, ?, 'active', ?)
+                INSERT INTO homes (id, name, owner_id, status, energy_limit_kwh, created_at)
+                VALUES (?, ?, ?, 'active', ?, ?)
                 """,
-                (home_id, home_name, user_id, now),
+                (home_id, home_name, user_id, DEFAULT_HOME_ENERGY_LIMIT_KWH, now),
             )
             conn.execute(
                 """
@@ -731,6 +734,76 @@ class AuthStore:
                 for row in rows
             ]
 
+    def list_home_audit_logs(self, home_id: str, limit: int = 100) -> list[dict[str, Any]]:
+        safe_limit = min(max(limit, 1), 500)
+        with self.connect() as conn:
+            member_rows = conn.execute(
+                """
+                SELECT users.id, users.username, users.phone
+                FROM home_members
+                JOIN users ON users.id = home_members.user_id
+                WHERE home_members.home_id = ?
+                """,
+                (home_id,),
+            ).fetchall()
+
+            member_ids = [str(row["id"]) for row in member_rows if row["id"]]
+            member_names = [
+                str(value)
+                for row in member_rows
+                for value in (row["username"], row["phone"])
+                if value
+            ]
+
+            clauses = ["home_id = ?"]
+            params: list[Any] = [home_id]
+
+            if member_ids:
+                placeholders = ", ".join("?" for _ in member_ids)
+                clauses.append(f"(action = 'auth.login_success' AND actor_user_id IN ({placeholders}))")
+                params.extend(member_ids)
+
+            if member_names:
+                placeholders = ", ".join("?" for _ in member_names)
+                clauses.append(f"(action = 'auth.login_failed' AND target_name IN ({placeholders}))")
+                params.extend(member_names)
+
+            params.append(safe_limit)
+            rows = conn.execute(
+                f"""
+                SELECT * FROM audit_logs
+                WHERE {' OR '.join(f'({clause})' for clause in clauses)}
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                params,
+            ).fetchall()
+
+            logs: list[dict[str, Any]] = []
+            for row in rows:
+                try:
+                    metadata = json.loads(row["metadata_json"] or "{}")
+                except json.JSONDecodeError:
+                    metadata = {}
+                logs.append(
+                    {
+                        "id": row["id"],
+                        "actorUserId": row["actor_user_id"],
+                        "actorUsername": row["actor_username"],
+                        "actorRole": row["actor_role"],
+                        "action": row["action"],
+                        "targetType": row["target_type"],
+                        "targetId": row["target_id"],
+                        "targetName": row["target_name"],
+                        "homeId": row["home_id"],
+                        "ipAddress": row["ip_address"],
+                        "userAgent": row["user_agent"],
+                        "metadata": metadata,
+                        "createdAt": row["created_at"],
+                    }
+                )
+            return logs
+
     def record_power_reading(
         self,
         *,
@@ -837,17 +910,37 @@ class AuthStore:
     def get_home_quota_status(self, home_id: str) -> dict[str, Any]:
         with self.connect() as conn:
             row = conn.execute("SELECT energy_limit_kwh FROM homes WHERE id = ?", (home_id,)).fetchone()
-            limit = float(row["energy_limit_kwh"]) if row else 0.0
+            limit = float(row["energy_limit_kwh"]) if row and row["energy_limit_kwh"] is not None else DEFAULT_HOME_ENERGY_LIMIT_KWH
 
         now = datetime.now(timezone.utc)
         start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc).isoformat()
 
         with self.connect() as conn:
-            readings_row = conn.execute(
+            plc_count = conn.execute(
                 """
+                SELECT COUNT(*) AS count
+                FROM power_readings
+                WHERE home_id = ?
+                  AND timestamp >= ?
+                  AND energy_kwh IS NOT NULL
+                  AND energy_kwh >= 0
+                  AND energy_kwh <= 1000000
+                  AND source LIKE 'plc-s7-1200%'
+                """,
+                (home_id, start_of_month),
+            ).fetchone()["count"]
+            source_filter = "AND source LIKE 'plc-s7-1200%'" if plc_count else ""
+            source_name = "plc-s7-1200" if plc_count else "all"
+            readings_row = conn.execute(
+                f"""
                 SELECT MIN(energy_kwh) AS min_energy, MAX(energy_kwh) AS max_energy
                 FROM power_readings
-                WHERE home_id = ? AND timestamp >= ?
+                WHERE home_id = ?
+                  AND timestamp >= ?
+                  AND energy_kwh IS NOT NULL
+                  AND energy_kwh >= 0
+                  AND energy_kwh <= 1000000
+                  {source_filter}
                 """,
                 (home_id, start_of_month),
             ).fetchone()
@@ -864,6 +957,7 @@ class AuthStore:
             "homeId": home_id,
             "energyLimitKwh": limit,
             "currentMonthEnergyKwh": round(current_usage, 2),
+            "quotaSource": source_name,
         }
 
     def update_home_quota(self, home_id: str, limit: float) -> bool:

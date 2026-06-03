@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -75,13 +76,27 @@ class S7PowerReader:
 
         values: dict[str, float] = {}
         raw_tags: dict[str, Any] = {}
+        warnings: list[str] = []
         for key, tag in self.tags.items():
             address = int(tag["address"])
             offset = address - start
             data_type = str(tag.get("type", "DWord"))
             scale = float(tag.get("scale", 1.0))
             value = self._read_value(data, offset, data_type, scale)
-            values[key] = round(value, 4)
+            min_value = tag.get("min")
+            max_value = tag.get("max")
+            if (
+                not math.isfinite(value)
+                or (min_value is not None and value < float(min_value))
+                or (max_value is not None and value > float(max_value))
+            ):
+                warnings.append(
+                    f"{key}={value} outside expected range "
+                    f"{min_value if min_value is not None else '-inf'}..{max_value if max_value is not None else '+inf'}"
+                )
+                values[key] = None
+            else:
+                values[key] = round(value, 4)
             raw_tags[key] = {
                 "name": tag.get("name", key),
                 "address": f"MD{address}",
@@ -96,6 +111,7 @@ class S7PowerReader:
             "energy_kwh": values.get("energy_kwh"),
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "source": "plc-s7-1200",
+            "warnings": warnings,
             "plc": {
                 "host": self.host,
                 "rack": self.rack,

@@ -228,11 +228,13 @@ Trong app vao `Cai dat -> Server API rieng -> API token` va nhap dung token tren
 ## Tag cong suat dang cau hinh
 
 ```text
-V1N       -> MD200 -> voltage
-I1N       -> MD212 -> current
-Total kW  -> MD224 -> power_kw
-Total kWh -> MD228 -> energy_kwh
+V1N       -> MD200 -> voltage    -> REAL
+I1N       -> MD212 -> current    -> REAL
+Total kW  -> MD224 -> power_kw   -> REAL
+Total kWh -> MD228 -> energy_kwh -> REAL
 ```
+
+Neu PLC dang luu cac gia tri nay dang `REAL` thi `config.json` phai de `"type": "Real"`. Khong doc cac tag REAL bang `"DWord"`, vi byte cua so thuc se bi hieu thanh so nguyen rat lon.
 
 Neu PLC IP that khac `192.168.0.1`, sua trong `config.json`:
 
@@ -269,5 +271,45 @@ CPU Properties -> Protection & Security
 
 - `mock` mode dung de app test khong can PLC.
 - `plc-real` mode doc power tag va device status tag bang `python-snap7`.
-- Lenh dieu khien ghi vao `commandTag`, PLC nen xu ly command tag roi cap nhat lai status tag.
+- Lenh dieu khien uu tien `onCommandTag`/`offCommandTag`: backend gui xung Start/Stop, PLC SET/RESET output roi cap nhat lai `statusTag`.
+- Mapping demo hien tai: Lamp1 status `DB1.DBX1.2`, Lamp2 `DB1.DBX1.3`, Lamp3 `DB1.DBX1.4`; command Start/Stop nam tren `DB7.DBX0.0 -> DB7.DBX0.5`.
 - Endpoint `/api/assistant/chat` hien la rule fallback. Sau nay co the thay bang Unsloth/LLM de tra JSON intent.
+
+## Assistant provider tam thoi
+
+Endpoint `/api/assistant/chat` giu rule dieu khien thiet bi cho cac lenh bat/tat/canh, sau do moi dung provider AI cho cac cau hoi tu van/nang luong.
+
+Provider ho tro:
+
+```text
+mock       -> tra loi fallback noi bo, khong can API key
+gemini     -> goi Gemini API
+openai     -> goi OpenAI Responses API
+local_lora -> goi AI server rieng chay LoRA/Unsloth sau nay
+```
+
+Config mau:
+
+```json
+{
+  "assistant": {
+    "provider": "gemini",
+    "model": "gemini-2.0-flash",
+    "timeoutSeconds": 20,
+    "maxOutputTokens": 512,
+    "temperature": 0.2,
+    "sendHomeContext": true,
+    "localLoraUrl": "http://127.0.0.1:8008/chat"
+  }
+}
+```
+
+API key nen dat bang bien moi truong, khong dua vao app mobile:
+
+```powershell
+$env:GEMINI_API_KEY="..."
+$env:OPENAI_API_KEY="..."
+$env:SMART_HOME_ASSISTANT_PROVIDER="gemini"
+```
+
+Backend chi gui ngu canh can thiet cho AI: che do server, role tai khoan, power `V/I/kW/kWh`, quota, danh sach thiet bi va trang thai. Khong gui password, token hay thong tin nhay cam.

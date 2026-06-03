@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import math
 import os
+import re
 import threading
 import time
 from hmac import compare_digest
@@ -10,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from flask import Flask, jsonify, request
+from assistant_runtime import assistant_config, run_assistant_provider
 from assistant_intents import parse_intent
 from auth_store import AuthStore
 
@@ -61,6 +64,177 @@ def group_devices(devices: list[dict[str, Any]], states: dict[str, bool]) -> dic
     return grouped
 
 
+ASSISTANT_REPLY_REPLACEMENTS = (
+    ("Ban hay nhap lenh can dieu khien hoac cau hoi ve dien nang.", "Bạn hãy nhập lệnh cần điều khiển hoặc câu hỏi về điện năng."),
+    ("Khong the doc du lieu dien nang", "Không thể đọc dữ liệu điện năng"),
+    ("Cong suat hien tai khoang", "Công suất hiện tại khoảng"),
+    ("Khong the tat tat ca thiet bi", "Không thể tắt tất cả thiết bị"),
+    ("Khong the bat tat ca thiet bi", "Không thể bật tất cả thiết bị"),
+    ("Khong the kich hoat canh", "Không thể kích hoạt cảnh"),
+    ("Khong tim thay thiet bi", "Không tìm thấy thiết bị"),
+    ("Chi gui duoc lenh cho", "Chỉ gửi được lệnh cho"),
+    ("thiet bi loi", "thiết bị lỗi"),
+    ("thiet bi phu hop", "thiết bị phù hợp"),
+    ("Da gui lenh tat tat ca thiet bi.", "Đã gửi lệnh tắt tất cả thiết bị."),
+    ("Da gui lenh bat tat ca thiet bi.", "Đã gửi lệnh bật tất cả thiết bị."),
+    ("Da kich hoat canh", "Đã kích hoạt cảnh"),
+    ("Da gui lenh bat", "Đã gửi lệnh bật"),
+    ("Da gui lenh tat", "Đã gửi lệnh tắt"),
+    ("Da gui lenh cho", "Đã gửi lệnh cho"),
+    ("He thong dang co", "Hệ thống đang có"),
+    ("thiet bi trong", "thiết bị trong"),
+    ("khu vuc", "khu vực"),
+    ("Chuc nang du bao se doc Forecast API sau khi co du lieu lich su tu PLC.", "Chức năng dự báo sẽ đọc Forecast API sau khi có dữ liệu lịch sử từ PLC."),
+    ("server loi", "server lỗi"),
+    ("Den phong khach", "Đèn phòng khách"),
+    ("Den phong bep", "Đèn phòng bếp"),
+    ("Den phong ngu", "Đèn phòng ngủ"),
+)
+
+
+def repair_mojibake(text: str) -> str:
+    if "Ã" not in text and "áº" not in text and "Ä" not in text:
+        return text
+    try:
+        repaired = text.encode("latin1").decode("utf-8")
+    except UnicodeError:
+        return text
+    original_bad_markers = sum(text.count(marker) for marker in ("Ã", "áº", "Ä"))
+    repaired_bad_markers = sum(repaired.count(marker) for marker in ("Ã", "áº", "Ä"))
+    return repaired if repaired_bad_markers < original_bad_markers else text
+
+
+def polish_assistant_reply(reply: Any) -> str:
+    text = repair_mojibake(str(reply or ""))
+    for old, new in ASSISTANT_REPLY_REPLACEMENTS:
+        text = text.replace(old, new)
+    return text
+
+
+def parse_m_bit_tag(tag: str) -> tuple[int, int]:
+    raw = tag.strip().upper()
+    if not raw.startswith("M") or "." not in raw:
+        raise ValueError(f"Unsupported M bit tag: {tag}")
+
+    byte_str, bit_str = raw[1:].split(".", 1)
+    byte_index = int(byte_str)
+    bit_index = int(bit_str)
+    if bit_index < 0 or bit_index > 7:
+        raise ValueError(f"Invalid M bit index in tag: {tag}")
+    return byte_index, bit_index
+
+
+DB_BIT_PATTERN = re.compile(r"^DB(?P<db>\d+)\.DBX(?P<byte>\d+)\.(?P<bit>[0-7])$", re.IGNORECASE)
+
+
+def parse_plc_bit_tag(tag: str) -> dict[str, int | str]:
+    raw = tag.strip().upper()
+    if raw.startswith("M") and "." in raw:
+        byte_index, bit_index = parse_m_bit_tag(raw)
+        return {"area": "M", "byte": byte_index, "bit": bit_index}
+
+    match = DB_BIT_PATTERN.match(raw)
+    if match:
+        return {
+            "area": "DB",
+            "db": int(match.group("db")),
+            "byte": int(match.group("byte")),
+            "bit": int(match.group("bit")),
+        }
+
+    raise ValueError(f"Unsupported PLC bit tag: {tag}. Use M100.0 or DB1.DBX1.2.")
+
+
+def bit_tag_key(parsed: dict[str, int | str]) -> tuple[int | str, ...]:
+    if parsed["area"] == "M":
+        return ("M", int(parsed["byte"]), int(parsed["bit"]))
+    return ("DB", int(parsed["db"]), int(parsed["byte"]), int(parsed["bit"]))
+
+
+def bit_tag_address(parsed: dict[str, int | str]) -> str:
+    if parsed["area"] == "M":
+        return f"M{parsed['byte']}.{parsed['bit']}"
+    return f"DB{parsed['db']}.DBX{parsed['byte']}.{parsed['bit']}"
+
+
+def power_tag_size(data_type: str) -> int:
+    normalized = data_type.strip().lower()
+    if normalized in {"dword", "real"}:
+        return 4
+    raise ValueError(f"Unsupported power tag type: {data_type}")
+
+
+def validate_plc_memory_layout(config: dict[str, Any], devices: list[dict[str, Any]]) -> None:
+    power_ranges: list[tuple[str, int, int]] = []
+    for key, tag in dict(config.get("powerTags", {})).items():
+        start = int(tag["address"])
+        size = power_tag_size(str(tag.get("type", "DWord")))
+        power_ranges.append((str(key), start, start + size - 1))
+
+    bit_tags: list[tuple[str, str, dict[str, int | str]]] = []
+    seen_bits: dict[tuple[int | str, ...], str] = {}
+    seen_command_bits: dict[tuple[int | str, ...], str] = {}
+    for device in devices:
+        device_id = str(device.get("id", "unknown_device"))
+        for field in ("statusTag", "commandTag", "onCommandTag", "offCommandTag"):
+            if field not in device:
+                continue
+            parsed = parse_plc_bit_tag(str(device[field]))
+            label = f"{device_id}.{field}"
+            bit_tags.append((label, field, parsed))
+
+            physical_key = bit_tag_key(parsed)
+            bit_key = (*physical_key, field)
+            if bit_key in seen_bits:
+                raise ValueError(f"PLC memory conflict: {label} duplicates {seen_bits[bit_key]} at {bit_tag_address(parsed)}")
+            seen_bits[bit_key] = label
+
+            if field in {"commandTag", "onCommandTag", "offCommandTag"}:
+                previous_command = seen_command_bits.get(physical_key)
+                if previous_command:
+                    raise ValueError(
+                        f"PLC memory conflict: {label} duplicates command bit {previous_command} at {bit_tag_address(parsed)}"
+                    )
+                seen_command_bits[physical_key] = label
+
+    status_bits = {bit_tag_key(parsed): label for label, field, parsed in bit_tags if field == "statusTag"}
+    command_bits = {
+        bit_tag_key(parsed): label
+        for label, field, parsed in bit_tags
+        if field in {"commandTag", "onCommandTag", "offCommandTag"}
+    }
+    for bit_key, status_label in status_bits.items():
+        command_label = command_bits.get(bit_key)
+        if command_label:
+            raise ValueError(
+                f"PLC memory conflict: {status_label} and {command_label} both use {bit_key}. "
+                "Status feedback and app command bits must be separated."
+            )
+
+    for label, _field, parsed in bit_tags:
+        if parsed["area"] != "M":
+            continue
+        byte_index = int(parsed["byte"])
+        bit_index = int(parsed["bit"])
+        for power_key, start, end in power_ranges:
+            if start <= byte_index <= end:
+                raise ValueError(
+                    f"PLC memory conflict: {label} uses M{byte_index}.{bit_index}, "
+                    f"inside power tag {power_key} range MD{start}-MD{end}. "
+                    "Power MD tags must not overlap device status/command bits."
+                )
+
+    sorted_ranges = sorted(power_ranges, key=lambda item: item[1])
+    for index in range(1, len(sorted_ranges)):
+        prev_key, prev_start, prev_end = sorted_ranges[index - 1]
+        key, start, end = sorted_ranges[index]
+        if start <= prev_end:
+            raise ValueError(
+                f"PLC memory conflict: power tag {key} MD{start}-MD{end} overlaps "
+                f"{prev_key} MD{prev_start}-MD{prev_end}."
+            )
+
+
 class StateStore:
     def __init__(self, devices: list[dict[str, Any]]) -> None:
         self.devices = devices
@@ -94,6 +268,7 @@ class S7Client:
         self.host = str(plc.get("host", "192.168.0.1"))
         self.rack = int(plc.get("rack", 0))
         self.slot = int(plc.get("slot", 1))
+        self.command_pulse_ms = max(50, int(plc.get("commandPulseMs", 200)))
 
     def _client(self) -> Any:
         if snap7 is None:
@@ -107,12 +282,37 @@ class S7Client:
 
     @staticmethod
     def parse_m_bit(tag: str) -> tuple[int, int]:
-        raw = tag.strip().upper()
-        if not raw.startswith("M") or "." not in raw:
-            raise ValueError(f"Unsupported M bit tag: {tag}")
+        return parse_m_bit_tag(tag)
 
-        byte_str, bit_str = raw[1:].split(".", 1)
-        return int(byte_str), int(bit_str)
+    @staticmethod
+    def parse_bit_tag(tag: str) -> dict[str, int | str]:
+        return parse_plc_bit_tag(tag)
+
+    @staticmethod
+    def read_plc_bit(client: Any, tag: str) -> bool:
+        parsed = parse_plc_bit_tag(tag)
+        if get_bool is None:
+            raise RuntimeError("python-snap7 is not installed")
+        if parsed["area"] == "M":
+            data = client.mb_read(int(parsed["byte"]), 1)
+        else:
+            data = client.db_read(int(parsed["db"]), int(parsed["byte"]), 1)
+        return bool(get_bool(data, 0, int(parsed["bit"])))
+
+    @staticmethod
+    def write_plc_bit(client: Any, tag: str, value: bool) -> None:
+        parsed = parse_plc_bit_tag(tag)
+        if set_bool is None:
+            raise RuntimeError("python-snap7 is not installed")
+        if parsed["area"] == "M":
+            data = client.mb_read(int(parsed["byte"]), 1)
+            set_bool(data, 0, int(parsed["bit"]), value)
+            client.mb_write(int(parsed["byte"]), 1, data)
+            return
+
+        data = client.db_read(int(parsed["db"]), int(parsed["byte"]), 1)
+        set_bool(data, 0, int(parsed["bit"]), value)
+        client.db_write(int(parsed["db"]), int(parsed["byte"]), data)
 
     @staticmethod
     def read_number(buffer: bytearray, offset: int, data_type: str, scale: float) -> float:
@@ -129,7 +329,7 @@ class S7Client:
 
         raise ValueError(f"Unsupported power tag type: {data_type}")
 
-    def read_power(self, tags: dict[str, Any]) -> dict[str, float]:
+    def read_power(self, tags: dict[str, Any]) -> dict[str, Any]:
         addresses = [int(tag["address"]) for tag in tags.values()]
         start = min(addresses)
         end = max(address + 4 for address in addresses)
@@ -140,19 +340,34 @@ class S7Client:
         finally:
             client.disconnect()
 
-        values: dict[str, float] = {}
+        values: dict[str, Any] = {}
+        warnings: list[str] = []
         for key, tag in tags.items():
             address = int(tag["address"])
-            values[key] = round(
-                self.read_number(
-                    data,
-                    address - start,
-                    str(tag.get("type", "DWord")),
-                    float(tag.get("scale", 1.0)),
-                ),
-                4,
+            raw_value = self.read_number(
+                data,
+                address - start,
+                str(tag.get("type", "DWord")),
+                float(tag.get("scale", 1.0)),
             )
+            min_value = tag.get("min")
+            max_value = tag.get("max")
 
+            if (
+                not math.isfinite(raw_value)
+                or (min_value is not None and raw_value < float(min_value))
+                or (max_value is not None and raw_value > float(max_value))
+            ):
+                warnings.append(
+                    f"{key}={raw_value} outside expected range "
+                    f"{min_value if min_value is not None else '-inf'}..{max_value if max_value is not None else '+inf'}"
+                )
+                values[key] = None
+                continue
+
+            values[key] = round(raw_value, 4)
+
+        values["_warnings"] = warnings
         return values
 
     def read_device_states(self, devices: list[dict[str, Any]]) -> dict[str, bool]:
@@ -161,26 +376,24 @@ class S7Client:
 
         try:
             for item in devices:
-                byte_index, bit_index = self.parse_m_bit(str(item["statusTag"]))
-                data = client.mb_read(byte_index, 1)
-                if get_bool is None:
-                    raise RuntimeError("python-snap7 is not installed")
-                states[str(item["id"])] = bool(get_bool(data, 0, bit_index))
+                states[str(item["id"])] = self.read_plc_bit(client, str(item["statusTag"]))
         finally:
             client.disconnect()
 
         return states
 
     def write_device_command(self, device: dict[str, Any], is_on: bool) -> None:
-        byte_index, bit_index = self.parse_m_bit(str(device["commandTag"]))
+        command_tag = device.get("onCommandTag" if is_on else "offCommandTag")
         client = self._client()
 
         try:
-            data = client.mb_read(byte_index, 1)
-            if set_bool is None:
-                raise RuntimeError("python-snap7 is not installed")
-            set_bool(data, 0, bit_index, is_on)
-            client.mb_write(byte_index, 1, data)
+            if command_tag:
+                self.write_plc_bit(client, str(command_tag), True)
+                time.sleep(self.command_pulse_ms / 1000.0)
+                self.write_plc_bit(client, str(command_tag), False)
+                return
+
+            self.write_plc_bit(client, str(device["commandTag"]), is_on)
         finally:
             client.disconnect()
 
@@ -188,6 +401,7 @@ class S7Client:
 def create_app() -> Flask:
     config = load_config()
     devices = list(config.get("devices", []))
+    validate_plc_memory_layout(config, devices)
     mode = str(config.get("mode", "mock")).strip().lower()
     collector_config = dict(config.get("powerCollector", {}))
     collector_interval = max(5, int(collector_config.get("intervalSeconds", 60)))
@@ -217,6 +431,7 @@ def create_app() -> Flask:
     auth_store = AuthStore(configured_db_path)
 
     app = Flask(__name__)
+    app.json.ensure_ascii = False
     api_token = str(os.environ.get("SMART_HOME_API_TOKEN") or config.get("security", {}).get("apiToken", "")).strip()
 
     @app.after_request
@@ -282,17 +497,44 @@ def create_app() -> Flask:
         if not current_user:
             return jsonify({"ok": False, "error": "Unauthorized"}), 401
         if current_user.get("role") == "system_admin":
-            return {"user": current_user, "home": {"id": home_id, "status": "active", "canManageMembers": True}}
+            return {
+                "user": current_user,
+                "home": {
+                    "id": home_id,
+                    "status": "active",
+                    "roleInHome": "owner",
+                    "canManageMembers": True,
+                },
+            }
 
         home = auth_store.get_home_access(str(current_user["id"]), home_id)
         if home is None:
             return jsonify({"ok": False, "error": "Home access not found"}), 403
         if home["status"] != "active":
             return jsonify({"ok": False, "error": "Home is suspended"}), 403
-        if not home["canManageMembers"]:
-            return jsonify({"ok": False, "error": "Member permission denied"}), 403
+        if home.get("roleInHome") != "owner":
+            return jsonify({"ok": False, "error": "Only owner can manage quota and members"}), 403
 
         return {"user": current_user, "home": home}
+
+    def quota_control_guard(access: dict[str, Any]) -> dict[str, Any] | None:
+        home = access.get("home")
+        if not home:
+            return None
+        if access.get("user", {}).get("role") == "system_admin" or home.get("roleInHome") == "owner":
+            return None
+
+        quota = auth_store.get_home_quota_status(str(home["id"]))
+        limit = float(quota.get("energyLimitKwh") or 0)
+        current = float(quota.get("currentMonthEnergyKwh") or 0)
+        if limit > 0 and current >= limit:
+            return {
+                "ok": False,
+                "reason": "quota_exceeded",
+                "error": "Đã vượt hạn mức HEMS. Tài khoản con không thể điều khiển thiết bị cho đến khi tài khoản cha tăng hạn mức.",
+                "quota": quota,
+            }
+        return None
 
     def audit(
         action: str,
@@ -355,6 +597,7 @@ def create_app() -> Flask:
             "energy_kwh": values.get("energy_kwh"),
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "source": source,
+            "warnings": values.get("_warnings", []),
         }
 
     def update_collector_status(**updates: Any) -> None:
@@ -442,6 +685,60 @@ def create_app() -> Flask:
             return None
         return float(value)
 
+    def build_assistant_context(access: dict[str, Any]) -> dict[str, Any]:
+        home = access.get("home") if isinstance(access.get("home"), dict) else None
+        user = access.get("user") if isinstance(access.get("user"), dict) else {}
+        home_id = access_home_id(access)
+
+        context: dict[str, Any] = {
+            "serverMode": mode,
+            "home": {
+                "id": home_id,
+                "name": home.get("name") if home else None,
+                "status": home.get("status") if home else None,
+                "roleInHome": home.get("roleInHome") if home else None,
+                "canManageDevices": home.get("canManageDevices") if home else None,
+                "canManageMembers": home.get("canManageMembers") if home else None,
+            },
+            "user": {
+                "role": user.get("role"),
+                "roleInHome": home.get("roleInHome") if home else None,
+            },
+            "power": None,
+            "quota": None,
+            "devices": [],
+        }
+
+        try:
+            context["power"] = read_power_measurement()
+        except Exception as exc:
+            context["power"] = {"error": str(exc), "source": mode}
+
+        if home_id:
+            try:
+                context["quota"] = auth_store.get_home_quota_status(home_id)
+            except Exception as exc:
+                context["quota"] = {"error": str(exc)}
+
+        try:
+            states = read_states()
+        except Exception as exc:
+            states = state_store.load()
+            context["deviceStateError"] = str(exc)
+
+        context["devices"] = [
+            {
+                "id": str(item.get("id")),
+                "name": item.get("name"),
+                "roomId": item.get("roomId"),
+                "type": item.get("type"),
+                "ratedPowerW": item.get("power"),
+                "isOn": bool(states.get(str(item.get("id")), False)),
+            }
+            for item in devices
+        ]
+        return context
+
     def record_power_snapshot(access: dict[str, Any], reading: dict[str, Any]) -> dict[str, Any] | None:
         home_id = access_home_id(access)
         if not home_id:
@@ -489,6 +786,7 @@ def create_app() -> Flask:
         database_path = configured_db_path.resolve()
         power_source = "plc-s7-1200" if mode == "plc-real" else "mock"
         plc = config.get("plc", {})
+        assistant = assistant_config(config)
 
         return jsonify(
             {
@@ -505,6 +803,12 @@ def create_app() -> Flask:
                 "serverTime": datetime.now(timezone.utc).isoformat(),
                 "authUser": current_user,
                 "powerCollector": current_collector_status(),
+                "assistant": {
+                    "provider": assistant["provider"],
+                    "model": assistant["model"],
+                    "sendHomeContext": assistant["sendHomeContext"],
+                    "localLoraUrl": assistant["localLoraUrl"] if assistant["provider"] == "local_lora" else None,
+                },
             }
         )
 
@@ -564,6 +868,8 @@ def create_app() -> Flask:
             target_type="user",
             target_id=session["user"]["id"],
             target_name=session["user"]["username"],
+            home_id=session["homes"][0]["id"] if session.get("homes") else None,
+            metadata={"homeIds": [home["id"] for home in session.get("homes", [])]},
         )
         return jsonify({"ok": True, **session})
 
@@ -642,6 +948,29 @@ def create_app() -> Flask:
         audit("home.view_members", actor=access["user"], target_type="home", target_id=home_id, home_id=home_id)
         return jsonify({"ok": True, "members": auth_store.list_home_members(home_id)})
 
+    @app.get("/api/homes/<home_id>/activity")
+    def home_activity(home_id: str) -> Any:
+        access = require_home_member_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        try:
+            limit = int(request.args.get("limit", 100))
+        except ValueError:
+            limit = 100
+        safe_limit = min(max(limit, 1), 300)
+
+        logs = auth_store.list_home_audit_logs(home_id, safe_limit)
+        audit(
+            "home.view_activity",
+            actor=access["user"],
+            target_type="home",
+            target_id=home_id,
+            home_id=home_id,
+            metadata={"limit": safe_limit},
+        )
+        return jsonify({"ok": True, "logs": logs})
+
     @app.post("/api/homes/<home_id>/members")
     def create_home_member(home_id: str) -> Any:
         access = require_home_member_manager(home_id)
@@ -702,6 +1031,40 @@ def create_app() -> Flask:
     @app.patch("/api/homes/<home_id>/members/<user_id>/activate")
     def activate_home_member(home_id: str, user_id: str) -> Any:
         return update_home_member_status(home_id, user_id, "active")
+
+    @app.patch("/api/homes/<home_id>/members/<user_id>/reset-password")
+    def reset_home_member_password(home_id: str, user_id: str) -> Any:
+        access = require_home_member_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        payload = request.get_json(silent=True) or {}
+        new_password = str(payload.get("password") or "")
+        if len(new_password) < 6:
+            return jsonify({"ok": False, "error": "Password must be at least 6 characters"}), 400
+
+        member = next((item for item in auth_store.list_home_members(home_id) if str(item["id"]) == user_id), None)
+        if member is None:
+            return jsonify({"ok": False, "error": "Member not found"}), 404
+        if member.get("roleInHome") == "owner":
+            return jsonify({"ok": False, "error": "Cannot reset owner password from member management"}), 400
+
+        try:
+            user = auth_store.reset_user_password(user_id, new_password)
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        if user is None:
+            return jsonify({"ok": False, "error": "User not found"}), 404
+
+        audit(
+            "home.reset_member_password",
+            actor=access["user"],
+            target_type="user",
+            target_id=user["id"],
+            target_name=user["username"],
+            home_id=home_id,
+        )
+        return jsonify({"ok": True, "user": user})
 
     def update_home_member_status(home_id: str, user_id: str, status: str) -> Any:
         access = require_home_member_manager(home_id)
@@ -1010,11 +1373,29 @@ def create_app() -> Flask:
 
         result = execute_device_command(access, device, is_on)
         if not result["ok"]:
-            return jsonify(result), 500
+            status = 403 if result.get("reason") == "quota_exceeded" else 500
+            return jsonify(result), status
         return jsonify(result)
 
     def execute_device_command(access: dict[str, Any], device: dict[str, Any], is_on: bool) -> dict[str, Any]:
         device_id = str(device["id"])
+        quota_block = quota_control_guard(access)
+        if quota_block:
+            audit(
+                "device.control_blocked_quota",
+                actor=access.get("user"),
+                target_type="device",
+                target_id=device_id,
+                target_name=str(device.get("name", device_id)),
+                home_id=access["home"]["id"] if access.get("home") else None,
+                metadata={
+                    "requestedState": is_on,
+                    "roomId": device.get("roomId"),
+                    "quota": quota_block.get("quota"),
+                },
+            )
+            return {**quota_block, "device_id": device_id, "isOn": is_on}
+
         try:
             if mode == "plc-real":
                 s7.write_device_command(device, is_on)
@@ -1022,11 +1403,12 @@ def create_app() -> Flask:
             state_store.set_state(device_id, is_on)
             audit(
                 "device.turn_on" if is_on else "device.turn_off",
+                actor=access.get("user"),
                 target_type="device",
                 target_id=device_id,
                 target_name=str(device.get("name", device_id)),
                 home_id=access["home"]["id"] if access.get("home") else None,
-                metadata={"roomId": device.get("roomId"), "mode": mode},
+                metadata={"roomId": device.get("roomId"), "mode": mode, "isOn": is_on},
             )
             return {"ok": True, "device_id": device_id, "isOn": is_on}
         except Exception as exc:
@@ -1040,12 +1422,29 @@ def create_app() -> Flask:
 
         result = execute_scene(access, scene)
         if not result["ok"]:
-            status = 400 if result.get("reason") == "unknown_scene" else 500
+            if result.get("reason") == "unknown_scene":
+                status = 400
+            elif result.get("reason") == "quota_exceeded":
+                status = 403
+            else:
+                status = 500
             return jsonify(result), status
         return jsonify(result)
 
     def execute_scene(access: dict[str, Any], scene: str) -> dict[str, Any]:
         scene = str(scene)
+        quota_block = quota_control_guard(access)
+        if quota_block:
+            audit(
+                "scene.blocked_quota",
+                actor=access.get("user"),
+                target_type="scene",
+                target_id=scene,
+                target_name=scene,
+                home_id=access["home"]["id"] if access.get("home") else None,
+                metadata={"quota": quota_block.get("quota")},
+            )
+            return {**quota_block, "scene": scene}
 
         states = state_store.load()
 
@@ -1068,6 +1467,7 @@ def create_app() -> Flask:
             state_store.save(states)
             audit(
                 "scene.apply",
+                actor=access.get("user"),
                 target_type="scene",
                 target_id=scene,
                 target_name=scene,
@@ -1088,21 +1488,27 @@ def create_app() -> Flask:
         text = str(payload.get("text", "")).strip()
         audit(
             "assistant.chat",
+            actor=access.get("user"),
             target_type="assistant",
             home_id=access["home"]["id"] if access.get("home") else None,
             metadata={"text": text[:200]},
         )
 
+        def chat_json(payload: dict[str, Any]) -> Any:
+            if "reply" in payload:
+                payload = {**payload, "reply": polish_assistant_reply(payload["reply"])}
+            return jsonify(payload)
+
         if not text:
-            return jsonify({"reply": "Ban hay nhap lenh can dieu khien hoac cau hoi ve dien nang."})
+            return chat_json({"reply": "Bạn hãy nhập lệnh cần điều khiển hoặc câu hỏi về điện năng."})
 
         intent = parse_intent(text, devices)
 
         if intent["intent"] == "get_power_current":
             power, status = unpack_view_result(power_current())
             if status >= 400 or not power.get("source"):
-                return jsonify({"intent": intent, "reply": f"Khong the doc du lieu dien nang: {power.get('error', 'server loi')}"})
-            return jsonify({"intent": intent, "reply": f"Cong suat hien tai khoang {power.get('power_kw')} kW."})
+                return chat_json({"intent": intent, "reply": f"Không thể đọc dữ liệu điện năng: {power.get('error', 'server lỗi')}"})
+            return chat_json({"intent": intent, "reply": f"Công suất hiện tại khoảng {power.get('power_kw')} kW."})
 
         if intent["intent"] == "turn_off_all":
             control_access = require_active_home_access(manage_devices=True)
@@ -1110,8 +1516,8 @@ def create_app() -> Flask:
                 return control_access
             result = execute_scene(control_access, "work")
             if not result["ok"]:
-                return jsonify({"intent": intent, "reply": f"Khong the tat tat ca thiet bi: {result.get('error', 'server loi')}", "error": result})
-            return jsonify({"intent": intent, "reply": "Da gui lenh tat tat ca thiet bi."})
+                return chat_json({"intent": intent, "reply": f"Không thể tắt tất cả thiết bị: {result.get('error', 'server lỗi')}", "error": result})
+            return chat_json({"intent": intent, "reply": "Đã gửi lệnh tắt tất cả thiết bị."})
 
         if intent["intent"] == "turn_on_all":
             control_access = require_active_home_access(manage_devices=True)
@@ -1119,8 +1525,8 @@ def create_app() -> Flask:
                 return control_access
             result = execute_scene(control_access, "weekend")
             if not result["ok"]:
-                return jsonify({"intent": intent, "reply": f"Khong the bat tat ca thiet bi: {result.get('error', 'server loi')}", "error": result})
-            return jsonify({"intent": intent, "reply": "Da gui lenh bat tat ca thiet bi."})
+                return chat_json({"intent": intent, "reply": f"Không thể bật tất cả thiết bị: {result.get('error', 'server lỗi')}", "error": result})
+            return chat_json({"intent": intent, "reply": "Đã gửi lệnh bật tất cả thiết bị."})
 
         if intent["intent"] == "apply_scene":
             control_access = require_active_home_access(manage_devices=True)
@@ -1128,8 +1534,8 @@ def create_app() -> Flask:
                 return control_access
             result = execute_scene(control_access, str(intent["scene"]))
             if not result["ok"]:
-                return jsonify({"intent": intent, "reply": f"Khong the kich hoat canh {intent['scene']}: {result.get('error', 'server loi')}", "error": result})
-            return jsonify({"intent": intent, "reply": f"Da kich hoat canh {intent['scene']}."})
+                return chat_json({"intent": intent, "reply": f"Không thể kích hoạt cảnh {intent['scene']}: {result.get('error', 'server lỗi')}", "error": result})
+            return chat_json({"intent": intent, "reply": f"Đã kích hoạt cảnh {intent['scene']}."})
 
         if intent["intent"] in {"turn_on_device", "turn_off_device"}:
             control_access = require_active_home_access(manage_devices=True)
@@ -1138,12 +1544,12 @@ def create_app() -> Flask:
             is_on = intent["intent"] == "turn_on_device"
             device = next((item for item in devices if str(item["id"]) == str(intent["device_id"])), None)
             if not device:
-                return jsonify({"intent": intent, "reply": f"Khong tim thay thiet bi {intent['device_id']}."})
+                return chat_json({"intent": intent, "reply": f"Không tìm thấy thiết bị {intent['device_id']}."})
             result = execute_device_command(control_access, device, is_on)
-            action = "bat" if is_on else "tat"
+            action = "bật" if is_on else "tắt"
             if not result["ok"]:
-                return jsonify({"intent": intent, "reply": f"Khong the {action} {intent.get('device_name', intent['device_id'])}: {result.get('error', 'server loi')}", "error": result})
-            return jsonify({"intent": intent, "reply": f"Da gui lenh {action} {intent.get('device_name', intent['device_id'])}."})
+                return chat_json({"intent": intent, "reply": f"Không thể {action} {intent.get('device_name', intent['device_id'])}: {result.get('error', 'server lỗi')}", "error": result})
+            return chat_json({"intent": intent, "reply": f"Đã gửi lệnh {action} {intent.get('device_name', intent['device_id'])}."})
 
         if intent["intent"] == "set_filtered_devices":
             control_access = require_active_home_access(manage_devices=True)
@@ -1162,18 +1568,40 @@ def create_app() -> Flask:
                 else:
                     errors.append(result)
             if errors:
-                return jsonify({"intent": intent, "reply": f"Chi gui duoc lenh cho {affected} thiet bi, {len(errors)} thiet bi loi: {errors[0].get('error', 'server loi')}", "errors": errors})
-            return jsonify({"intent": intent, "reply": f"Da gui lenh cho {affected} thiet bi phu hop."})
+                return chat_json({"intent": intent, "reply": f"Chỉ gửi được lệnh cho {affected} thiết bị, {len(errors)} thiết bị lỗi: {errors[0].get('error', 'server lỗi')}", "errors": errors})
+            return chat_json({"intent": intent, "reply": f"Đã gửi lệnh cho {affected} thiết bị phù hợp."})
 
         if intent["intent"] == "list_devices":
             grouped = group_devices(devices, read_states())
             total = sum(len(items) for items in grouped.values())
-            return jsonify({"intent": intent, "reply": f"He thong dang co {total} thiet bi trong 4 khu vuc."})
+            return chat_json({"intent": intent, "reply": f"Hệ thống đang có {total} thiết bị trong 4 khu vực."})
 
         if intent["intent"] == "get_forecast":
-            return jsonify({"intent": intent, "reply": "Chuc nang du bao se doc Forecast API sau khi co du lieu lich su tu PLC."})
+            return chat_json({"intent": intent, "reply": "Chức năng dự báo sẽ đọc Forecast API sau khi có dữ liệu lịch sử từ PLC."})
 
-        return jsonify({"intent": intent, "reply": f"Minh chua hieu ro lenh: {text}. Ban co the noi lai ngan hon, vi du: bat den phong khach."})
+        context = build_assistant_context(access)
+        provider_result = run_assistant_provider(text, context, config)
+        audit(
+            "assistant.provider_reply",
+            actor=access.get("user"),
+            target_type="assistant",
+            home_id=access["home"]["id"] if access.get("home") else None,
+            metadata={
+                "provider": provider_result.get("provider"),
+                "ok": provider_result.get("ok"),
+                "fallbackProvider": provider_result.get("fallbackProvider"),
+            },
+        )
+        response = {
+            "intent": intent,
+            "reply": provider_result["reply"],
+            "assistantProvider": provider_result.get("provider"),
+            "assistantProviderOk": provider_result.get("ok"),
+        }
+        if provider_result.get("error"):
+            response["assistantProviderError"] = provider_result["error"]
+            response["assistantFallbackProvider"] = provider_result.get("fallbackProvider")
+        return chat_json(response)
 
     if collector_enabled and os.environ.get("SMART_HOME_DISABLE_COLLECTOR") != "1":
         collector_thread = threading.Thread(target=power_collector_loop, name="power-collector", daemon=True)
