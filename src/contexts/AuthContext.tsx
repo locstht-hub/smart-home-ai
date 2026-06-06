@@ -268,6 +268,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const changePassword = async (currentPw: string, newPw: string): Promise<{ success: boolean; message: string }> => {
         if (!user) return { success: false, message: 'Chưa đăng nhập' };
+        if (user.serverToken || user.serverRole) {
+            if (newPw.length < 6) return { success: false, message: 'Mật khẩu mới phải có ít nhất 6 ký tự' };
+            const saved = await AsyncStorage.getItem(SERVER_CONFIG_KEY);
+            const savedConfig: SmartHomeServerConfig | null = saved ? JSON.parse(saved) : null;
+            const client = new SmartHomeApiClient(savedConfig || {
+                apiBaseUrl: SERVER_API_URL,
+                localApiBaseUrl: LOCAL_API_URL,
+                preferLocalApi: true,
+                apiToken: user.serverToken || '',
+                homeId: user.homeId || '',
+                forecastApiUrl: FORECAST_API_URL,
+                forecastModel: 'xgboost',
+                timeout: 8000,
+            });
+            try {
+                await client.changeOwnPassword(currentPw, newPw);
+                return { success: true, message: 'Đổi mật khẩu server thành công' };
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Không thể đổi mật khẩu server';
+                return { success: false, message };
+            }
+        }
+
         const latestUsers = await readUsersFromStorage();
         const latestCurrent = latestUsers.find(u => u.id === user.id);
         if (!latestCurrent) return { success: false, message: 'Không tìm thấy tài khoản hiện tại' };

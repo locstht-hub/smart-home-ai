@@ -434,14 +434,23 @@ export default function DashboardScreen({ navigation }: any) {
 
             <Text style={styles.sectionTitle}>Thao tác nhanh</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActions}>
-                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.red[200], backgroundColor: Colors.red[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} onPress={() => { void turnAllOff(); }}>
+                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.red[200], backgroundColor: Colors.red[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} onPress={async () => {
+                    const success = await turnAllOff();
+                    if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị. Kiểm tra PLC/server rồi thử lại.');
+                }}>
                     <MaterialCommunityIcons name="power" size={14} color={Colors.red[600]} />
                     <Text style={{ color: Colors.red[600], fontWeight: '500', fontSize: 13 }}>Tắt tất cả</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.blue[200], backgroundColor: Colors.blue[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} onPress={() => {
                     Alert.alert('Chế độ đêm', 'Tắt các thiết bị đèn/quạt trong hệ thống?', [
                         { text: 'Hủy', style: 'cancel' },
-                        { text: 'Bật', onPress: () => { void applyScene('sleep'); Alert.alert('Thành công', 'Đã bật chế độ đêm'); } },
+                        {
+                            text: 'Bật',
+                            onPress: async () => {
+                                const success = await applyScene('sleep');
+                                Alert.alert(success ? 'Thành công' : 'Lỗi', success ? 'Đã bật chế độ đêm' : 'Chưa thể bật chế độ đêm. Kiểm tra PLC/server rồi thử lại.');
+                            },
+                        },
                     ]);
                 }}>
                     <Feather name="moon" size={14} color={Colors.blue[600]} />
@@ -450,7 +459,14 @@ export default function DashboardScreen({ navigation }: any) {
                 <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.amber[200], backgroundColor: Colors.amber[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} onPress={() => {
                     Alert.alert('Chế độ vắng nhà', 'Tắt tất cả thiết bị trong nhà?', [
                         { text: 'Hủy', style: 'cancel' },
-                        { text: 'Tắt tất cả', style: 'destructive', onPress: () => { void turnAllOff(); Alert.alert('Thành công', 'Đã tắt tất cả thiết bị'); } },
+                        {
+                            text: 'Tắt tất cả',
+                            style: 'destructive',
+                            onPress: async () => {
+                                const success = await turnAllOff();
+                                Alert.alert(success ? 'Thành công' : 'Lỗi', success ? 'Đã tắt tất cả thiết bị' : 'Chưa thể tắt tất cả thiết bị. Kiểm tra PLC/server rồi thử lại.');
+                            },
+                        },
                     ]);
                 }}>
                     <Feather name="home" size={14} color={Colors.amber[600]} />

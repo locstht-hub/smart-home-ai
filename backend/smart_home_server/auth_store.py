@@ -516,6 +516,32 @@ class AuthStore:
             updated = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
             return self.public_user(updated)
 
+    def change_user_password(
+        self,
+        user_id: str,
+        current_password: str,
+        new_password: str,
+        *,
+        keep_token: str | None = None,
+    ) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            if row is None or row["status"] != "active":
+                return None
+            if not verify_password(current_password, row["password_hash"]):
+                raise ValueError("Current password is incorrect")
+
+            conn.execute(
+                "UPDATE users SET password_hash = ? WHERE id = ?",
+                (hash_password(new_password), user_id),
+            )
+            if keep_token:
+                conn.execute("DELETE FROM sessions WHERE user_id = ? AND token != ?", (user_id, keep_token))
+            else:
+                conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+            updated = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            return self.public_user(updated)
+
     def set_home_status(self, home_id: str, status: str) -> dict[str, Any] | None:
         with self.connect() as conn:
             row = conn.execute("SELECT * FROM homes WHERE id = ?", (home_id,)).fetchone()

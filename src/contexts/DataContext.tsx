@@ -24,15 +24,15 @@ interface DataContextType {
     toggleDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<void>;
     addDevice: (roomId: string, device: Omit<Device, 'id' | 'ownerId'>, targetUserId?: string) => Promise<void>;
     deleteDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<void>;
-    turnAllOff: (targetUserId?: string) => Promise<void>;
-    turnAllOn: (roomId: string, targetUserId?: string) => Promise<void>;
-    turnAllOffRoom: (roomId: string, targetUserId?: string) => Promise<void>;
+    turnAllOff: (targetUserId?: string) => Promise<boolean>;
+    turnAllOn: (roomId: string, targetUserId?: string) => Promise<boolean>;
+    turnAllOffRoom: (roomId: string, targetUserId?: string) => Promise<boolean>;
     getTotalPower: (targetUserId?: string) => number;
     getActiveDeviceCount: (targetUserId?: string) => number;
     getUserDevices: (roomId: string, targetUserId?: string) => Device[];
     getRoomsForUser: (targetUserId?: string) => ComputedRoom[];
     getHouseDeviceCount: (targetUserId?: string) => number;
-    applyScene: (scene: 'morning' | 'work' | 'weekend' | 'sleep', targetUserId?: string) => Promise<void>;
+    applyScene: (scene: 'morning' | 'work' | 'weekend' | 'sleep', targetUserId?: string) => Promise<boolean>;
 }
 
 const DataContext = createContext<DataContextType>({} as DataContextType);
@@ -252,16 +252,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const turnAllOff = useCallback(async () => {
         const success = await setAllDevicesState(null, false);
         addLog(success ? 'Tắt tất cả thiết bị' : 'Lỗi tắt tất cả thiết bị');
+        return success;
     }, [addLog, setAllDevicesState]);
 
     const turnAllOn = useCallback(async (roomId: string) => {
         const success = await setAllDevicesState(roomId, true);
         addLog(success ? 'Bật tất cả thiết bị' : 'Lỗi bật tất cả thiết bị', undefined, getRoomName(roomId));
+        return success;
     }, [addLog, getRoomName, setAllDevicesState]);
 
     const turnAllOffRoom = useCallback(async (roomId: string) => {
         const success = await setAllDevicesState(roomId, false);
         addLog(success ? 'Tắt tất cả thiết bị' : 'Lỗi tắt tất cả thiết bị', undefined, getRoomName(roomId));
+        return success;
     }, [addLog, getRoomName, setAllDevicesState]);
 
     const applyScene = useCallback(async (scene: 'morning' | 'work' | 'weekend' | 'sleep') => {
@@ -305,6 +308,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             sleep: 'Chế độ ngủ',
         };
         addLog(`${success ? 'Kích hoạt cảnh' : 'Lỗi kích hoạt cảnh'}: ${sceneNames[scene]}`);
+        return success;
     }, [addLog, client, isConfigured, isServerControlled, refresh, setAllDevicesState, updateLocalHouse]);
 
     const getTotalPower = useCallback(() => {

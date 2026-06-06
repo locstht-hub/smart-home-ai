@@ -193,6 +193,13 @@ export class SmartHomeApiClient {
         });
     }
 
+    async changeOwnPassword(currentPassword: string, newPassword: string): Promise<void> {
+        await this.request('/api/auth/change-password', {
+            method: 'PATCH',
+            body: JSON.stringify({ currentPassword, newPassword }),
+        });
+    }
+
     async getHomeQuota(homeId: string): Promise<HomeQuota> {
         const response = await this.request<{ ok: boolean; quota: HomeQuota }>(`/api/homes/${encodeURIComponent(homeId)}/quota`);
         return response.quota;

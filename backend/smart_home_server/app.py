@@ -955,6 +955,44 @@ def create_app() -> Flask:
             return jsonify({"ok": False, "error": "User not found"}), 404
         return jsonify({"ok": True, **profile})
 
+    @app.patch("/api/auth/change-password")
+    def change_own_password() -> Any:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        if current_user.get("id") == "api-token":
+            return jsonify({"ok": False, "error": "API token cannot change password"}), 400
+
+        payload = request.get_json(silent=True) or {}
+        current_password = str(payload.get("currentPassword") or "")
+        new_password = str(payload.get("newPassword") or payload.get("password") or "")
+        if not current_password or not new_password:
+            return jsonify({"ok": False, "error": "currentPassword and newPassword are required"}), 400
+        if len(new_password) < 6:
+            return jsonify({"ok": False, "error": "Password must be at least 6 characters"}), 400
+
+        try:
+            user = auth_store.change_user_password(
+                str(current_user["id"]),
+                current_password,
+                new_password,
+                keep_token=extract_token(),
+            )
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+
+        if user is None:
+            return jsonify({"ok": False, "error": "User not found"}), 404
+
+        audit(
+            "auth.change_password",
+            actor=current_user,
+            target_type="user",
+            target_id=str(current_user["id"]),
+            target_name=str(current_user.get("username") or current_user.get("name") or ""),
+        )
+        return jsonify({"ok": True, "user": user})
+
     @app.get("/api/homes/<home_id>/quota")
     def home_quota(home_id: str) -> Any:
         current_user = get_current_user()

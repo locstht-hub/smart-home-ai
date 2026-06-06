@@ -70,10 +70,16 @@ export default function RoomsScreen({ route }: any) {
                 )}
 
                 <View style={styles.allBtnRow}>
-                    <TouchableOpacity disabled={isHomeSuspended} style={[styles.allBtn, { backgroundColor: Colors.green[500] }, isHomeSuspended && styles.disabledBtn]} onPress={() => { void turnAllOn(selectedRoom); }}>
+                    <TouchableOpacity disabled={isHomeSuspended} style={[styles.allBtn, { backgroundColor: Colors.green[500] }, isHomeSuspended && styles.disabledBtn]} onPress={async () => {
+                        const success = await turnAllOn(selectedRoom);
+                        if (!success) Alert.alert('Lỗi', 'Chưa thể bật tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
+                    }}>
                         <Text style={styles.allBtnText}>⚡ Bật tất cả</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity disabled={isHomeSuspended} style={[styles.allBtn, { backgroundColor: Colors.slate[200] }, isHomeSuspended && styles.disabledBtn]} onPress={() => { void turnAllOffRoom(selectedRoom); }}>
+                    <TouchableOpacity disabled={isHomeSuspended} style={[styles.allBtn, { backgroundColor: Colors.slate[200] }, isHomeSuspended && styles.disabledBtn]} onPress={async () => {
+                        const success = await turnAllOffRoom(selectedRoom);
+                        if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
+                    }}>
                         <Text style={[styles.allBtnText, { color: Colors.slate[700] }]}>🔌 Tắt tất cả</Text>
                     </TouchableOpacity>
                 </View>
@@ -265,9 +271,12 @@ export default function RoomsScreen({ route }: any) {
                                 { text: 'Hủy', style: 'cancel' },
                                 {
                                     text: 'Bật',
-                                    onPress: () => {
-                                        void applyScene(item.scene);
-                                        Alert.alert('Thành công', `Đã kích hoạt cảnh ${item.label}`);
+                                    onPress: async () => {
+                                        const success = await applyScene(item.scene);
+                                        Alert.alert(
+                                            success ? 'Thành công' : 'Lỗi',
+                                            success ? `Đã kích hoạt cảnh ${item.label}` : `Chưa thể kích hoạt cảnh ${item.label}. Kiểm tra PLC/server rồi thử lại.`,
+                                        );
                                     },
                                 },
                             ]);
