@@ -9,9 +9,10 @@ const floatingChatPanel = document.querySelector("#floatingChatPanel");
 const floatingChatLog = document.querySelector("#floatingChatLog");
 const floatingChatForm = document.querySelector("#floatingChatForm");
 const floatingChatInput = document.querySelector("#floatingChatInput");
+const quickPromptButtons = document.querySelectorAll("[data-question]");
 
 const welcomeMessage =
-  "Xin chào, mình là trợ lý giới thiệu dự án Smart Home AI. Bạn có thể hỏi về PLC S7-1200, MFM384, luồng dữ liệu, app, server API, AI forecast hoặc hướng tích hợp model fine-tune.";
+  "Xin chào, mình là trợ lý demo trên website Smart Home AI. Hiện mình trả lời bằng bộ tri thức tĩnh của dự án; bản Gemini hoặc LoRA fine-tune sẽ cần đi qua backend assistant API ở giai đoạn sau.";
 
 // Simulated real-time sensor state for MFM384 / PLC
 const liveData = {
@@ -274,6 +275,13 @@ function bindEvents() {
     const value = floatingChatInput.value;
     floatingChatInput.value = "";
     askQuestion(value);
+  });
+
+  quickPromptButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const question = button.dataset.question || button.textContent || "";
+      askQuestion(question);
+    });
   });
 
   document.addEventListener("keydown", (event) => {

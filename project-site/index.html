@@ -8,7 +8,7 @@
       name="description"
       content="Smart Home AI - hệ thống giám sát điện năng, điều khiển nhà thông minh và dự báo phụ tải bằng AI."
     />
-    <link rel="stylesheet" href="styles.css?v=20260606-contact" />
+    <link rel="stylesheet" href="styles.css?v=20260606-chatbot" />
   </head>
   <body>
     <header class="topbar">
@@ -280,10 +280,19 @@
       <section id="floatingChatPanel" class="floating-chat-panel" aria-label="Khung chatbot nhanh" hidden>
         <div class="floating-chat-header">
           <div>
-            <strong>Trợ lý giới thiệu dự án</strong>
-            <span>Hỏi nhanh về kiến trúc Smart Home AI</span>
+            <strong>AI Project Assistant</strong>
+            <span>FAQ demo cho website giới thiệu dự án</span>
           </div>
           <button id="floatingChatClose" type="button" aria-label="Đóng chatbot">×</button>
+        </div>
+        <div class="assistant-mode">
+          <span>Static knowledge base</span>
+          <span>Gemini/LoRA: hướng phát triển backend</span>
+        </div>
+        <div class="quick-prompts" aria-label="Câu hỏi gợi ý">
+          <button type="button" data-question="Dự án này làm được gì?">Dự án làm gì?</button>
+          <button type="button" data-question="Luồng dữ liệu PLC hoạt động thế nào?">Luồng PLC</button>
+          <button type="button" data-question="AI Forecast khác chatbot như thế nào?">Forecast vs Chatbot</button>
         </div>
         <div id="floatingChatLog" class="chat-log floating-chat-log"></div>
         <form id="floatingChatForm" class="chat-form floating-chat-form">
@@ -299,7 +308,7 @@
       </section>
     </aside>
 
-    <script src="knowledge.js?v=20260606-contact"></script>
-    <script src="app.js?v=20260606-contact"></script>
+    <script src="knowledge.js?v=20260606-chatbot"></script>
+    <script src="app.js?v=20260606-chatbot"></script>
   </body>
 </html>
