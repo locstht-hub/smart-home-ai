@@ -8,7 +8,7 @@
       name="description"
       content="Smart Home AI - hệ thống giám sát điện năng, điều khiển nhà thông minh và dự báo phụ tải bằng AI."
     />
-    <link rel="stylesheet" href="styles.css?v=20260526-units" />
+    <link rel="stylesheet" href="styles.css?v=20260606-contact" />
   </head>
   <body>
     <header class="topbar">
@@ -21,7 +21,8 @@
         <a href="#architecture">Kiến trúc</a>
         <a href="#forecast">AI Forecast</a>
         <a href="#status">Tiến độ</a>
-        <a href="progress.html">Bản tóm tắt</a>
+        <a href="#contact">Liên hệ</a>
+        <a href="progress.html">Tóm tắt</a>
       </nav>
     </header>
 
@@ -46,6 +47,24 @@
             <span>Flask API</span>
             <span>SQLite</span>
             <span>AI Forecast</span>
+          </div>
+          <div class="hero-status-panel" aria-label="Chỉ báo minh họa hệ thống">
+            <article>
+              <span>Mode</span>
+              <strong>PLC-ready</strong>
+            </article>
+            <article>
+              <span>Voltage</span>
+              <strong>220.4 V</strong>
+            </article>
+            <article>
+              <span>Current</span>
+              <strong>5.62 A</strong>
+            </article>
+            <article>
+              <span>Load</span>
+              <strong>1.05 kW</strong>
+            </article>
           </div>
         </div>
       </section>
@@ -190,10 +209,54 @@
         </div>
         <a class="summary-link" href="progress.html">Xem bản tóm tắt tiến độ chi tiết</a>
       </section>
+
+      <section id="contact" class="section contact-section">
+        <div class="contact-inner">
+          <div class="section-heading">
+            <p class="eyebrow">Contact</p>
+            <h2>Liên hệ và theo dõi dự án Smart Home AI</h2>
+            <p>
+              Trang này dùng để giới thiệu nhanh đồ án, kiến trúc phần mềm, luồng PLC/MFM384 và hướng phát triển AI.
+              Nếu cần trao đổi demo, phản biện hoặc theo dõi mã nguồn, có thể dùng các kênh bên dưới.
+            </p>
+          </div>
+          <div class="contact-grid" aria-label="Thông tin liên hệ">
+            <a class="contact-card" href="mailto:locstht@gmail.com">
+              <span>Email</span>
+              <strong>locstht@gmail.com</strong>
+              <small>Trao đổi demo, tài liệu và góp ý kỹ thuật.</small>
+            </a>
+            <a class="contact-card" href="https://github.com/locstht-hub/smart-home-ai" target="_blank" rel="noreferrer">
+              <span>GitHub</span>
+              <strong>locstht-hub/smart-home-ai</strong>
+              <small>Theo dõi mã nguồn, commit và triển khai Cloudflare Pages.</small>
+            </a>
+            <a class="contact-card" href="https://smarthomeai.id.vn/">
+              <span>Website</span>
+              <strong>smarthomeai.id.vn</strong>
+              <small>Landing page public cho phần giới thiệu dự án.</small>
+            </a>
+            <article class="contact-card">
+              <span>Scope</span>
+              <strong>PLC, App, Backend, Forecast</strong>
+              <small>Tập trung vào đọc dữ liệu thật, điều khiển an toàn và phân tích năng lượng.</small>
+            </article>
+          </div>
+        </div>
+      </section>
     </main>
 
-    <footer>
-      <span>Smart Home AI</span>
+    <footer class="site-footer">
+      <div>
+        <strong>Smart Home AI</strong>
+        <span>Hệ thống giám sát điện năng, điều khiển nhà thông minh và dự báo phụ tải bằng AI.</span>
+      </div>
+      <div class="footer-links">
+        <a href="#architecture">Kiến trúc</a>
+        <a href="#forecast">AI Forecast</a>
+        <a href="progress.html">Tiến độ</a>
+        <a href="mailto:locstht@gmail.com">Liên hệ</a>
+      </div>
       <span>Cloudflare Pages static project site</span>
     </footer>
 
@@ -236,7 +299,7 @@
       </section>
     </aside>
 
-    <script src="knowledge.js?v=20260526-units"></script>
-    <script src="app.js?v=20260526-units"></script>
+    <script src="knowledge.js?v=20260606-contact"></script>
+    <script src="app.js?v=20260606-contact"></script>
   </body>
 </html>
