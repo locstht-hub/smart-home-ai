@@ -40,7 +40,7 @@ export default function RegisterScreen({ navigation }: any) {
     return (
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-                <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.header}>
+                <LinearGradient colors={['#10251f', '#173a31', '#0f172a']} style={styles.header}>
                     <Text style={styles.appName}>Đăng ký tài khoản</Text>
                     <Text style={styles.subtitle}>Tạo tài khoản để điều khiển nhà thông minh</Text>
                 </LinearGradient>
@@ -73,7 +73,7 @@ export default function RegisterScreen({ navigation }: any) {
                     </View>
 
                     <TouchableOpacity style={[styles.registerButton, loading && { opacity: 0.6 }]} onPress={handleRegister} disabled={loading}>
-                        <LinearGradient colors={[Colors.green[500], Colors.green[700]]} style={styles.registerButtonGradient}>
+                        <LinearGradient colors={['#0f766e', '#115e59']} style={styles.registerButtonGradient}>
                             <Text style={styles.registerButtonText}>{loading ? 'Đang xử lý...' : 'Đăng ký'}</Text>
                         </LinearGradient>
                     </TouchableOpacity>
@@ -91,22 +91,22 @@ export default function RegisterScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background },
+    container: { flex: 1, backgroundColor: '#edf3f0' },
     scrollContent: { flexGrow: 1 },
-    header: { paddingTop: 60, paddingBottom: 30, alignItems: 'center' },
-    appName: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
-    formContainer: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, marginTop: -20, padding: 24, paddingTop: 28 },
+    header: { paddingTop: 66, paddingBottom: 34, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(209, 250, 229, 0.14)' },
+    appName: { fontSize: 27, fontWeight: '900', color: '#fff', marginBottom: 4, letterSpacing: -0.3 },
+    subtitle: { fontSize: 13, color: 'rgba(236,253,245,0.78)', fontWeight: '600' },
+    formContainer: { flex: 1, backgroundColor: '#f8fbf9', borderTopLeftRadius: 26, borderTopRightRadius: 26, marginTop: -22, padding: 24, paddingTop: 30, borderWidth: 1, borderColor: '#dce7e1', shadowColor: '#173a31', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: -8 }, elevation: 3 },
     inputGroup: { marginBottom: 14 },
-    label: { fontSize: 14, fontWeight: '500', color: Colors.slate[600], marginBottom: 6 },
-    input: { backgroundColor: Colors.slate[50], borderRadius: 12, padding: 14, fontSize: 16, color: Colors.slate[800], borderWidth: 1, borderColor: Colors.slate[200] },
-    infoBox: { flexDirection: 'row', alignItems: 'flex-start', padding: 14, backgroundColor: Colors.amber[50], borderRadius: 12, borderWidth: 1, borderColor: Colors.amber[200], marginBottom: 16, gap: 8 },
+    label: { fontSize: 13, fontWeight: '800', color: '#50645c', marginBottom: 6 },
+    input: { backgroundColor: '#edf3f0', borderRadius: 14, padding: 14, fontSize: 16, color: '#13251f', borderWidth: 1, borderColor: '#cddbd5', fontWeight: '700' },
+    infoBox: { flexDirection: 'row', alignItems: 'flex-start', padding: 14, backgroundColor: '#fff8e6', borderRadius: 16, borderWidth: 1, borderColor: '#f5d991', marginBottom: 16, gap: 8 },
     infoIcon: { fontSize: 16 },
-    infoText: { flex: 1, fontSize: 13, color: Colors.amber[800], lineHeight: 18 },
-    registerButton: { borderRadius: 12, overflow: 'hidden', marginTop: 4 },
+    infoText: { flex: 1, fontSize: 13, color: Colors.amber[800], lineHeight: 18, fontWeight: '600' },
+    registerButton: { borderRadius: 14, overflow: 'hidden', marginTop: 4, shadowColor: '#173a31', shadowOpacity: 0.14, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
     registerButtonGradient: { padding: 16, alignItems: 'center' },
-    registerButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+    registerButtonText: { color: '#fff', fontSize: 16, fontWeight: '900' },
     loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20, marginBottom: 40 },
-    loginText: { fontSize: 14, color: Colors.slate[500] },
-    loginLink: { fontSize: 14, fontWeight: '600', color: Colors.primary[600] },
+    loginText: { fontSize: 14, color: '#61736c', fontWeight: '600' },
+    loginLink: { fontSize: 14, fontWeight: '900', color: '#0f766e' },
 });
