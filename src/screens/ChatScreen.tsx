@@ -257,7 +257,7 @@ export default function ChatScreen() {
 
     return (
         <View style={styles.container}>
-            <LinearGradient colors={['#0b2f5b', '#0f4a8a']} style={styles.header}>
+            <LinearGradient colors={['#10251f', '#173a31', '#0f172a']} style={styles.header}>
                 <Image source={APP_AVATAR} style={styles.headerIcon} />
                 <View style={styles.headerTextWrap}>
                     <Text style={styles.headerTitle}>Smart Home AI</Text>
@@ -340,13 +340,13 @@ export default function ChatScreen() {
                         {...props}
                         wrapperStyle={{
                             right: {
-                                backgroundColor: Colors.primary[600],
+                                backgroundColor: '#0f766e',
                                 borderRadius: 18,
                                 paddingVertical: 4,
                                 paddingHorizontal: 4,
                             },
                             left: {
-                                backgroundColor: Colors.slate[100],
+                                backgroundColor: '#f8fbf9',
                                 borderWidth: 0,
                                 borderRadius: 18,
                                 paddingVertical: 4,
@@ -431,7 +431,7 @@ export default function ChatScreen() {
                 renderSend={(props) => (
                     <Send {...props} containerStyle={styles.sendContainer}>
                         <LinearGradient
-                            colors={[Colors.primary[500], Colors.primary[700]]}
+                            colors={['#0f766e', '#115e59']}
                             style={styles.sendCircle}
                         >
                             <Ionicons name="send" size={18} color="#ffffff" />
@@ -448,7 +448,7 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background },
+    container: { flex: 1, backgroundColor: '#edf3f0' },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -456,6 +456,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: Platform.OS === 'ios' ? 54 : 18,
         paddingBottom: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(209, 250, 229, 0.14)',
+        shadowColor: '#10251f',
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 4,
     },
     headerTextWrap: { flex: 1 },
     headerIcon: {
@@ -465,45 +472,47 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.4)',
     },
-    headerTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.2 },
     statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
     statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#34d399' },
     headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.88)' },
     muteButton: {
         width: 40,
         height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.15)',
+        borderRadius: 14,
+        backgroundColor: 'rgba(236,253,245,0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(236,253,245,0.16)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     quickReplyRow: {
         maxHeight: 58,
-        backgroundColor: '#fff',
+        backgroundColor: '#f8fbf9',
         borderBottomWidth: 1,
-        borderBottomColor: Colors.slate[200],
+        borderBottomColor: '#dce7e1',
     },
     quickReplyContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
     quickReplyBtn: {
-        backgroundColor: Colors.primary[50],
+        backgroundColor: '#e0f2ef',
         borderWidth: 1,
-        borderColor: Colors.primary[200],
+        borderColor: '#b8ded7',
         paddingVertical: 7,
         paddingHorizontal: 10,
         borderRadius: 999,
     },
     quickReplyText: {
         fontSize: 12,
-        color: Colors.primary[700],
-        fontWeight: '500',
+        color: '#0f766e',
+        fontWeight: '800',
     },
     voiceBanner: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f8fbf9',
         borderBottomWidth: 1,
-        borderBottomColor: Colors.slate[200],
+        borderBottomColor: '#dce7e1',
         paddingHorizontal: 14,
         paddingVertical: 12,
     },
@@ -511,12 +520,12 @@ const styles = StyleSheet.create({
     voiceBannerTitle: {
         fontSize: 13,
         fontWeight: '700',
-        color: Colors.slate[800],
+        color: '#13251f',
     },
     voiceBannerSubtitle: {
         fontSize: 12,
         lineHeight: 18,
-        color: Colors.slate[500],
+        color: '#61736c',
     },
     voiceBannerIcon: {
         marginRight: 4,
@@ -546,7 +555,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.amber[50],
     },
     metadataBadgeCloud: {
-        backgroundColor: Colors.primary[50],
+        backgroundColor: '#e0f2ef',
     },
     metadataBadgeText: {
         fontSize: 10,
@@ -556,12 +565,12 @@ const styles = StyleSheet.create({
         color: Colors.amber[800],
     },
     metadataBadgeTextCloud: {
-        color: Colors.primary[800],
+        color: '#0f766e',
     },
     toolbar: {
         borderTopWidth: 1,
-        borderTopColor: Colors.slate[200],
-        backgroundColor: '#fff',
+        borderTopColor: '#dce7e1',
+        backgroundColor: '#f8fbf9',
         paddingHorizontal: 10,
         paddingTop: 8,
         paddingBottom: Platform.OS === 'ios' ? 24 : 8,
@@ -589,11 +598,11 @@ const styles = StyleSheet.create({
     },
     textInput: {
         flex: 1,
-        color: Colors.slate[800],
-        backgroundColor: Colors.slate[100],
+        color: '#13251f',
+        backgroundColor: '#edf3f0',
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: Colors.slate[200],
+        borderColor: '#cddbd5',
         paddingHorizontal: 16,
         paddingTop: 8,
         paddingBottom: 8,
@@ -615,8 +624,13 @@ const styles = StyleSheet.create({
     sendCircle: {
         width: 40,
         height: 40,
-        borderRadius: 20,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
+        shadowColor: '#173a31',
+        shadowOpacity: 0.16,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 5 },
+        elevation: 2,
     },
 });

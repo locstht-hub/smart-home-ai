@@ -215,7 +215,7 @@ export default function DashboardScreen({ navigation }: any) {
     };
 
     return (
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <View style={styles.welcomeRow}>
                 <View>
                     <Text style={styles.welcomeLabel}>Xin chào, {user?.name}</Text>
@@ -257,7 +257,7 @@ export default function DashboardScreen({ navigation }: any) {
                 </View>
             )}
 
-            <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.powerCard}>
+            <LinearGradient colors={['#10251f', '#173a31', '#0f172a']} style={styles.powerCard}>
                 <View style={styles.powerCardCircle1} />
                 <View style={styles.powerCardCircle2} />
                 <View style={{ zIndex: 1 }}>
@@ -283,21 +283,21 @@ export default function DashboardScreen({ navigation }: any) {
             </LinearGradient>
 
             <View style={styles.statsGrid}>
-                <View style={styles.statCard}>
+                <View style={[styles.statCard, styles.statCardWide]}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.blue[100] }]}>
                         <Ionicons name="stats-chart" size={16} color={Colors.blue[600]} />
                     </View>
                     <Text style={styles.statValue}>{energyStatValue}</Text>
                     <Text style={styles.statLabel}>{energyStatLabel}</Text>
                 </View>
-                <View style={styles.statCard}>
+                <View style={[styles.statCard, styles.statCardHalf]}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.green[100] }]}>
                         <MaterialCommunityIcons name="sine-wave" size={16} color={Colors.green[600]} />
                     </View>
                     <Text style={styles.statValueSmall}>{voltageValue}</Text>
                     <Text style={styles.statLabel}>Điện áp (V)</Text>
                 </View>
-                <View style={styles.statCard}>
+                <View style={[styles.statCard, styles.statCardHalf]}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.orange[100] }]}>
                         <MaterialCommunityIcons name="current-ac" size={16} color={Colors.orange[600]} />
                     </View>
@@ -516,94 +516,97 @@ export default function DashboardScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background, padding: 16 },
-    welcomeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginTop: 8 },
-    welcomeLabel: { fontSize: 14, color: Colors.slate[500] },
-    welcomeTitle: { fontSize: 20, fontWeight: '600', color: Colors.slate[800] },
-    notifBadge: { padding: 8, backgroundColor: '#fff', borderRadius: 12, position: 'relative' },
+    container: { flex: 1, backgroundColor: '#edf3f0' },
+    content: { padding: 16, paddingBottom: 28 },
+    welcomeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, marginTop: 8 },
+    welcomeLabel: { fontSize: 13, color: '#61736c', fontWeight: '600' },
+    welcomeTitle: { fontSize: 26, fontWeight: '800', color: '#13251f', letterSpacing: -0.3 },
+    notifBadge: { padding: 10, backgroundColor: '#f8fbf9', borderRadius: 14, position: 'relative', borderWidth: 1, borderColor: '#dce7e1', shadowColor: '#173a31', shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
     notifIcon: { fontSize: 18 },
     notifDot: { position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: 8, backgroundColor: Colors.red[500], alignItems: 'center', justifyContent: 'center' },
     notifDotText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-    systemSummaryCard: { backgroundColor: '#fff', borderRadius: 14, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: Colors.slate[100], shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    systemSummaryCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#d8e5df', shadowColor: '#173a31', shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 2 },
     systemSummaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-    systemPill: { backgroundColor: Colors.slate[100], paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-    systemPillOk: { backgroundColor: Colors.green[100] },
-    systemPillWarn: { backgroundColor: Colors.amber[100] },
-    systemPillText: { fontSize: 11, fontWeight: '700', color: Colors.slate[600] },
+    systemPill: { backgroundColor: '#e7eee9', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+    systemPillOk: { backgroundColor: '#d9f3df' },
+    systemPillWarn: { backgroundColor: '#fff0cf' },
+    systemPillText: { fontSize: 11, fontWeight: '800', color: '#50645c' },
     systemPillTextOk: { color: Colors.green[700] },
     systemPillTextWarn: { color: Colors.amber[700] },
-    systemSummaryText: { fontSize: 12, color: Colors.slate[500], lineHeight: 17 },
-    powerCard: { borderRadius: 20, padding: 20, marginBottom: 16, overflow: 'hidden' },
-    powerCardCircle1: { position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' },
-    powerCardCircle2: { position: 'absolute', bottom: -30, left: -30, width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.05)' },
+    systemSummaryText: { fontSize: 12, color: '#61736c', lineHeight: 18 },
+    powerCard: { borderRadius: 24, padding: 22, marginBottom: 14, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(209, 250, 229, 0.16)', shadowColor: '#10251f', shadowOpacity: 0.26, shadowRadius: 26, shadowOffset: { width: 0, height: 16 }, elevation: 4 },
+    powerCardCircle1: { position: 'absolute', top: -54, right: -36, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(52,211,153,0.13)' },
+    powerCardCircle2: { position: 'absolute', bottom: -44, left: -28, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(125,211,252,0.08)' },
     powerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     powerLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    powerLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
-    realtimeBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    powerLabel: { fontSize: 12, color: 'rgba(236,253,245,0.8)', fontWeight: '700' },
+    realtimeBadge: { backgroundColor: 'rgba(236,253,245,0.12)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(236,253,245,0.16)' },
     realtimeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#34d399' },
-    realtimeText: { fontSize: 11, color: '#fff' },
+    realtimeText: { fontSize: 11, color: '#ecfdf5', fontWeight: '700' },
     powerValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginBottom: 4 },
-    powerValue: { fontSize: 44, fontWeight: '700', color: '#fff' },
-    powerUnit: { fontSize: 18, color: 'rgba(255,255,255,0.8)' },
-    powerSubtext: { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
+    powerValue: { fontSize: 52, fontWeight: '900', color: '#ffffff', letterSpacing: -1.4, fontVariant: ['tabular-nums'] },
+    powerUnit: { fontSize: 18, color: 'rgba(236,253,245,0.78)', fontWeight: '800' },
+    powerSubtext: { fontSize: 13, color: 'rgba(236,253,245,0.72)', fontWeight: '600' },
     statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-    statCard: { width: '48%', backgroundColor: '#fff', borderRadius: 14, padding: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-    statIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-    statValue: { fontSize: 22, fontWeight: '700', color: Colors.slate[800] },
-    statValueSmall: { fontSize: 16, fontWeight: '700', color: Colors.slate[800] },
-    statLabel: { fontSize: 11, color: Colors.slate[500], marginTop: 2 },
-    sectionTitle: { fontSize: 16, fontWeight: '600', color: Colors.slate[800], marginBottom: 10 },
+    statCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, borderWidth: 1, borderColor: '#dce7e1', shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2 },
+    statCardWide: { width: '100%' },
+    statCardHalf: { flex: 1, minWidth: 0 },
+    statIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+    statValue: { fontSize: 26, fontWeight: '900', color: '#13251f', letterSpacing: -0.4, fontVariant: ['tabular-nums'] },
+    statValueSmall: { fontSize: 19, fontWeight: '900', color: '#13251f', letterSpacing: -0.2, fontVariant: ['tabular-nums'] },
+    statLabel: { fontSize: 11, color: '#61736c', marginTop: 4, lineHeight: 15, fontWeight: '600' },
+    sectionTitle: { fontSize: 17, fontWeight: '800', color: '#13251f', marginBottom: 10, letterSpacing: -0.1 },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-    seeAll: { fontSize: 13, fontWeight: '500', color: Colors.primary[600] },
+    seeAll: { fontSize: 13, fontWeight: '800', color: '#0f766e' },
     quickActions: { marginBottom: 20 },
-    actionBtn: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, marginRight: 10 },
-    roomCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    actionBtn: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, marginRight: 10, shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 1 },
+    roomCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#dce7e1', shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
     roomCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    roomIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: Colors.slate[100] },
-    roomIconActive: { borderWidth: 2, borderColor: Colors.green[400] },
+    roomIcon: { width: 48, height: 48, borderRadius: 13, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: '#e7eee9' },
+    roomIconActive: { borderWidth: 2, borderColor: '#34d399' },
     roomIconImage: { width: '100%', height: '100%', borderRadius: 12 },
-    roomName: { fontSize: 15, fontWeight: '500', color: Colors.slate[800] },
-    roomSub: { fontSize: 12, color: Colors.slate[500], marginTop: 2 },
-    roomPower: { fontSize: 15, fontWeight: '600', color: Colors.slate[800] },
+    roomName: { fontSize: 15, fontWeight: '800', color: '#13251f' },
+    roomSub: { fontSize: 12, color: '#61736c', marginTop: 3 },
+    roomPower: { fontSize: 16, fontWeight: '900', color: '#173a31', fontVariant: ['tabular-nums'] },
     roomTemp: { fontSize: 12, color: Colors.slate[500], marginTop: 2 },
-    tipCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: Colors.amber[200], marginTop: 6 },
+    tipCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#f5d991', marginTop: 6 },
     tipTitle: { fontSize: 14, fontWeight: '500', color: Colors.amber[800], marginBottom: 4 },
     tipText: { fontSize: 13, color: Colors.amber[700], lineHeight: 18 },
-    lockedBanner: { backgroundColor: Colors.red[50], borderWidth: 1, borderColor: Colors.red[200], borderRadius: 14, padding: 14, marginBottom: 14 },
-    lockedTitle: { fontSize: 15, fontWeight: '700', color: Colors.red[600], marginBottom: 4 },
+    lockedBanner: { backgroundColor: '#fff4f2', borderWidth: 1, borderColor: '#fecaca', borderRadius: 18, padding: 14, marginBottom: 14 },
+    lockedTitle: { fontSize: 15, fontWeight: '800', color: Colors.red[600], marginBottom: 4 },
     lockedText: { fontSize: 13, color: Colors.red[600], lineHeight: 18 },
-    errorBanner: { backgroundColor: Colors.amber[50], borderWidth: 1, borderColor: Colors.amber[200], borderRadius: 14, padding: 14, marginBottom: 14 },
-    errorTitle: { fontSize: 15, fontWeight: '700', color: Colors.amber[700], marginBottom: 4 },
+    errorBanner: { backgroundColor: '#fff8e6', borderWidth: 1, borderColor: '#f5d991', borderRadius: 18, padding: 14, marginBottom: 14 },
+    errorTitle: { fontSize: 15, fontWeight: '800', color: Colors.amber[700], marginBottom: 4 },
     errorText: { fontSize: 13, color: Colors.amber[700], lineHeight: 18 },
 
     // HEMS Quota styles
-    quotaCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: Colors.slate[100] },
+    quotaCard: { backgroundColor: '#f8fbf9', borderRadius: 20, padding: 16, marginBottom: 20, shadowColor: '#173a31', shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
     quotaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    quotaTitle: { fontSize: 14, fontWeight: '600', color: Colors.slate[800] },
-    quotaEditBtn: { paddingVertical: 4, paddingHorizontal: 8, backgroundColor: Colors.primary[50], borderRadius: 8 },
-    quotaEditBtnText: { fontSize: 12, fontWeight: '500', color: Colors.primary[600] },
+    quotaTitle: { fontSize: 14, fontWeight: '800', color: '#13251f' },
+    quotaEditBtn: { paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#e0f2ef', borderRadius: 10 },
+    quotaEditBtnText: { fontSize: 12, fontWeight: '800', color: '#0f766e' },
     quotaInfoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-    quotaInfoText: { fontSize: 13, color: Colors.slate[500] },
-    progressContainer: { height: 10, backgroundColor: Colors.slate[100], borderRadius: 5, overflow: 'hidden', marginBottom: 10 },
+    quotaInfoText: { fontSize: 13, color: '#61736c' },
+    progressContainer: { height: 12, backgroundColor: '#e7eee9', borderRadius: 999, overflow: 'hidden', marginBottom: 10 },
     progressBar: { height: '100%', borderRadius: 5 },
     quotaStatusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     quotaPercentage: { fontSize: 12, fontWeight: '600' },
-    quotaTips: { fontSize: 12, color: Colors.slate[500], fontStyle: 'italic' },
+    quotaTips: { flex: 1, marginLeft: 10, fontSize: 12, color: '#61736c', fontStyle: 'italic', textAlign: 'right' },
     quotaEmptyContainer: { paddingVertical: 10, alignItems: 'center' },
-    quotaEmptyText: { fontSize: 13, color: Colors.slate[500], textAlign: 'center', lineHeight: 18, marginBottom: 12 },
-    quotaSetBtn: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: Colors.primary[500], borderRadius: 10 },
-    quotaSetBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+    quotaEmptyText: { fontSize: 13, color: '#61736c', textAlign: 'center', lineHeight: 18, marginBottom: 12 },
+    quotaSetBtn: { paddingVertical: 11, paddingHorizontal: 20, backgroundColor: '#0f766e', borderRadius: 12 },
+    quotaSetBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
     // Modal styles
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-    modalContent: { backgroundColor: '#fff', borderRadius: 20, padding: 22, width: '100%', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
-    modalTitle: { fontSize: 18, fontWeight: '700', color: Colors.slate[800], marginBottom: 8, textAlign: 'center' },
-    modalSubtitle: { fontSize: 13, color: Colors.slate[500], lineHeight: 18, marginBottom: 16, textAlign: 'center' },
-    modalInput: { borderWidth: 1, borderColor: Colors.slate[200], borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, color: Colors.slate[800], marginBottom: 20, textAlign: 'center', backgroundColor: Colors.slate[50] },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.56)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    modalContent: { backgroundColor: '#f8fbf9', borderRadius: 22, padding: 22, width: '100%', shadowColor: '#10251f', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 16 }, elevation: 5 },
+    modalTitle: { fontSize: 19, fontWeight: '900', color: '#13251f', marginBottom: 8, textAlign: 'center', letterSpacing: -0.2 },
+    modalSubtitle: { fontSize: 13, color: '#61736c', lineHeight: 18, marginBottom: 16, textAlign: 'center' },
+    modalInput: { borderWidth: 1, borderColor: '#cddbd5', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: 18, fontWeight: '800', color: '#13251f', marginBottom: 20, textAlign: 'center', backgroundColor: '#edf3f0', fontVariant: ['tabular-nums'] },
     modalBtnRow: { flexDirection: 'row', gap: 12 },
     modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    modalBtnCancel: { backgroundColor: Colors.slate[100] },
-    modalBtnCancelText: { color: Colors.slate[600], fontSize: 14, fontWeight: '600' },
-    modalBtnSave: { backgroundColor: Colors.primary[500] },
-    modalBtnSaveText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+    modalBtnCancel: { backgroundColor: '#e7eee9' },
+    modalBtnCancelText: { color: '#50645c', fontSize: 14, fontWeight: '800' },
+    modalBtnSave: { backgroundColor: '#0f766e' },
+    modalBtnSaveText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });

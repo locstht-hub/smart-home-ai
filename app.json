@@ -39,7 +39,8 @@
           "speechRecognitionPermission": "Allow Smart Home App to recognize speech for smart home commands.",
           "microphonePermission": "Allow Smart Home App to use the microphone for voice commands."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

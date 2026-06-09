@@ -1,5 +1,3 @@
-// Polyfill FormData before any module tries to use it
-import 'react-native/Libraries/Core/InitializeCore';
 import { registerRootComponent } from 'expo';
 
 import App from './App';

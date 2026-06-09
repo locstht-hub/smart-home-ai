@@ -121,8 +121,8 @@ export default function SettingsScreen() {
     };
 
     return (
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.profileCard}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <LinearGradient colors={['#10251f', '#173a31', '#0f172a']} style={styles.profileCard}>
                 <View style={styles.avatar}><Text style={styles.avatarText}>U</Text></View>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.profileName}>{user?.name}</Text>
@@ -161,7 +161,7 @@ export default function SettingsScreen() {
                 {user?.serverRole === 'owner' && user?.canManageMembers ? (
                     <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('MemberManagement')}>
                         <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: Colors.purple[100] }]}><Text>👥</Text></View>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e0f2ef' }]}><Text>👥</Text></View>
                             <View>
                                 <Text style={styles.menuText}>Quan ly gia dinh</Text>
                                 <Text style={styles.menuSubText}>{user?.homeName || 'Quan ly thanh vien trong nha'}</Text>
@@ -230,15 +230,15 @@ export default function SettingsScreen() {
                     <Text style={[styles.statusLabel, { color: status === 'connected' ? Colors.green[700] : Colors.amber[700] }]}>Server API</Text>
                     <Text style={[styles.statusSub, { color: status === 'connected' ? Colors.green[600] : Colors.amber[600] }]}>{connectionLabel}</Text>
                 </View>
-                <View style={[styles.statusCard, { backgroundColor: Colors.blue[50] }]}>
-                    <View style={[styles.statusDot, { backgroundColor: Colors.blue[500] }]} />
-                    <Text style={[styles.statusLabel, { color: Colors.blue[700] }]}>Nguồn API</Text>
-                    <Text style={[styles.statusSub, { color: Colors.blue[600] }]}>{preferLocalApi ? 'Ưu tiên local' : 'Ưu tiên domain'}</Text>
+                <View style={[styles.statusCard, { backgroundColor: '#e0f2ef' }]}>
+                    <View style={[styles.statusDot, { backgroundColor: '#0f766e' }]} />
+                    <Text style={[styles.statusLabel, { color: '#0f766e' }]}>Nguồn API</Text>
+                    <Text style={[styles.statusSub, { color: '#115e59' }]}>{preferLocalApi ? 'Ưu tiên local' : 'Ưu tiên domain'}</Text>
                 </View>
-                <View style={[styles.statusCard, { backgroundColor: Colors.purple[50] }]}>
-                    <View style={[styles.statusDot, { backgroundColor: Colors.purple[500] }]} />
-                    <Text style={[styles.statusLabel, { color: Colors.purple[600] }]}>Chế độ server</Text>
-                    <Text style={[styles.statusSub, { color: Colors.purple[600] }]}>{runtimeLabel}</Text>
+                <View style={[styles.statusCard, { backgroundColor: '#eef4f1' }]}>
+                    <View style={[styles.statusDot, { backgroundColor: '#334155' }]} />
+                    <Text style={[styles.statusLabel, { color: '#334155' }]}>Chế độ server</Text>
+                    <Text style={[styles.statusSub, { color: '#50645c' }]}>{runtimeLabel}</Text>
                 </View>
                 <View style={[styles.statusCard, { backgroundColor: Colors.amber[50] }]}>
                     <View style={[styles.statusDot, { backgroundColor: Colors.amber[500] }]} />
@@ -340,55 +340,56 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background, padding: 16 },
-    profileCard: { borderRadius: 20, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8, marginBottom: 20 },
-    avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-    avatarText: { fontSize: 28, color: '#fff' },
-    profileName: { fontSize: 20, fontWeight: '600', color: '#fff' },
+    container: { flex: 1, backgroundColor: '#edf3f0' },
+    content: { padding: 16, paddingBottom: 30 },
+    profileCard: { borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(209, 250, 229, 0.16)', shadowColor: '#10251f', shadowOpacity: 0.22, shadowRadius: 24, shadowOffset: { width: 0, height: 14 }, elevation: 4 },
+    avatar: { width: 60, height: 60, borderRadius: 18, backgroundColor: 'rgba(236,253,245,0.14)', borderWidth: 1, borderColor: 'rgba(236,253,245,0.2)', alignItems: 'center', justifyContent: 'center' },
+    avatarText: { fontSize: 28, color: '#fff', fontWeight: '900' },
+    profileName: { fontSize: 21, fontWeight: '900', color: '#fff', letterSpacing: -0.2 },
     profilePhone: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
     badgeRow: { flexDirection: 'row', gap: 6, marginTop: 8 },
-    badge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
-    badgeText: { fontSize: 11, color: '#fff' },
-    sectionLabel: { fontSize: 12, fontWeight: '600', color: Colors.slate[400], letterSpacing: 1, marginBottom: 8, paddingHorizontal: 4 },
-    menuCard: { backgroundColor: '#fff', borderRadius: 14, overflow: 'hidden', marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-    menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: Colors.slate[100] },
+    badge: { backgroundColor: 'rgba(236,253,245,0.14)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(236,253,245,0.16)' },
+    badgeText: { fontSize: 11, color: '#ecfdf5', fontWeight: '800' },
+    sectionLabel: { fontSize: 12, fontWeight: '900', color: '#50645c', letterSpacing: 1, marginBottom: 8, paddingHorizontal: 4 },
+    menuCard: { backgroundColor: '#f8fbf9', borderRadius: 18, overflow: 'hidden', marginBottom: 20, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
+    menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: '#e7eee9' },
     menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-    menuIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.slate[100], alignItems: 'center', justifyContent: 'center' },
-    menuText: { fontSize: 15, fontWeight: '500', color: Colors.slate[800] },
-    menuSubText: { fontSize: 11, color: Colors.slate[500], marginTop: 2 },
-    menuArrow: { fontSize: 18, color: Colors.slate[400] },
-    menuValue: { fontSize: 13, color: Colors.slate[500], maxWidth: 120, textAlign: 'right' },
-    toggle: { width: 48, height: 26, borderRadius: 13, backgroundColor: Colors.slate[300], justifyContent: 'center', paddingHorizontal: 2 },
-    toggleActive: { backgroundColor: Colors.green[500] },
-    toggleCircle: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
+    menuIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#e7eee9', alignItems: 'center', justifyContent: 'center' },
+    menuText: { fontSize: 15, fontWeight: '800', color: '#13251f' },
+    menuSubText: { fontSize: 11, color: '#61736c', marginTop: 2, lineHeight: 15 },
+    menuArrow: { fontSize: 18, color: '#94a3b8', fontWeight: '800' },
+    menuValue: { fontSize: 12, color: '#50645c', maxWidth: 126, textAlign: 'right', fontWeight: '800' },
+    toggle: { width: 50, height: 28, borderRadius: 14, backgroundColor: '#cddbd5', justifyContent: 'center', paddingHorizontal: 2 },
+    toggleActive: { backgroundColor: '#16a34a' },
+    toggleCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', shadowColor: '#173a31', shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
     toggleCircleActive: { alignSelf: 'flex-end' },
     statusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 },
-    statusCard: { width: '47%' as any, padding: 12, borderRadius: 14 },
+    statusCard: { width: '47%' as any, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: '#dce7e1' },
     statusDot: { width: 8, height: 8, borderRadius: 4, marginBottom: 6 },
     statusLabel: { fontSize: 12, fontWeight: '600' },
     statusSub: { fontSize: 11, marginTop: 2 },
     errorText: { color: Colors.red[500], fontSize: 12, marginBottom: 16, paddingHorizontal: 4 },
-    logoutBtn: { backgroundColor: '#fff', borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: Colors.red[200], marginBottom: 20 },
-    logoutText: { fontSize: 15, fontWeight: '600', color: Colors.red[500] },
+    logoutBtn: { backgroundColor: '#fff4f2', borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#fecaca', marginBottom: 20 },
+    logoutText: { fontSize: 15, fontWeight: '800', color: Colors.red[600] },
     version: { textAlign: 'center', fontSize: 12, color: Colors.slate[400] },
     copyright: { textAlign: 'center', fontSize: 12, color: Colors.slate[400], marginTop: 4 },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-    modalTitle: { fontSize: 20, fontWeight: '600', color: Colors.slate[800], marginBottom: 16 },
-    modalHint: { fontSize: 12, color: Colors.slate[500], marginBottom: 10, lineHeight: 18 },
-    statusHint: { fontSize: 12, color: Colors.slate[500], marginBottom: 10, lineHeight: 18 },
-    modalLabel: { fontSize: 13, fontWeight: '600', color: Colors.slate[700], marginBottom: 8, marginTop: 4 },
-    modalInput: { backgroundColor: Colors.slate[50], borderRadius: 12, padding: 14, fontSize: 16, color: Colors.slate[800], borderWidth: 1, borderColor: Colors.slate[200], marginBottom: 10 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.56)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#f8fbf9', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, shadowColor: '#10251f', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: -10 }, elevation: 5 },
+    modalTitle: { fontSize: 20, fontWeight: '900', color: '#13251f', marginBottom: 16, letterSpacing: -0.2 },
+    modalHint: { fontSize: 12, color: '#61736c', marginBottom: 10, lineHeight: 18 },
+    statusHint: { fontSize: 12, color: '#61736c', marginBottom: 10, lineHeight: 18 },
+    modalLabel: { fontSize: 13, fontWeight: '800', color: '#50645c', marginBottom: 8, marginTop: 4 },
+    modalInput: { backgroundColor: '#edf3f0', borderRadius: 14, padding: 14, fontSize: 16, color: '#13251f', borderWidth: 1, borderColor: '#cddbd5', marginBottom: 10, fontWeight: '700' },
     localToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-    localToggleText: { fontSize: 13, color: Colors.slate[700], fontWeight: '500' },
+    localToggleText: { fontSize: 13, color: '#50645c', fontWeight: '800' },
     modalBtnRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
-    modalCancelBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.slate[100], alignItems: 'center' },
-    modalCancelText: { color: Colors.slate[600], fontWeight: '500' },
-    modalSaveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.primary[600], alignItems: 'center' },
-    modalSaveText: { color: '#fff', fontWeight: '600' },
+    modalCancelBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#e7eee9', alignItems: 'center' },
+    modalCancelText: { color: '#50645c', fontWeight: '800' },
+    modalSaveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#0f766e', alignItems: 'center' },
+    modalSaveText: { color: '#fff', fontWeight: '800' },
     modelRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-    modelOption: { flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: Colors.slate[200], backgroundColor: Colors.slate[50], alignItems: 'center' },
-    modelOptionActive: { borderColor: Colors.primary[500], backgroundColor: Colors.primary[50] },
-    modelOptionText: { color: Colors.slate[600], fontWeight: '500' },
-    modelOptionTextActive: { color: Colors.primary[700], fontWeight: '600' },
+    modelOption: { flex: 1, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#cddbd5', backgroundColor: '#edf3f0', alignItems: 'center' },
+    modelOptionActive: { borderColor: '#0f766e', backgroundColor: '#e0f2ef' },
+    modelOptionText: { color: '#50645c', fontWeight: '700' },
+    modelOptionTextActive: { color: '#0f766e', fontWeight: '900' },
 });

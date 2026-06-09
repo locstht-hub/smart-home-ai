@@ -196,7 +196,7 @@ export default function AnalysisScreen() {
 
     const pieData = useMemo(() => {
         const total = rooms.reduce((sum, room) => sum + room.power, 0) || 1;
-        const palette = [Colors.primary[500], Colors.green[500], Colors.amber[500], Colors.purple[500]];
+        const palette = ['#0f766e', '#16a34a', '#d97706', '#334155'];
 
         return rooms.map((room, index) => ({
             name: room.name,
@@ -216,8 +216,8 @@ export default function AnalysisScreen() {
         return {
             labels,
             datasets: [
-                { data: actualSeries, color: () => Colors.primary[500], strokeWidth: 2 },
-                { data: forecastSeries, color: () => Colors.purple[500], strokeWidth: 2 },
+                { data: actualSeries, color: () => '#0f766e', strokeWidth: 2 },
+                { data: forecastSeries, color: () => '#d97706', strokeWidth: 2 },
             ],
             legend: ['Hiện tại', 'Dự báo'],
         };
@@ -280,11 +280,11 @@ export default function AnalysisScreen() {
     const severityConfig = {
         critical: { icon: '🔴', label: 'Nghiêm trọng', bg: Colors.red[50], border: Colors.red[200], text: Colors.red[600] },
         warning: { icon: '🟡', label: 'Cảnh báo', bg: Colors.amber[50], border: Colors.amber[200], text: Colors.amber[700] },
-        info: { icon: '🔵', label: 'Thông tin', bg: Colors.blue[50], border: Colors.blue[200], text: Colors.blue[600] },
+        info: { icon: '🔵', label: 'Thông tin', bg: '#e0f2ef', border: '#b8ded7', text: '#0f766e' },
     };
 
     return (
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <Text style={styles.pageTitle}>Phân tích & Dự báo</Text>
             <Text style={styles.pageSubtitle}>
                 {isLoading ? 'Đang cập nhật từ server riêng...' : `Nguồn: ${modelInfo.name}`}
@@ -297,7 +297,7 @@ export default function AnalysisScreen() {
             )}
 
             <TouchableOpacity onPress={handleExportPDF} disabled={isExporting} activeOpacity={0.7}>
-                <LinearGradient colors={[Colors.green[500], Colors.green[700]]} style={styles.exportBtn}>
+                <LinearGradient colors={['#0f766e', '#115e59']} style={styles.exportBtn}>
                     <Text style={{ fontSize: 18 }}>📄</Text>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.exportBtnTitle}>{isExporting ? 'Đang tạo báo cáo...' : 'Xuất báo cáo PDF'}</Text>
@@ -307,7 +307,7 @@ export default function AnalysisScreen() {
                 </LinearGradient>
             </TouchableOpacity>
 
-            <LinearGradient colors={[Colors.primary[600], Colors.primary[800]]} style={styles.aiCard}>
+            <LinearGradient colors={['#10251f', '#173a31', '#0f172a']} style={styles.aiCard}>
                 <View style={styles.aiCardCircle1} />
                 <View style={styles.aiCardCircle2} />
                 <View style={{ zIndex: 1 }}>
@@ -363,11 +363,11 @@ export default function AnalysisScreen() {
                     height={200}
                     yAxisSuffix=" kW"
                     chartConfig={{
-                        backgroundColor: '#fff',
-                        backgroundGradientFrom: '#fff',
-                        backgroundGradientTo: '#fff',
-                        color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
-                        labelColor: () => Colors.slate[500],
+                        backgroundColor: '#f8fbf9',
+                        backgroundGradientFrom: '#f8fbf9',
+                        backgroundGradientTo: '#f8fbf9',
+                        color: (opacity = 1) => `rgba(15, 118, 110, ${opacity})`,
+                        labelColor: () => '#61736c',
                         propsForDots: { r: '3' },
                     }}
                     bezier
@@ -420,11 +420,11 @@ export default function AnalysisScreen() {
                             height={190}
                             yAxisSuffix=" kW"
                             chartConfig={{
-                                backgroundColor: '#fff',
-                                backgroundGradientFrom: '#fff',
-                                backgroundGradientTo: '#fff',
-                                color: (opacity = 1) => `rgba(34, 197, 94, ${opacity})`,
-                                labelColor: () => Colors.slate[500],
+                                backgroundColor: '#f8fbf9',
+                                backgroundGradientFrom: '#f8fbf9',
+                                backgroundGradientTo: '#f8fbf9',
+                                color: (opacity = 1) => `rgba(15, 118, 110, ${opacity})`,
+                                labelColor: () => '#61736c',
                                 propsForDots: { r: '3' },
                             }}
                             bezier
@@ -631,18 +631,19 @@ export default function AnalysisScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background, padding: 16 },
-    pageTitle: { fontSize: 22, fontWeight: '600', color: Colors.slate[800], marginTop: 8 },
-    pageSubtitle: { fontSize: 13, color: Colors.slate[500], marginBottom: 14 },
-    errorBanner: { backgroundColor: Colors.red[50], borderWidth: 1, borderColor: Colors.red[200], borderRadius: 12, padding: 12, marginBottom: 14 },
-    errorBannerText: { fontSize: 13, color: Colors.red[600] },
-    exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 16, marginBottom: 14 },
-    exportBtnTitle: { fontSize: 15, fontWeight: '600', color: '#fff' },
+    container: { flex: 1, backgroundColor: '#edf3f0' },
+    content: { padding: 16, paddingBottom: 30 },
+    pageTitle: { fontSize: 28, fontWeight: '900', color: '#13251f', marginTop: 8, letterSpacing: -0.4 },
+    pageSubtitle: { fontSize: 13, color: '#61736c', marginBottom: 14, fontWeight: '600' },
+    errorBanner: { backgroundColor: '#fff4f2', borderWidth: 1, borderColor: '#fecaca', borderRadius: 16, padding: 12, marginBottom: 14 },
+    errorBannerText: { fontSize: 13, color: Colors.red[600], lineHeight: 18, fontWeight: '600' },
+    exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 16, marginBottom: 14, shadowColor: '#173a31', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 3 },
+    exportBtnTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
     exportBtnSub: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
     anomalySection: { marginBottom: 14 },
-    chartTitle: { fontSize: 16, fontWeight: '600', color: Colors.slate[800], marginBottom: 12 },
-    noAnomalyBox: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: Colors.slate[200], padding: 14 },
-    noAnomalyText: { fontSize: 13, color: Colors.slate[500] },
+    chartTitle: { fontSize: 17, fontWeight: '800', color: '#13251f', marginBottom: 12, letterSpacing: -0.1 },
+    noAnomalyBox: { backgroundColor: '#f8fbf9', borderRadius: 16, borderWidth: 1, borderColor: '#dce7e1', padding: 14 },
+    noAnomalyText: { fontSize: 13, color: '#61736c', fontWeight: '600' },
     anomalyCard: { borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 10 },
     anomalyCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
     anomalyCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -654,48 +655,48 @@ const styles = StyleSheet.create({
     anomalyFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     anomalyPower: { fontSize: 11, color: Colors.slate[500] },
     anomalyTime: { fontSize: 11, color: Colors.slate[400] },
-    aiCard: { borderRadius: 20, padding: 20, marginBottom: 14, overflow: 'hidden' },
-    aiCardCircle1: { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.1)' },
-    aiCardCircle2: { position: 'absolute', bottom: -30, left: -30, width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.05)' },
+    aiCard: { borderRadius: 24, padding: 22, marginBottom: 14, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(209, 250, 229, 0.16)', shadowColor: '#10251f', shadowOpacity: 0.22, shadowRadius: 24, shadowOffset: { width: 0, height: 14 }, elevation: 4 },
+    aiCardCircle1: { position: 'absolute', top: -44, right: -36, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(52,211,153,0.13)' },
+    aiCardCircle2: { position: 'absolute', bottom: -32, left: -28, width: 92, height: 92, borderRadius: 46, backgroundColor: 'rgba(125,211,252,0.08)' },
     aiStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
     aiDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.green[400] },
     aiStatusText: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
     aiMetrics: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
     aiMetricLabel: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 4 },
     aiValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
-    aiValue: { fontSize: 38, fontWeight: '700', color: '#fff' },
+    aiValue: { fontSize: 42, fontWeight: '900', color: '#fff', letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
     aiUnit: { fontSize: 18, color: '#fff' },
-    aiMape: { fontSize: 24, fontWeight: '600', color: '#fff' },
+    aiMape: { fontSize: 26, fontWeight: '900', color: '#fff', fontVariant: ['tabular-nums'] },
     metricsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-    metricCard: { flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 14, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-    metricSub: { fontSize: 11, color: Colors.slate[500], marginTop: 4 },
-    metricValue: { fontSize: 22, fontWeight: '700', color: Colors.slate[800], marginTop: 4 },
+    metricCard: { flex: 1, backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
+    metricSub: { fontSize: 11, color: '#61736c', marginTop: 4, fontWeight: '700' },
+    metricValue: { fontSize: 23, fontWeight: '900', color: '#13251f', marginTop: 4, fontVariant: ['tabular-nums'] },
     metricUnit: { fontSize: 14, fontWeight: '400', color: Colors.slate[500] },
     metricChange: { fontSize: 11, color: Colors.green[500], marginTop: 4 },
-    chartCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    chartCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 16, marginBottom: 14, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
     predHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    predUpdate: { fontSize: 11, color: Colors.slate[400] },
-    historyEmptyBox: { backgroundColor: Colors.slate[50], borderRadius: 12, borderWidth: 1, borderColor: Colors.slate[200], padding: 14 },
-    historyEmptyTitle: { fontSize: 14, fontWeight: '600', color: Colors.slate[800], marginBottom: 4 },
-    historyEmptyText: { fontSize: 12, color: Colors.slate[500], lineHeight: 18 },
+    predUpdate: { fontSize: 11, color: '#0f766e', fontWeight: '800' },
+    historyEmptyBox: { backgroundColor: '#edf3f0', borderRadius: 14, borderWidth: 1, borderColor: '#dce7e1', padding: 14 },
+    historyEmptyTitle: { fontSize: 14, fontWeight: '800', color: '#13251f', marginBottom: 4 },
+    historyEmptyText: { fontSize: 12, color: '#61736c', lineHeight: 18 },
     historyStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 12 },
-    historyStatItem: { width: '47%' as const, backgroundColor: Colors.slate[50], borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.slate[100] },
+    historyStatItem: { width: '47%' as const, backgroundColor: '#edf3f0', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#dce7e1' },
     historyStatLabel: { fontSize: 11, color: Colors.slate[500], marginBottom: 4 },
     historyStatValue: { fontSize: 16, fontWeight: '700', color: Colors.slate[800] },
     historyList: { marginTop: 12, gap: 8 },
-    historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.slate[50], borderRadius: 12, padding: 12 },
+    historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#edf3f0', borderRadius: 14, padding: 12 },
     historyRowTime: { fontSize: 12, fontWeight: '600', color: Colors.slate[700] },
     historyRowSource: { fontSize: 11, color: Colors.slate[400], marginTop: 2 },
     historyRowValues: { alignItems: 'flex-end' },
     historyRowPower: { fontSize: 13, fontWeight: '700', color: Colors.green[600] },
     historyRowMeta: { fontSize: 11, color: Colors.slate[500], marginTop: 2 },
-    predItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: Colors.slate[50], borderRadius: 12, marginBottom: 8 },
+    predItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: '#edf3f0', borderRadius: 14, marginBottom: 8 },
     predLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    predIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: Colors.primary[100], alignItems: 'center', justifyContent: 'center' },
+    predIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#e0f2ef', alignItems: 'center', justifyContent: 'center' },
     predTime: { fontSize: 14, fontWeight: '500', color: Colors.slate[800] },
     predConfRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
     predBarBg: { width: 60, height: 6, borderRadius: 3, backgroundColor: Colors.slate[200], overflow: 'hidden' },
-    predBarFill: { height: '100%', backgroundColor: Colors.primary[500], borderRadius: 3 },
+    predBarFill: { height: '100%', backgroundColor: '#0f766e', borderRadius: 3 },
     predConfText: { fontSize: 11, color: Colors.slate[500] },
     predValue: { fontSize: 18, fontWeight: '700', color: Colors.slate[800] },
     predUnit: { fontSize: 13, fontWeight: '400', color: Colors.slate[500] },
@@ -704,7 +705,7 @@ const styles = StyleSheet.create({
     insightTitle: { fontSize: 14, fontWeight: '500', color: Colors.slate[800] },
     insightBadge: { fontSize: 11, fontWeight: '600' },
     insightText: { fontSize: 13, color: Colors.slate[600], lineHeight: 18 },
-    modelCard: { backgroundColor: Colors.slate[800], borderRadius: 14, padding: 16, marginTop: 6 },
+    modelCard: { backgroundColor: '#13251f', borderRadius: 18, padding: 16, marginTop: 6, shadowColor: '#10251f', shadowOpacity: 0.18, shadowRadius: 20, shadowOffset: { width: 0, height: 12 }, elevation: 3 },
     modelTitle: { fontSize: 16, fontWeight: '600', color: '#fff', marginBottom: 12 },
     modelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     modelItem: { width: '46%' as const },
@@ -712,10 +713,10 @@ const styles = StyleSheet.create({
     modelValue2: { fontSize: 14, fontWeight: '500', color: '#fff' },
     retrainBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(59, 130, 246, 0.2)', borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.4)', borderRadius: 12, padding: 12, marginTop: 16 },
     retrainBtnIcon: { fontSize: 18 },
-    retrainBtnText: { fontSize: 13, fontWeight: '600', color: Colors.blue[400] },
+    retrainBtnText: { fontSize: 13, fontWeight: '800', color: '#5eead4' },
     retrainBtnSub: { fontSize: 11, color: Colors.slate[400], marginTop: 2 },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.56)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#f8fbf9', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%', shadowColor: '#10251f', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: -10 }, elevation: 5 },
     modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
     modalTitle: { fontSize: 18, fontWeight: '700', color: Colors.slate[800] },
     modalSubtitle: { fontSize: 13, color: Colors.slate[500] },

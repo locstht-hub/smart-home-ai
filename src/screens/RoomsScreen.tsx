@@ -30,7 +30,7 @@ export default function RoomsScreen({ route }: any) {
         const totalPower = roomDevices.filter(device => device.isOn).reduce((sum, device) => sum + device.power, 0);
 
         return (
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.roomHeader}>
                     <TouchableOpacity onPress={() => setSelectedRoom(null)} style={styles.backBtn}>
                         <Text style={{ fontSize: 22 }}>←</Text>
@@ -109,7 +109,12 @@ export default function RoomsScreen({ route }: any) {
                                 <TouchableOpacity
                                     style={[styles.toggle, device.isOn && styles.toggleActive]}
                                     disabled={isHomeSuspended}
-                                    onPress={() => { void toggleDevice(selectedRoom, device.id); }}
+                                    onPress={async () => {
+                                        const result = await toggleDevice(selectedRoom, device.id);
+                                        if (!result.success) {
+                                            Alert.alert('Lỗi', result.error || 'Chưa thể điều khiển thiết bị. Kiểm tra PLC/server rồi thử lại.');
+                                        }
+                                    }}
                                 >
                                     <View style={[styles.toggleCircle, device.isOn && styles.toggleCircleActive]} />
                                 </TouchableOpacity>
@@ -208,7 +213,7 @@ export default function RoomsScreen({ route }: any) {
     }
 
     return (
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <Text style={styles.pageTitle}>Quản lý phòng</Text>
 
             {isHomeSuspended && (
@@ -259,10 +264,10 @@ export default function RoomsScreen({ route }: any) {
             <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Cảnh nhanh</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {[
-                    { label: '☀️ Buổi sáng', colors: [Colors.orange[400], Colors.amber[400]], scene: 'morning' as const },
-                    { label: '⚡ Đi làm', colors: [Colors.blue[400], Colors.indigo[400]], scene: 'work' as const },
-                    { label: '🎉 Cuối tuần', colors: [Colors.purple[400], Colors.pink[400]], scene: 'weekend' as const },
-                    { label: '😴 Ngủ', colors: [Colors.slate[600], Colors.slate[700]], scene: 'sleep' as const },
+                    { label: '☀️ Buổi sáng', colors: ['#d97706', '#f59e0b'], scene: 'morning' as const },
+                    { label: '⚡ Đi làm', colors: ['#0f766e', '#115e59'], scene: 'work' as const },
+                    { label: '🎉 Cuối tuần', colors: ['#256f5f', '#173a31'], scene: 'weekend' as const },
+                    { label: '😴 Ngủ', colors: ['#334155', '#13251f'], scene: 'sleep' as const },
                 ].map((item, index) => (
                     <TouchableOpacity
                         key={index}
@@ -316,83 +321,84 @@ export default function RoomsScreen({ route }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background, padding: 16 },
-    pageTitle: { fontSize: 22, fontWeight: '600', color: Colors.slate[800], marginBottom: 16, marginTop: 8 },
-    sectionTitle: { fontSize: 16, fontWeight: '600', color: Colors.slate[800], marginBottom: 10 },
+    container: { flex: 1, backgroundColor: '#edf3f0' },
+    content: { padding: 16, paddingBottom: 30 },
+    pageTitle: { fontSize: 28, fontWeight: '900', color: '#13251f', marginBottom: 16, marginTop: 8, letterSpacing: -0.4 },
+    sectionTitle: { fontSize: 17, fontWeight: '800', color: '#13251f', marginBottom: 10, letterSpacing: -0.1 },
     roomGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    roomCard: { width: '48%' as any, backgroundColor: '#fff', borderRadius: 14, padding: 14, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2, position: 'relative' },
-    roomCardActive: { borderWidth: 2, borderColor: Colors.green[400] },
-    roomActiveDot: { position: 'absolute', top: 10, right: 10, width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.green[500] },
-    roomCardIcon: { width: 58, height: 58, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 10, overflow: 'hidden', backgroundColor: Colors.slate[100] },
-    roomCardIconActive: { borderWidth: 2, borderColor: Colors.green[400] },
+    roomCard: { width: '48%' as any, minHeight: 178, backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, position: 'relative', borderWidth: 1, borderColor: '#dce7e1' },
+    roomCardActive: { borderColor: '#34d399', backgroundColor: '#f3fbf6', shadowOpacity: 0.1 },
+    roomActiveDot: { position: 'absolute', top: 12, right: 12, width: 9, height: 9, borderRadius: 5, backgroundColor: Colors.green[500], borderWidth: 2, borderColor: '#f8fbf9' },
+    roomCardIcon: { width: 58, height: 58, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 12, overflow: 'hidden', backgroundColor: '#e7eee9' },
+    roomCardIconActive: { borderWidth: 2, borderColor: '#34d399' },
     roomCardIconImage: { width: '100%', height: '100%', borderRadius: 14 },
-    roomCardName: { fontSize: 15, fontWeight: '600', color: Colors.slate[800] },
-    roomCardSub: { fontSize: 12, color: Colors.slate[500], marginTop: 2, marginBottom: 6 },
-    roomCardStats: { flexDirection: 'row', gap: 10 },
-    roomCardStat: { fontSize: 11, color: Colors.slate[400] },
-    sceneBtn: { paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, marginRight: 10 },
-    sceneBtnText: { color: '#fff', fontWeight: '500', fontSize: 13 },
-    energyCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginTop: 16, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    roomCardName: { fontSize: 15, fontWeight: '800', color: '#13251f' },
+    roomCardSub: { fontSize: 12, color: '#61736c', marginTop: 3, marginBottom: 10, fontWeight: '600' },
+    roomCardStats: { gap: 5, marginTop: 'auto' },
+    roomCardStat: { fontSize: 11, color: '#50645c', fontWeight: '700', fontVariant: ['tabular-nums'] },
+    sceneBtn: { minWidth: 118, paddingHorizontal: 16, paddingVertical: 13, borderRadius: 14, marginRight: 10, shadowColor: '#173a31', shadowOpacity: 0.09, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 2 },
+    sceneBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+    energyCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 16, marginTop: 16, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
     energyRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-    energyLabel: { fontSize: 13, color: Colors.slate[700] },
-    energyValue: { fontSize: 13, fontWeight: '500', color: Colors.slate[800] },
-    energyBarBg: { height: 8, backgroundColor: Colors.slate[100], borderRadius: 4, overflow: 'hidden' },
-    energyBarFill: { height: '100%', borderRadius: 4 },
-    roomHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.slate[200], marginBottom: 14, backgroundColor: '#fff', marginHorizontal: -16, paddingHorizontal: 16 },
+    energyLabel: { fontSize: 13, color: '#50645c', fontWeight: '700' },
+    energyValue: { fontSize: 13, fontWeight: '900', color: '#13251f', fontVariant: ['tabular-nums'] },
+    energyBarBg: { height: 9, backgroundColor: '#e7eee9', borderRadius: 999, overflow: 'hidden' },
+    energyBarFill: { height: '100%', borderRadius: 999 },
+    roomHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderWidth: 1, borderColor: '#dce7e1', marginBottom: 14, backgroundColor: '#f8fbf9', borderRadius: 18, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2 },
     roomHeaderImage: { width: 46, height: 46, borderRadius: 14 },
-    backBtn: { padding: 6 },
-    roomTitle: { fontSize: 18, fontWeight: '600', color: Colors.slate[800] },
-    roomSubtitle: { fontSize: 13, color: Colors.slate[500] },
+    backBtn: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e7eee9' },
+    roomTitle: { fontSize: 20, fontWeight: '900', color: '#13251f', letterSpacing: -0.2 },
+    roomSubtitle: { fontSize: 13, color: '#61736c', fontWeight: '600' },
     roomStats: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-    roomStatCard: { flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 12, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-    roomStatLabel: { fontSize: 11, color: Colors.slate[500], marginTop: 4 },
-    roomStatValue: { fontSize: 18, fontWeight: '700', color: Colors.slate[800], marginTop: 2 },
+    roomStatCard: { flex: 1, backgroundColor: '#f8fbf9', borderRadius: 16, padding: 12, alignItems: 'center', shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
+    roomStatLabel: { fontSize: 11, color: '#61736c', marginTop: 4, fontWeight: '700' },
+    roomStatValue: { fontSize: 19, fontWeight: '900', color: '#13251f', marginTop: 2, fontVariant: ['tabular-nums'] },
     allBtnRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-    allBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
-    allBtnText: { color: '#fff', fontWeight: '500', fontSize: 14 },
-    deviceCard: { backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-    deviceCardActive: { borderWidth: 2, borderColor: Colors.green[400] },
+    allBtn: { flex: 1, paddingVertical: 13, borderRadius: 13, alignItems: 'center', shadowColor: '#173a31', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 2 },
+    allBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+    deviceCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
+    deviceCardActive: { borderColor: '#34d399', backgroundColor: '#f3fbf6' },
     deviceLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     deviceActions: { alignItems: 'flex-end', gap: 8, marginLeft: 12 },
     deviceIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-    deviceName: { fontSize: 15, fontWeight: '500', color: Colors.slate[800] },
-    deviceStatus: { fontSize: 12, color: Colors.slate[500], marginTop: 2 },
-    toggle: { width: 48, height: 26, borderRadius: 13, backgroundColor: Colors.slate[300], justifyContent: 'center', paddingHorizontal: 2 },
-    toggleActive: { backgroundColor: Colors.green[500] },
-    toggleCircle: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 2, elevation: 2 },
+    deviceName: { fontSize: 15, fontWeight: '800', color: '#13251f' },
+    deviceStatus: { fontSize: 12, color: '#61736c', marginTop: 3, fontWeight: '600', fontVariant: ['tabular-nums'] },
+    toggle: { width: 50, height: 28, borderRadius: 14, backgroundColor: '#cddbd5', justifyContent: 'center', paddingHorizontal: 2 },
+    toggleActive: { backgroundColor: '#16a34a' },
+    toggleCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', shadowColor: '#173a31', shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
     toggleCircleActive: { alignSelf: 'flex-end' },
     deleteDeviceBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: Colors.red[50], borderWidth: 1, borderColor: Colors.red[200] },
     deleteDeviceText: { fontSize: 12, fontWeight: '600', color: Colors.red[600] },
-    emptyDevicesCard: { backgroundColor: '#fff', borderRadius: 14, padding: 24, alignItems: 'center', marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    emptyDevicesCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 24, alignItems: 'center', marginBottom: 12, shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
     emptyDevicesIcon: { fontSize: 28, marginBottom: 10 },
-    emptyDevicesTitle: { fontSize: 16, fontWeight: '600', color: Colors.slate[800], marginBottom: 4 },
-    emptyDevicesText: { fontSize: 13, color: Colors.slate[500], textAlign: 'center', lineHeight: 18 },
+    emptyDevicesTitle: { fontSize: 16, fontWeight: '800', color: '#13251f', marginBottom: 4 },
+    emptyDevicesText: { fontSize: 13, color: '#61736c', textAlign: 'center', lineHeight: 18 },
     addDeviceBtn: { borderRadius: 12, overflow: 'hidden', marginTop: 10 },
     addDeviceBtnGradient: { padding: 14, alignItems: 'center' },
     addDeviceBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-    haHintCard: { backgroundColor: Colors.blue[50], borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.blue[200], marginTop: 10 },
-    haHintTitle: { fontSize: 14, fontWeight: '700', color: Colors.blue[700], marginBottom: 4 },
+    haHintCard: { backgroundColor: '#eaf5ff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#bfdbfe', marginTop: 10 },
+    haHintTitle: { fontSize: 14, fontWeight: '800', color: Colors.blue[700], marginBottom: 4 },
     haHintText: { fontSize: 13, color: Colors.blue[700], lineHeight: 18 },
-    adminHintCard: { backgroundColor: Colors.amber[50], borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.amber[200], marginBottom: 14 },
-    adminHintTitle: { fontSize: 14, fontWeight: '700', color: Colors.amber[700], marginBottom: 4 },
+    adminHintCard: { backgroundColor: '#fff8e6', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#f5d991', marginBottom: 14 },
+    adminHintTitle: { fontSize: 14, fontWeight: '800', color: Colors.amber[700], marginBottom: 4 },
     adminHintText: { fontSize: 13, color: Colors.amber[700], lineHeight: 18 },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-    modalTitle: { fontSize: 20, fontWeight: '600', color: Colors.slate[800], marginBottom: 16 },
-    modalLabel: { fontSize: 14, fontWeight: '500', color: Colors.slate[600], marginBottom: 8, marginTop: 8 },
-    modalInput: { backgroundColor: Colors.slate[50], borderRadius: 12, padding: 14, fontSize: 16, color: Colors.slate[800], borderWidth: 1, borderColor: Colors.slate[200], marginBottom: 8 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.56)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#f8fbf9', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, shadowColor: '#10251f', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: -10 }, elevation: 5 },
+    modalTitle: { fontSize: 20, fontWeight: '900', color: '#13251f', marginBottom: 16, letterSpacing: -0.2 },
+    modalLabel: { fontSize: 13, fontWeight: '800', color: '#50645c', marginBottom: 8, marginTop: 8 },
+    modalInput: { backgroundColor: '#edf3f0', borderRadius: 14, padding: 14, fontSize: 16, color: '#13251f', borderWidth: 1, borderColor: '#cddbd5', marginBottom: 8, fontWeight: '700' },
     typeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-    typeBtn: { flex: 1, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: Colors.slate[200], alignItems: 'center' },
-    typeBtnActive: { borderColor: Colors.primary[500], backgroundColor: Colors.primary[50] },
-    typeBtnText: { fontSize: 12, color: Colors.slate[600] },
-    typeBtnTextActive: { color: Colors.primary[600], fontWeight: '600' },
+    typeBtn: { flex: 1, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#cddbd5', alignItems: 'center', backgroundColor: '#edf3f0' },
+    typeBtnActive: { borderColor: '#0f766e', backgroundColor: '#e0f2ef' },
+    typeBtnText: { fontSize: 12, color: '#50645c', fontWeight: '700' },
+    typeBtnTextActive: { color: '#0f766e', fontWeight: '900' },
     modalBtnRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-    modalCancelBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.slate[100], alignItems: 'center' },
-    modalCancelText: { color: Colors.slate[600], fontWeight: '500' },
-    modalSaveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.primary[600], alignItems: 'center' },
-    modalSaveText: { color: '#fff', fontWeight: '600' },
-    lockedBanner: { backgroundColor: Colors.red[50], borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.red[200], marginBottom: 14 },
-    lockedTitle: { fontSize: 14, fontWeight: '700', color: Colors.red[600], marginBottom: 4 },
+    modalCancelBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#e7eee9', alignItems: 'center' },
+    modalCancelText: { color: '#50645c', fontWeight: '800' },
+    modalSaveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#0f766e', alignItems: 'center' },
+    modalSaveText: { color: '#fff', fontWeight: '800' },
+    lockedBanner: { backgroundColor: '#fff4f2', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#fecaca', marginBottom: 14 },
+    lockedTitle: { fontSize: 14, fontWeight: '800', color: Colors.red[600], marginBottom: 4 },
     lockedText: { fontSize: 13, color: Colors.red[600], lineHeight: 18 },
     disabledBtn: { opacity: 0.45 },
 });

@@ -21,7 +21,7 @@ interface DataContextType {
     serverError: string | null;
     isHomeSuspended: boolean;
     refresh: () => Promise<void>;
-    toggleDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<void>;
+    toggleDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<{ success: boolean; error?: string }>;
     addDevice: (roomId: string, device: Omit<Device, 'id' | 'ownerId'>, targetUserId?: string) => Promise<void>;
     deleteDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<void>;
     turnAllOff: (targetUserId?: string) => Promise<boolean>;
@@ -153,9 +153,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return defaultRooms.find(room => room.id === roomId)?.name;
     }, []);
 
-    const toggleDevice = useCallback(async (roomId: string, deviceId: string) => {
+    const toggleDevice = useCallback(async (roomId: string, deviceId: string): Promise<{ success: boolean; error?: string }> => {
         const currentDevice = (devices[roomId] || []).find(device => device.id === deviceId);
-        if (!currentDevice) return;
+        if (!currentDevice) return { success: false, error: 'Không tìm thấy thiết bị' };
 
         const nextState = !currentDevice.isOn;
 
@@ -173,10 +173,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             addLog(currentDevice.isOn ? 'Tắt thiết bị' : 'Bật thiết bị', currentDevice.name, getRoomName(roomId));
+            return { success: true };
         } catch (error) {
             console.error('Error toggling device:', error);
-            setServerError(error instanceof Error ? error.message : 'Không thể điều khiển thiết bị');
+            const message = error instanceof Error ? error.message : 'Không thể điều khiển thiết bị';
+            setServerError(message);
             addLog('Lỗi điều khiển thiết bị', currentDevice.name, getRoomName(roomId));
+            return { success: false, error: message };
         }
     }, [addLog, client, devices, getRoomName, isConfigured, isServerControlled, refresh, updateLocalHouse]);
 

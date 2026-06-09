@@ -36,7 +36,7 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
             ) : (
                 <Text style={{ fontSize: 20 }}>{icons[label] || '📱'}</Text>
             )}
-            <Text style={{ fontSize: 10, fontWeight: focused ? '600' : '400', color: focused ? Colors.primary[600] : Colors.slate[400] }}>{label}</Text>
+            <Text style={{ fontSize: 10, fontWeight: focused ? '800' : '600', color: focused ? '#0f766e' : '#94a3b8' }}>{label}</Text>
         </View>
     );
 }
@@ -52,8 +52,13 @@ function MainTabs() {
                     height: 70,
                     paddingBottom: 10,
                     paddingTop: 8,
-                    backgroundColor: 'rgba(255,255,255,0.95)',
-                    borderTopColor: Colors.slate[200],
+                    backgroundColor: 'rgba(248,251,249,0.97)',
+                    borderTopColor: '#dce7e1',
+                    shadowColor: '#173a31',
+                    shadowOpacity: 0.08,
+                    shadowRadius: 18,
+                    shadowOffset: { width: 0, height: -8 },
+                    elevation: 10,
                 },
                 tabBarShowLabel: false,
             }}
