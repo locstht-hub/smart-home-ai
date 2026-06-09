@@ -13,9 +13,9 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
-    owner: { bg: Colors.primary[100], text: Colors.primary[700] },
-    member: { bg: Colors.purple[100], text: Colors.purple[600] },
-    viewer: { bg: Colors.slate[200], text: Colors.slate[600] },
+    owner: { bg: '#e0f2ef', text: '#0f766e' },
+    member: { bg: '#fff0cf', text: Colors.amber[700] },
+    viewer: { bg: '#e7eee9', text: '#50645c' },
 };
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -319,7 +319,7 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
     if (loading) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color={Colors.primary[500]} />
+                <ActivityIndicator size="large" color="#0f766e" />
                 <Text style={styles.loadingText}>Đang tải danh sách...</Text>
             </View>
         );
@@ -327,7 +327,7 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
 
     return (
         <View style={styles.container}>
-            <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.header}>
+            <LinearGradient colors={['#10251f', '#173a31', '#0f172a']} style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Text style={styles.backBtnText}>{'<'} Quay lại</Text>
                 </TouchableOpacity>
@@ -340,7 +340,7 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                 keyExtractor={item => item.id}
                 renderItem={renderMemberCard}
                 contentContainerStyle={styles.listContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.primary[500]]} />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#0f766e']} />}
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyIcon}>👥</Text>
@@ -498,109 +498,112 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background },
-    centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-    loadingText: { marginTop: 12, color: Colors.slate[500], fontSize: 14 },
+    container: { flex: 1, backgroundColor: '#edf3f0' },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#edf3f0' },
+    loadingText: { marginTop: 12, color: '#61736c', fontSize: 14, fontWeight: '700' },
 
     // Header
-    header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20 },
+    header: { paddingTop: 50, paddingBottom: 22, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(209, 250, 229, 0.14)', shadowColor: '#10251f', shadowOpacity: 0.2, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
     backBtn: { marginBottom: 12 },
-    backBtnText: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '500' },
-    headerTitle: { fontSize: 22, fontWeight: '700', color: '#fff' },
-    headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+    backBtnText: { color: 'rgba(236,253,245,0.86)', fontSize: 14, fontWeight: '800' },
+    headerTitle: { fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+    headerSub: { fontSize: 13, color: 'rgba(236,253,245,0.72)', marginTop: 4, fontWeight: '600' },
 
     // List
     listContent: { padding: 16, paddingBottom: 100 },
 
     // Member card
     memberCard: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
+        backgroundColor: '#f8fbf9',
+        borderRadius: 18,
         padding: 16,
         marginBottom: 12,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 3,
+        shadowColor: '#173a31',
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 9 },
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#dce7e1',
     },
     memberHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
     memberAvatar: {
         width: 46,
         height: 46,
-        borderRadius: 23,
-        backgroundColor: Colors.primary[100],
+        borderRadius: 14,
+        backgroundColor: '#e0f2ef',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
     },
-    memberAvatarText: { fontSize: 20, fontWeight: '700', color: Colors.primary[600] },
+    memberAvatarText: { fontSize: 20, fontWeight: '900', color: '#0f766e' },
     memberInfo: { flex: 1 },
-    memberName: { fontSize: 16, fontWeight: '600', color: Colors.slate[800] },
-    memberUsername: { fontSize: 12, color: Colors.slate[500], marginTop: 2 },
-    memberPhone: { fontSize: 12, color: Colors.slate[400], marginTop: 1 },
+    memberName: { fontSize: 16, fontWeight: '900', color: '#13251f' },
+    memberUsername: { fontSize: 12, color: '#61736c', marginTop: 2, fontWeight: '700' },
+    memberPhone: { fontSize: 12, color: '#7c8c86', marginTop: 1 },
 
     // Badges
     badgeRow: { flexDirection: 'row', gap: 6, marginBottom: 12 },
-    badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-    badgeText: { fontSize: 11, fontWeight: '600' },
+    badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9 },
+    badgeText: { fontSize: 11, fontWeight: '800' },
 
     // Actions
     actionRow: { flexDirection: 'row', gap: 8 },
-    actionBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-    suspendBtn: { backgroundColor: Colors.amber[50], borderWidth: 1, borderColor: Colors.amber[200] },
-    suspendBtnText: { color: Colors.amber[700], fontWeight: '600', fontSize: 13 },
-    activateBtn: { backgroundColor: Colors.green[50], borderWidth: 1, borderColor: Colors.green[400] },
-    activateBtnText: { color: Colors.green[700], fontWeight: '600', fontSize: 13 },
-    passwordBtn: { backgroundColor: Colors.blue[50], borderWidth: 1, borderColor: Colors.blue[200] },
-    passwordBtnText: { color: Colors.blue[700], fontWeight: '600', fontSize: 13 },
-    deleteBtn: { backgroundColor: Colors.red[50], borderWidth: 1, borderColor: Colors.red[200] },
-    deleteBtnText: { color: Colors.red[600], fontWeight: '600', fontSize: 13 },
+    actionBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+    suspendBtn: { backgroundColor: '#fff8e6', borderWidth: 1, borderColor: '#f5d991' },
+    suspendBtnText: { color: Colors.amber[700], fontWeight: '800', fontSize: 13 },
+    activateBtn: { backgroundColor: '#d9f3df', borderWidth: 1, borderColor: '#86efac' },
+    activateBtnText: { color: Colors.green[700], fontWeight: '800', fontSize: 13 },
+    passwordBtn: { backgroundColor: '#e0f2ef', borderWidth: 1, borderColor: '#b8ded7' },
+    passwordBtnText: { color: '#0f766e', fontWeight: '800', fontSize: 13 },
+    deleteBtn: { backgroundColor: '#fff4f2', borderWidth: 1, borderColor: '#fecaca' },
+    deleteBtnText: { color: Colors.red[600], fontWeight: '800', fontSize: 13 },
     ownerNote: { paddingVertical: 8, alignItems: 'center' },
-    ownerNoteText: { color: Colors.slate[400], fontSize: 12, fontStyle: 'italic' },
+    ownerNoteText: { color: '#7c8c86', fontSize: 12, fontStyle: 'italic', fontWeight: '600' },
 
     // Empty
     emptyState: { alignItems: 'center', paddingVertical: 60 },
     emptyIcon: { fontSize: 48, marginBottom: 12 },
-    emptyTitle: { fontSize: 18, fontWeight: '600', color: Colors.slate[600], marginBottom: 6 },
-    emptySub: { fontSize: 13, color: Colors.slate[400], textAlign: 'center', paddingHorizontal: 40 },
+    emptyTitle: { fontSize: 18, fontWeight: '800', color: '#50645c', marginBottom: 6 },
+    emptySub: { fontSize: 13, color: '#7c8c86', textAlign: 'center', paddingHorizontal: 40 },
 
     // Activity log
     activitySection: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
+        backgroundColor: '#f8fbf9',
+        borderRadius: 18,
         padding: 16,
         marginTop: 8,
         marginBottom: 96,
         borderWidth: 1,
-        borderColor: Colors.slate[100],
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
+        borderColor: '#dce7e1',
+        shadowColor: '#173a31',
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 9 },
         elevation: 2,
     },
     activityHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    activityTitle: { fontSize: 16, fontWeight: '700', color: Colors.slate[800] },
-    activityRefresh: { fontSize: 13, fontWeight: '600', color: Colors.primary[600] },
+    activityTitle: { fontSize: 16, fontWeight: '900', color: '#13251f' },
+    activityRefresh: { fontSize: 13, fontWeight: '800', color: '#0f766e' },
     activityEmpty: { paddingVertical: 14, alignItems: 'center' },
-    activityEmptyText: { color: Colors.slate[400], fontSize: 13 },
+    activityEmptyText: { color: '#7c8c86', fontSize: 13 },
     activityItem: {
         flexDirection: 'row',
         alignItems: 'flex-start',
         paddingVertical: 10,
         borderTopWidth: 1,
-        borderTopColor: Colors.slate[100],
+        borderTopColor: '#dce7e1',
     },
     activityDot: {
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: Colors.primary[500],
+        backgroundColor: '#0f766e',
         marginTop: 5,
         marginRight: 10,
     },
-    activityText: { color: Colors.slate[700], fontSize: 13, lineHeight: 18 },
-    activityTime: { color: Colors.slate[400], fontSize: 11, marginTop: 3 },
+    activityText: { color: '#50645c', fontSize: 13, lineHeight: 18 },
+    activityTime: { color: '#7c8c86', fontSize: 11, marginTop: 3 },
 
     // FAB
     fab: {
@@ -608,11 +611,11 @@ const styles = StyleSheet.create({
         bottom: 24,
         right: 20,
         left: 20,
-        backgroundColor: Colors.primary[600],
+        backgroundColor: '#0f766e',
         borderRadius: 16,
         paddingVertical: 16,
         alignItems: 'center',
-        shadowColor: Colors.primary[700],
+        shadowColor: '#173a31',
         shadowOpacity: 0.3,
         shadowRadius: 12,
         shadowOffset: { width: 0, height: 4 },
@@ -621,33 +624,33 @@ const styles = StyleSheet.create({
     fabText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
     // Modal
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-    modalTitle: { fontSize: 20, fontWeight: '600', color: Colors.slate[800], marginBottom: 8 },
-    modalHint: { fontSize: 12, color: Colors.slate[500], marginBottom: 16, lineHeight: 18 },
-    modalInput: { backgroundColor: Colors.slate[50], borderRadius: 12, padding: 14, fontSize: 16, color: Colors.slate[800], borderWidth: 1, borderColor: Colors.slate[200], marginBottom: 10 },
-    modalLabel: { fontSize: 13, fontWeight: '600', color: Colors.slate[700], marginBottom: 8, marginTop: 4 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.56)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#f8fbf9', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, shadowColor: '#10251f', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: -10 }, elevation: 5 },
+    modalTitle: { fontSize: 20, fontWeight: '900', color: '#13251f', marginBottom: 8, letterSpacing: -0.2 },
+    modalHint: { fontSize: 12, color: '#61736c', marginBottom: 16, lineHeight: 18 },
+    modalInput: { backgroundColor: '#edf3f0', borderRadius: 14, padding: 14, fontSize: 16, color: '#13251f', borderWidth: 1, borderColor: '#cddbd5', marginBottom: 10, fontWeight: '700' },
+    modalLabel: { fontSize: 13, fontWeight: '800', color: '#50645c', marginBottom: 8, marginTop: 4 },
 
     // Role selector
     roleRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-    roleOption: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: Colors.slate[200], backgroundColor: Colors.slate[50], alignItems: 'center' },
-    roleOptionActive: { borderColor: Colors.primary[500], backgroundColor: Colors.primary[50] },
-    roleOptionText: { color: Colors.slate[600], fontWeight: '600', fontSize: 14 },
-    roleOptionTextActive: { color: Colors.primary[700] },
-    roleOptionHint: { color: Colors.slate[400], fontSize: 11, marginTop: 4 },
+    roleOption: { flex: 1, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#cddbd5', backgroundColor: '#edf3f0', alignItems: 'center' },
+    roleOptionActive: { borderColor: '#0f766e', backgroundColor: '#e0f2ef' },
+    roleOptionText: { color: '#50645c', fontWeight: '800', fontSize: 14 },
+    roleOptionTextActive: { color: '#0f766e' },
+    roleOptionHint: { color: '#7c8c86', fontSize: 11, marginTop: 4 },
 
     // Toggle
     toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-    toggle: { width: 48, height: 26, borderRadius: 13, backgroundColor: Colors.slate[300], justifyContent: 'center', paddingHorizontal: 2 },
-    toggleActive: { backgroundColor: Colors.green[500] },
-    toggleCircle: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
+    toggle: { width: 50, height: 28, borderRadius: 14, backgroundColor: '#cddbd5', justifyContent: 'center', paddingHorizontal: 2 },
+    toggleActive: { backgroundColor: '#16a34a' },
+    toggleCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', shadowColor: '#173a31', shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
     toggleCircleActive: { alignSelf: 'flex-end' },
-    toggleLabel: { fontSize: 13, color: Colors.slate[700], fontWeight: '500' },
+    toggleLabel: { fontSize: 13, color: '#50645c', fontWeight: '800' },
 
     // Modal buttons
     modalBtnRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
-    modalCancelBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.slate[100], alignItems: 'center' },
-    modalCancelText: { color: Colors.slate[600], fontWeight: '500' },
-    modalSaveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.primary[600], alignItems: 'center' },
-    modalSaveText: { color: '#fff', fontWeight: '600' },
+    modalCancelBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#e7eee9', alignItems: 'center' },
+    modalCancelText: { color: '#50645c', fontWeight: '800' },
+    modalSaveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#0f766e', alignItems: 'center' },
+    modalSaveText: { color: '#fff', fontWeight: '800' },
 });
