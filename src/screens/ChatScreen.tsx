@@ -14,6 +14,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVoice, VoiceEvent, VoiceKit, VoiceMode } from 'react-native-voicekit';
 import * as Speech from 'expo-speech';
+import type { Voice } from 'expo-speech';
 import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { useData } from '../contexts/DataContext';
@@ -41,6 +42,37 @@ const QUICK_REPLIES = [
     'bật chế độ ngủ',
 ];
 
+const VIETNAMESE_LANGUAGE = 'vi-VN';
+
+function getVoiceScore(voice: Voice) {
+    const language = voice.language.toLowerCase();
+    const name = voice.name.toLowerCase();
+    let score = 0;
+
+    if (language === 'vi-vn') score += 50;
+    else if (language.startsWith('vi')) score += 35;
+    if (voice.quality === Speech.VoiceQuality.Enhanced) score += 30;
+    if (name.includes('google')) score += 8;
+    if (name.includes('vietnam') || name.includes('viet')) score += 8;
+    if (name.includes('female') || name.includes('woman') || name.includes('nu')) score += 3;
+
+    return score;
+}
+
+function pickVietnameseVoice(voices: Voice[]) {
+    return voices
+        .filter(voice => voice.language.toLowerCase().startsWith('vi'))
+        .sort((a, b) => getVoiceScore(b) - getVoiceScore(a))[0]?.identifier;
+}
+
+function prepareTextForSpeech(text: string) {
+    return text
+        .replace(/https?:\/\/\S+/g, 'đường dẫn')
+        .replace(/[`*_#>|[\]{}]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 export default function ChatScreen() {
     const { user } = useAuth();
     const { client, isConfigured, status } = useSmartHomeServer();
@@ -64,6 +96,7 @@ export default function ChatScreen() {
     const [voiceError, setVoiceError] = useState<string | null>(null);
     const [isVoiceStarting, setIsVoiceStarting] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
+    const [speechVoice, setSpeechVoice] = useState<string | undefined>(undefined);
     const {
         available: isVoiceAvailable,
         listening: isListening,
@@ -90,6 +123,21 @@ export default function ChatScreen() {
         return () => clearInterval(keepWarmInterval);
     }, [client, isConfigured]);
 
+    useEffect(() => {
+        let isMounted = true;
+
+        Speech.getAvailableVoicesAsync()
+            .then(voices => {
+                if (!isMounted) return;
+                setSpeechVoice(pickVietnameseVoice(voices));
+            })
+            .catch(() => undefined);
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
     // Cleanup speech on unmount
     useEffect(() => {
         return () => {
@@ -113,10 +161,19 @@ export default function ChatScreen() {
         setMessages(previous => GiftedChat.append(previous, [botReply]));
 
         if (!isMuted) {
+            const speechText = prepareTextForSpeech(text);
             Speech.stop();
-            Speech.speak(text, { language: 'vi-VN' });
+            if (speechText) {
+                Speech.speak(speechText, {
+                    language: VIETNAMESE_LANGUAGE,
+                    voice: speechVoice,
+                    rate: Platform.OS === 'android' ? 0.9 : 0.88,
+                    pitch: 1.02,
+                    volume: 1,
+                });
+            }
         }
-    }, [isMuted]);
+    }, [isMuted, speechVoice]);
 
     const buildUserMessage = useCallback((text: string): IMessage => ({
         _id: `user-${Date.now()}`,
