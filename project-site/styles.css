@@ -1739,3 +1739,284 @@ nav a:hover::after {
   0%, 80%, 100% { transform: scale(0); }
   40% { transform: scale(1); }
 }
+
+/* Brand alignment refresh: match the mobile app and admin console */
+:root {
+  --ink: #13251f;
+  --muted: #61736c;
+  --surface: rgba(248, 251, 249, 0.94);
+  --surface-solid: #f8fbf9;
+  --surface-soft: #eef4f1;
+  --line: #dce7e1;
+  --line-glow: rgba(15, 118, 110, 0.14);
+  --dark: #edf3f0;
+  --dark-2: #e7eee9;
+  --teal: #0f766e;
+  --teal-glow: rgba(15, 118, 110, 0.16);
+  --cyan: #0f766e;
+  --cyan-glow: rgba(15, 118, 110, 0.16);
+  --blue: #115e59;
+  --blue-glow: rgba(17, 94, 89, 0.14);
+  --green: #15803d;
+  --amber: #d97706;
+  --purple: #61736c;
+  --purple-glow: rgba(97, 115, 108, 0.14);
+  --shadow: 0 18px 42px rgba(23, 58, 49, 0.1);
+  --glass-blur: blur(10px);
+  --transition: all 180ms ease;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(15, 118, 110, 0.1), transparent 30rem),
+    radial-gradient(circle at 12% 18%, rgba(217, 119, 6, 0.08), transparent 22rem),
+    linear-gradient(180deg, #f8fbf9 0%, #edf3f0 42%, #e7eee9 100%);
+  color: var(--ink);
+}
+
+body::before {
+  background-image:
+    linear-gradient(rgba(19, 37, 31, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(19, 37, 31, 0.025) 1px, transparent 1px);
+  background-size: 38px 38px;
+  opacity: 1;
+  animation: none;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 72%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 72%);
+}
+
+.topbar {
+  background: rgba(248, 251, 249, 0.86);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(23, 58, 49, 0.08);
+}
+
+.brand,
+nav a {
+  color: var(--ink);
+}
+
+.brand img {
+  border-color: rgba(15, 118, 110, 0.26);
+  box-shadow: 0 10px 24px rgba(23, 58, 49, 0.12);
+}
+
+.brand:hover img {
+  border-color: var(--teal);
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.18);
+}
+
+nav {
+  color: var(--muted);
+}
+
+nav a::after {
+  background: linear-gradient(90deg, var(--teal), var(--amber));
+}
+
+nav a:hover {
+  color: var(--teal);
+}
+
+.hero {
+  min-height: calc(88dvh - 76px);
+  background:
+    linear-gradient(90deg, rgba(248, 251, 249, 0.96) 0%, rgba(248, 251, 249, 0.9) 52%, rgba(248, 251, 249, 0.44) 100%),
+    url("assets/screen1.png") right 8vw center / min(410px, 38vw) auto no-repeat,
+    linear-gradient(135deg, #f8fbf9 0%, #edf3f0 55%, #e7eee9 100%);
+  color: var(--ink);
+}
+
+.hero::before {
+  background: linear-gradient(90deg, rgba(15, 118, 110, 0.14), rgba(217, 119, 6, 0.1));
+  filter: blur(28px);
+}
+
+.hero::after {
+  display: none;
+}
+
+.hero-grid {
+  border-color: rgba(15, 118, 110, 0.08);
+  background:
+    linear-gradient(rgba(19, 37, 31, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(19, 37, 31, 0.04) 1px, transparent 1px);
+  opacity: 0.65;
+}
+
+.hero-subtitle,
+.lead,
+.section-heading p,
+.control-flow p,
+.forecast-panel small,
+.site-footer span,
+.contact-card small,
+.metric-card small,
+.workflow-item span,
+.status-card p,
+.progress-item p,
+.check-list p,
+.timeline p {
+  color: var(--muted);
+}
+
+.eyebrow,
+.progress-kicker {
+  color: var(--teal);
+  letter-spacing: 0.08em;
+}
+
+.primary-action,
+.chat-form button,
+.floating-chat-toggle,
+.summary-link {
+  background: linear-gradient(135deg, var(--teal), #115e59);
+  color: #ffffff;
+  box-shadow: 0 14px 28px rgba(15, 118, 110, 0.18);
+}
+
+.secondary-action {
+  background: #f8fbf9;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 24px rgba(23, 58, 49, 0.08);
+}
+
+.primary-action:hover,
+.secondary-action:hover,
+.chat-form button:hover,
+.floating-chat-toggle:hover,
+.summary-link:hover {
+  transform: translateY(-2px);
+}
+
+.hero-strip,
+.hero-status-panel article,
+.status-rail article,
+.metric-card,
+.workflow-item,
+.control-flow,
+.forecast-panel,
+.status-card,
+.contact-card,
+.floating-chat-panel,
+.progress-hero,
+.status-panel,
+.progress-item,
+.check-list div,
+.timeline div {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.hero-strip span,
+.model-chip,
+.rail-label,
+.status-card span,
+.contact-card span,
+.progress-item span,
+.status-panel span,
+.assistant-mode span,
+.quick-prompts button {
+  background: #e0f2ef;
+  color: var(--teal);
+  border-color: rgba(15, 118, 110, 0.14);
+}
+
+.hero-status-panel strong,
+.metric-card strong,
+.workflow-item strong,
+.control-flow strong,
+.status-card strong,
+.contact-card strong,
+.status-panel strong,
+.progress-item h3,
+.check-list strong {
+  color: var(--ink);
+}
+
+.overview-section,
+.metrics-section,
+.architecture-section,
+.forecast-section,
+.mobile-section,
+.status-section,
+.contact-section,
+.progress-section,
+.alt-section {
+  background: transparent;
+}
+
+.phone-showcase .device-shell,
+.device-shell {
+  background: linear-gradient(180deg, #10251f 0%, #0f172a 100%);
+  box-shadow: 0 24px 54px rgba(23, 58, 49, 0.18);
+}
+
+.forecast-chart {
+  background: #edf3f0;
+  border-color: var(--line);
+}
+
+.forecast-chart span {
+  background: linear-gradient(180deg, var(--teal), #115e59);
+}
+
+.forecast-chart span.predicted {
+  background: linear-gradient(180deg, var(--amber), #b45309);
+}
+
+.quota-progress-container,
+.chat-form input,
+.floating-chat-log {
+  background: #edf3f0;
+  border-color: var(--line);
+}
+
+.quota-progress-bar {
+  background: linear-gradient(90deg, var(--teal), var(--amber));
+}
+
+.message.bot {
+  background: #edf3f0;
+  color: var(--ink);
+}
+
+.message.user {
+  background: linear-gradient(135deg, var(--teal), #115e59);
+  color: #ffffff;
+}
+
+.floating-chat-header,
+.site-footer {
+  background: rgba(248, 251, 249, 0.94);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.robot-face {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.robot-eye,
+.robot-mouth,
+.typing-dot {
+  background: #ffffff;
+}
+
+.floating-chat-panel .typing-dot {
+  background: var(--teal);
+}
+
+@media (max-width: 760px) {
+  .hero {
+    background:
+      linear-gradient(180deg, rgba(248, 251, 249, 0.96), rgba(248, 251, 249, 0.86)),
+      url("assets/screen1.png") center bottom 2rem / min(280px, 74vw) auto no-repeat,
+      linear-gradient(135deg, #f8fbf9 0%, #edf3f0 100%);
+    padding-bottom: 300px;
+  }
+}

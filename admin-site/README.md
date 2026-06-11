@@ -10,12 +10,9 @@ Web admin tĩnh cho `system_admin`.
 - Xem danh sách tài khoản bằng `GET /api/admin/users`
 - Xem lịch sử hoạt động bằng `GET /api/admin/audit-logs`
 
-## Tài khoản mẫu
+## Tài khoản quản trị
 
-```text
-username: admin
-password: admin123
-```
+Tài khoản `system_admin` do backend cấp. Không lưu hoặc công bố mật khẩu mặc định trong repo/site public.
 
 ## API
 

@@ -57,7 +57,7 @@ window.PROJECT_KNOWLEDGE = {
     {
       question: "MFM384 đo thông số nào?",
       answer:
-        "Bản demo tập trung vào các thông số chính: điện áp V, dòng điện I, công suất kW và điện năng kWh. Trong PLC/MFM384, tag có thể đặt tên như V1N, I1N, Total kW và Total kWh.",
+        "Phiên bản hiện tại tập trung vào các thông số chính: điện áp V, dòng điện I, công suất kW và điện năng kWh. Trong PLC/MFM384, tag có thể đặt tên như V1N, I1N, Total kW và Total kWh.",
       keywords: ["mfm384", "dien ap", "dong dien", "cong suat", "kwh"],
     },
     {

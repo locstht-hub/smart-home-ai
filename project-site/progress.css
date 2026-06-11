@@ -333,3 +333,81 @@ code {
     font-size: 24px;
   }
 }
+
+/* Brand alignment for the progress page */
+.progress-hero {
+  background:
+    radial-gradient(circle at top right, rgba(15, 118, 110, 0.1), transparent 30rem),
+    radial-gradient(circle at 12% 18%, rgba(217, 119, 6, 0.08), transparent 22rem),
+    linear-gradient(180deg, #f8fbf9 0%, #edf3f0 100%);
+  color: var(--ink);
+}
+
+.progress-hero h1 {
+  color: var(--ink);
+}
+
+.progress-kicker {
+  color: var(--teal);
+  letter-spacing: 0.08em;
+}
+
+.progress-hero .lead,
+.next-list,
+.timeline p,
+.check-list p {
+  color: var(--muted);
+}
+
+.status-panel > div,
+.progress-item,
+.check-list > div,
+.timeline > div,
+.architecture-flow > div {
+  background: rgba(248, 251, 249, 0.94);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+}
+
+.status-panel > div:hover,
+.progress-item:hover,
+.check-list > div:hover,
+.timeline > div:hover {
+  border-color: rgba(15, 118, 110, 0.18);
+  box-shadow: 0 18px 42px rgba(23, 58, 49, 0.12);
+}
+
+.status-panel strong,
+.progress-item h3,
+.check-list strong,
+.timeline strong,
+.architecture-flow > div {
+  color: var(--ink);
+}
+
+.progress-section,
+.alt-section {
+  background: transparent;
+}
+
+.alt-section {
+  border-block: 1px solid var(--line);
+}
+
+.architecture-flow span,
+.timeline span,
+.progress-item span {
+  background: #e0f2ef;
+  border-color: rgba(15, 118, 110, 0.14);
+  color: var(--teal);
+}
+
+.summary-band {
+  background: linear-gradient(135deg, #10251f 0%, #115e59 100%);
+}
+
+code {
+  background: #edf3f0;
+  border-color: var(--line);
+  color: var(--teal);
+}
