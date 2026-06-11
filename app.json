@@ -25,7 +25,6 @@
       "permissions": [
         "RECORD_AUDIO"
       ],
-      "usesCleartextTraffic": true,
       "package": "com.anonymous.smarthomeapp"
     },
     "web": {
