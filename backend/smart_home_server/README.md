@@ -20,6 +20,15 @@ pip install -r requirements.txt
 python app.py
 ```
 
+Mac dinh backend dung SQLite local. Neu muon dung Supabase/Postgres, dat bien moi truong `DATABASE_URL` truoc khi chay:
+
+```powershell
+$env:DATABASE_URL="postgresql://postgres.<project-ref>:<password>@aws-...pooler.supabase.com:6543/postgres?sslmode=require"
+python app.py
+```
+
+Co the copy file `.env.example` thanh `.env` de luu cau hinh local, nhung khong commit `.env`.
+
 Mac dinh server chay:
 
 ```text
@@ -84,7 +93,7 @@ PATCH /api/admin/homes/<home_id>/activate
 
 ## Tai khoan va phan quyen
 
-Backend da co nen mong SQLite cho 2 tang quan tri:
+Backend da co nen mong SQLite/Postgres cho 2 tang quan tri:
 
 ```text
 system_admin -> dung cho web admin quan ly cac nha/tai khoan cha
@@ -93,10 +102,17 @@ member       -> tai khoan con, dieu khien theo quyen duoc cap
 viewer       -> chi xem trang thai
 ```
 
-File database mac dinh:
+File database mac dinh neu khong co `DATABASE_URL`:
 
 ```text
 backend/smart_home_server/smart_home_auth.db
+```
+
+Neu co `DATABASE_URL`, backend se dung Supabase/Postgres qua `PostgresAuthStore`. Xem them:
+
+```text
+backend/smart_home_server/SUPABASE_MIGRATION_PLAN.md
+backend/smart_home_server/migrations/001_supabase_schema.sql
 ```
 
 Lan dau chay server se tu tao tai khoan mau:
@@ -158,7 +174,7 @@ Chi `system_admin` moi doc duoc audit log toan he thong.
 
 ## Power readings theo nha
 
-Backend luu lich su dien nang theo `homeId` trong bang SQLite `power_readings`.
+Backend luu lich su dien nang theo `homeId` trong bang `power_readings`. Bang nay nam trong SQLite local hoac Supabase/Postgres tuy theo `DATABASE_URL`.
 
 ```text
 GET  /api/power/history?limit=288

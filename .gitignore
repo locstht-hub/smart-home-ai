@@ -44,6 +44,8 @@ yarn-error.*
 .env*.local
 .env
 .env.*
+!.env.example
+!backend/**/.env.example
 
 # Python
 __pycache__/

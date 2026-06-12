@@ -430,7 +430,15 @@ def create_app() -> Flask:
     configured_db_path = Path(str(config.get("database", {}).get("path", AUTH_DB_PATH)))
     if not configured_db_path.is_absolute():
         configured_db_path = BASE_DIR / configured_db_path
-    auth_store = AuthStore(configured_db_path)
+    database_url = os.environ.get("DATABASE_URL", "").strip()
+    database_kind = "postgres" if database_url else "sqlite"
+    database_label = "Supabase/Postgres via DATABASE_URL" if database_url else str(configured_db_path.resolve())
+    if database_url:
+        from postgres_auth_store import PostgresAuthStore
+
+        auth_store = PostgresAuthStore(database_url)
+    else:
+        auth_store = AuthStore(configured_db_path)
 
     app = Flask(__name__)
     app.json.ensure_ascii = False
@@ -839,7 +847,6 @@ def create_app() -> Flask:
     @app.get("/api/system/status")
     def system_status() -> Any:
         current_user = get_current_user()
-        database_path = configured_db_path.resolve()
         collector_snapshot = current_collector_status()
         if mode == "mock":
             effective_mode = "mock"
@@ -867,7 +874,11 @@ def create_app() -> Flask:
                 "plcHost": plc.get("host"),
                 "plcRack": plc.get("rack", 0),
                 "plcSlot": plc.get("slot", 1),
-                "databasePath": str(database_path),
+                "database": {
+                    "kind": database_kind,
+                    "label": database_label,
+                },
+                "databasePath": database_label,
                 "statePath": str(STATE_PATH.resolve()),
                 "serverTime": datetime.now(timezone.utc).isoformat(),
                 "authUser": current_user,
