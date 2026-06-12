@@ -2020,3 +2020,319 @@ nav a:hover {
     padding-bottom: 300px;
   }
 }
+
+/* Visual repair: keep the product site premium, not half-light/half-dark */
+:root {
+  --ink: #f8fafc;
+  --muted: #b8c7c1;
+  --surface: rgba(16, 37, 31, 0.78);
+  --surface-solid: #10251f;
+  --surface-soft: #0b1714;
+  --line: rgba(220, 231, 225, 0.14);
+  --line-glow: rgba(45, 212, 191, 0.18);
+  --dark: #07110f;
+  --dark-2: #10251f;
+  --teal: #14b8a6;
+  --teal-glow: rgba(20, 184, 166, 0.22);
+  --cyan: #2dd4bf;
+  --cyan-glow: rgba(45, 212, 191, 0.25);
+  --blue: #0f766e;
+  --blue-glow: rgba(15, 118, 110, 0.25);
+  --green: #34d399;
+  --amber: #d97706;
+  --purple: #94a3b8;
+  --purple-glow: rgba(148, 163, 184, 0.16);
+  --shadow: 0 22px 54px rgba(3, 18, 15, 0.32);
+  --glass-blur: blur(14px);
+  --transition: all 220ms ease;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(20, 184, 166, 0.16), transparent 28rem),
+    radial-gradient(circle at 84% 12%, rgba(217, 119, 6, 0.11), transparent 22rem),
+    linear-gradient(180deg, #07110f 0%, #10251f 46%, #07110f 100%);
+  color: var(--ink);
+}
+
+body::before {
+  background:
+    linear-gradient(rgba(236, 253, 245, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(236, 253, 245, 0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  opacity: 0.62;
+  animation: none;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent 76%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent 76%);
+}
+
+.topbar {
+  background: rgba(7, 17, 15, 0.86);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(3, 18, 15, 0.24);
+}
+
+.brand,
+nav a {
+  color: #f8fafc;
+}
+
+nav {
+  color: #b8c7c1;
+}
+
+nav a:hover {
+  color: var(--cyan);
+}
+
+.brand img {
+  border-color: rgba(45, 212, 191, 0.26);
+  box-shadow: 0 12px 26px rgba(20, 184, 166, 0.18);
+}
+
+.hero {
+  min-height: calc(92dvh - 76px);
+  background:
+    radial-gradient(circle at 78% 28%, rgba(20, 184, 166, 0.12), transparent 22rem),
+    radial-gradient(circle at 86% 70%, rgba(217, 119, 6, 0.08), transparent 18rem),
+    linear-gradient(135deg, #07110f 0%, #10251f 54%, #0b1714 100%);
+  color: var(--ink);
+}
+
+.hero::before {
+  background: linear-gradient(90deg, rgba(20, 184, 166, 0.24), rgba(217, 119, 6, 0.15));
+  opacity: 0.6;
+  filter: blur(32px);
+}
+
+.hero h1 {
+  max-width: 780px;
+  color: #f8fafc;
+  font-size: clamp(48px, 7.4vw, 88px);
+  text-shadow: 0 12px 34px rgba(0, 0, 0, 0.36);
+}
+
+.hero-inner {
+  animation: none;
+}
+
+.hero-subtitle {
+  max-width: 760px;
+  color: #dbe7e2;
+}
+
+.lead,
+.hero-subtitle,
+.section-heading p,
+.control-flow p,
+.forecast-panel small,
+.site-footer span,
+.contact-card small,
+.metric-card small,
+.workflow-item span,
+.status-card p {
+  color: var(--muted);
+}
+
+.section h2,
+.section-heading h2,
+.control-flow strong,
+.metric-card strong,
+.workflow-item strong,
+.status-card strong,
+.contact-card strong {
+  color: #f8fafc;
+}
+
+.eyebrow,
+.progress-kicker {
+  color: var(--cyan);
+}
+
+.primary-action,
+.chat-form button,
+.floating-chat-toggle,
+.summary-link {
+  background: linear-gradient(135deg, var(--teal), var(--blue));
+  color: #ffffff;
+  box-shadow: 0 14px 30px rgba(20, 184, 166, 0.22);
+}
+
+.secondary-action {
+  background: rgba(236, 253, 245, 0.08);
+  color: #f8fafc;
+  border: 1px solid rgba(236, 253, 245, 0.14);
+  box-shadow: none;
+}
+
+.hero-strip {
+  width: fit-content;
+  max-width: 100%;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.hero-strip span,
+.model-chip,
+.rail-label,
+.status-card span,
+.contact-card span,
+.assistant-mode span,
+.quick-prompts button {
+  background: rgba(224, 242, 239, 0.1);
+  color: #99f6e4;
+  border-color: rgba(45, 212, 191, 0.18);
+}
+
+.hero-status-panel article,
+.status-rail article,
+.metric-card,
+.workflow-item,
+.control-flow,
+.forecast-panel,
+.status-card,
+.contact-card,
+.floating-chat-panel {
+  background:
+    linear-gradient(145deg, rgba(236, 253, 245, 0.08), rgba(236, 253, 245, 0.025)),
+    rgba(16, 37, 31, 0.78);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.hero-status-panel strong,
+.hero-status-panel span,
+.metric-card span,
+.contact-card span {
+  color: #dbe7e2;
+}
+
+.hero-status-panel strong,
+.metric-card strong {
+  color: #f8fafc;
+}
+
+.forecast-chart,
+.quota-progress-container,
+.chat-form input,
+.floating-chat-log {
+  background: rgba(7, 17, 15, 0.5);
+  border-color: var(--line);
+}
+
+.message.bot {
+  background: rgba(236, 253, 245, 0.08);
+  color: #f8fafc;
+}
+
+.message.user {
+  background: linear-gradient(135deg, var(--teal), var(--blue));
+}
+
+.floating-chat-header,
+.site-footer {
+  background: rgba(7, 17, 15, 0.88);
+  border-color: var(--line);
+  color: #f8fafc;
+}
+
+.phone-showcase .device-shell,
+.device-shell {
+  background: linear-gradient(180deg, #10251f 0%, #07110f 100%);
+  box-shadow: 0 28px 64px rgba(3, 18, 15, 0.42);
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    display: grid;
+    gap: 12px;
+    min-height: auto;
+    padding: 14px 18px;
+  }
+
+  .brand {
+    justify-self: center;
+  }
+
+  nav {
+    width: 100%;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 18px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  nav a {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .hero {
+    min-height: auto;
+    padding-bottom: 64px;
+    background:
+      radial-gradient(circle at top, rgba(20, 184, 166, 0.18), transparent 22rem),
+      linear-gradient(180deg, #07110f 0%, #10251f 100%);
+    text-align: center;
+  }
+
+  .hero-inner {
+    width: min(100%, calc(100vw - 32px));
+    padding: 56px 16px 0;
+    margin: 0 auto;
+  }
+
+  .hero h1 {
+    max-width: 320px;
+    margin: 0 auto;
+    font-size: clamp(38px, 11.5vw, 46px);
+    line-height: 1;
+    letter-spacing: 0;
+    overflow-wrap: normal;
+  }
+
+  .hero-subtitle {
+    max-width: 330px;
+    margin: 14px auto 0;
+    font-size: 22px;
+  }
+
+  .lead {
+    max-width: 330px;
+    margin: 22px auto 0;
+  }
+
+  .hero-actions {
+    justify-content: center;
+    align-items: center;
+  }
+
+  .primary-action,
+  .secondary-action {
+    width: min(100%, 220px);
+  }
+
+  .hero-strip {
+    justify-content: center;
+    width: min(310px, 100%);
+    margin-right: auto;
+    margin-left: auto;
+    overflow: visible;
+  }
+
+  .hero-status-panel {
+    max-width: 280px;
+    margin: 24px auto 0;
+  }
+}
