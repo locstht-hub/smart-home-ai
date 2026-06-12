@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from assistant_runtime import assistant_config, run_assistant_provider
 from assistant_intents import parse_intent
@@ -31,6 +32,8 @@ BASE_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = BASE_DIR / "config.json"
 STATE_PATH = BASE_DIR / "device_state.json"
 AUTH_DB_PATH = BASE_DIR / "smart_home_auth.db"
+
+load_dotenv(BASE_DIR / ".env")
 
 
 def load_config() -> dict[str, Any]:
