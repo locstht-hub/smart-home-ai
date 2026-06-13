@@ -74,6 +74,14 @@ POST /api/assistant/chat
 
 GET    /api/homes/<home_id>/quota
 POST   /api/homes/<home_id>/quota
+GET    /api/homes/<home_id>/rooms
+POST   /api/homes/<home_id>/rooms
+PATCH  /api/homes/<home_id>/rooms/<room_id>
+DELETE /api/homes/<home_id>/rooms/<room_id>
+GET    /api/homes/<home_id>/devices
+POST   /api/homes/<home_id>/devices
+PATCH  /api/homes/<home_id>/devices/<device_id>
+DELETE /api/homes/<home_id>/devices/<device_id>
 GET    /api/homes/<home_id>/members
 POST   /api/homes/<home_id>/members
 PATCH  /api/homes/<home_id>/members/<user_id>/suspend
@@ -237,6 +245,26 @@ Y nghia:
 - `device_events`: lich su tao/sua/bat/tat/dong bo trang thai thiet bi.
 
 Trong prototype hien tai, du lieu dien do thuc te van la tong nha trong `power_readings`. Bang `devices` giup app/admin site bieu dien cau truc nha thong minh ro hon va co nen tang de mo rong sang do rieng tung thiet bi sau nay.
+
+API quan ly muc 1:
+
+```text
+GET    /api/homes/<home_id>/rooms
+POST   /api/homes/<home_id>/rooms
+PATCH  /api/homes/<home_id>/rooms/<room_id>
+DELETE /api/homes/<home_id>/rooms/<room_id>
+
+GET    /api/homes/<home_id>/devices
+POST   /api/homes/<home_id>/devices
+PATCH  /api/homes/<home_id>/devices/<device_id>
+DELETE /api/homes/<home_id>/devices/<device_id>
+```
+
+Quyen:
+
+- Member/viewer co quyen vao nha duoc xem danh sach phong/thiet bi.
+- Chi owner hoac thanh vien co `canManageDevices = true` moi duoc them/sua/xoa.
+- System admin co the quan ly de ho tro van hanh/demo.
 
 ## Bao mat API bang token
 

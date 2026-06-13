@@ -530,6 +530,46 @@ def create_app() -> Flask:
 
         return {"user": current_user, "home": home}
 
+    def require_home_device_manager(home_id: str) -> dict[str, Any] | tuple[Any, int]:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        if current_user.get("role") == "system_admin":
+            return {
+                "user": current_user,
+                "home": {
+                    "id": home_id,
+                    "status": "active",
+                    "roleInHome": "owner",
+                    "canManageDevices": True,
+                },
+            }
+
+        home = auth_store.get_home_access(str(current_user["id"]), home_id)
+        if home is None:
+            return jsonify({"ok": False, "error": "Home access not found"}), 403
+        if home["status"] != "active":
+            return jsonify({"ok": False, "error": "Home is suspended"}), 403
+        if not home.get("canManageDevices"):
+            return jsonify({"ok": False, "error": "Device permission denied"}), 403
+
+        return {"user": current_user, "home": home}
+
+    def require_home_viewer(home_id: str) -> dict[str, Any] | tuple[Any, int]:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        if current_user.get("role") == "system_admin":
+            return {"user": current_user, "home": {"id": home_id, "status": "active"}}
+
+        home = auth_store.get_home_access(str(current_user["id"]), home_id)
+        if home is None:
+            return jsonify({"ok": False, "error": "Home access not found"}), 403
+        if home["status"] != "active":
+            return jsonify({"ok": False, "error": "Home is suspended"}), 403
+
+        return {"user": current_user, "home": home}
+
     def quota_control_guard(access: dict[str, Any]) -> dict[str, Any] | None:
         home = access.get("home")
         if not home:
@@ -749,6 +789,65 @@ def create_app() -> Flask:
         if value is None or value == "":
             return None
         return float(value)
+
+    def clean_optional_text(value: Any) -> str | None:
+        text = str(value or "").strip()
+        return text or None
+
+    def parse_device_payload(payload: dict[str, Any], *, partial: bool = False) -> dict[str, Any] | tuple[dict[str, Any], tuple[Any, int]]:
+        allowed_types = {"light", "fan", "aircon", "socket", "sensor", "appliance", "other"}
+        allowed_status = {"on", "off", "offline", "unknown"}
+        result: dict[str, Any] = {}
+
+        if "name" in payload or not partial:
+            name = str(payload.get("name") or "").strip()
+            if not name:
+                return result, (jsonify({"ok": False, "error": "name is required"}), 400)
+            result["name"] = name
+
+        if "roomId" in payload:
+            result["roomId"] = clean_optional_text(payload.get("roomId"))
+
+        if "type" in payload or not partial:
+            device_type = str(payload.get("type") or "other").strip()
+            if device_type not in allowed_types:
+                return result, (jsonify({"ok": False, "error": "Invalid device type"}), 400)
+            result["type"] = device_type
+
+        if "status" in payload:
+            status = str(payload.get("status") or "unknown").strip()
+            if status not in allowed_status:
+                return result, (jsonify({"ok": False, "error": "Invalid device status"}), 400)
+            result["status"] = status
+
+        if "ratedPowerW" in payload or "rated_power_w" in payload or not partial:
+            raw_power = payload.get("ratedPowerW", payload.get("rated_power_w", 0))
+            try:
+                rated_power_w = float(raw_power or 0)
+            except (TypeError, ValueError):
+                return result, (jsonify({"ok": False, "error": "ratedPowerW must be a number"}), 400)
+            if rated_power_w < 0:
+                return result, (jsonify({"ok": False, "error": "ratedPowerW cannot be negative"}), 400)
+            result["ratedPowerW"] = rated_power_w
+
+        if "isControllable" in payload:
+            result["isControllable"] = bool(payload.get("isControllable"))
+
+        for source_key, target_key in {
+            "plcStatusTag": "plcStatusTag",
+            "plcOnCommandTag": "plcOnCommandTag",
+            "plcOffCommandTag": "plcOffCommandTag",
+        }.items():
+            if source_key in payload:
+                result[target_key] = clean_optional_text(payload.get(source_key))
+
+        if "metadata" in payload:
+            metadata = payload.get("metadata") or {}
+            if not isinstance(metadata, dict):
+                return result, (jsonify({"ok": False, "error": "metadata must be an object"}), 400)
+            result["metadata"] = metadata
+
+        return result
 
     def build_assistant_context(access: dict[str, Any]) -> dict[str, Any]:
         home = access.get("home") if isinstance(access.get("home"), dict) else None
@@ -1091,6 +1190,258 @@ def create_app() -> Flask:
             metadata={"limit": safe_limit},
         )
         return jsonify({"ok": True, "logs": logs})
+
+    @app.get("/api/homes/<home_id>/rooms")
+    def list_home_rooms(home_id: str) -> Any:
+        access = require_home_viewer(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        return jsonify({"ok": True, "rooms": auth_store.list_rooms(home_id)})
+
+    @app.post("/api/homes/<home_id>/rooms")
+    def create_home_room(home_id: str) -> Any:
+        access = require_home_device_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        payload = request_payload()
+        name = str(payload.get("name") or "").strip()
+        if not name:
+            return jsonify({"ok": False, "error": "name is required"}), 400
+
+        metadata = payload.get("metadata") or {}
+        if not isinstance(metadata, dict):
+            return jsonify({"ok": False, "error": "metadata must be an object"}), 400
+
+        try:
+            room = auth_store.create_room(
+                home_id=home_id,
+                name=name,
+                room_type=str(payload.get("type") or "room").strip() or "room",
+                sort_order=int(payload.get("sortOrder") or 0),
+                metadata=metadata,
+            )
+        except Exception as exc:
+            message = str(exc)
+            if "duplicate" in message.lower() or "unique" in message.lower():
+                return jsonify({"ok": False, "error": "Room name already exists"}), 409
+            return jsonify({"ok": False, "error": message}), 400
+
+        if room is None:
+            return jsonify({"ok": False, "error": "Home not found"}), 404
+
+        audit(
+            "room.created",
+            actor=access["user"],
+            target_type="room",
+            target_id=room["id"],
+            target_name=room["name"],
+            home_id=home_id,
+        )
+        return jsonify({"ok": True, "room": room}), 201
+
+    @app.patch("/api/homes/<home_id>/rooms/<room_id>")
+    def update_home_room(home_id: str, room_id: str) -> Any:
+        access = require_home_device_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        payload = request_payload()
+        updates: dict[str, Any] = {}
+        if "name" in payload:
+            name = str(payload.get("name") or "").strip()
+            if not name:
+                return jsonify({"ok": False, "error": "name cannot be empty"}), 400
+            updates["name"] = name
+        if "type" in payload:
+            updates["type"] = str(payload.get("type") or "room").strip() or "room"
+        if "sortOrder" in payload:
+            try:
+                updates["sortOrder"] = int(payload.get("sortOrder") or 0)
+            except (TypeError, ValueError):
+                return jsonify({"ok": False, "error": "sortOrder must be an integer"}), 400
+        if "metadata" in payload:
+            metadata = payload.get("metadata") or {}
+            if not isinstance(metadata, dict):
+                return jsonify({"ok": False, "error": "metadata must be an object"}), 400
+            updates["metadata"] = metadata
+
+        try:
+            room = auth_store.update_room(home_id=home_id, room_id=room_id, updates=updates)
+        except Exception as exc:
+            message = str(exc)
+            if "duplicate" in message.lower() or "unique" in message.lower():
+                return jsonify({"ok": False, "error": "Room name already exists"}), 409
+            return jsonify({"ok": False, "error": message}), 400
+
+        if room is None:
+            return jsonify({"ok": False, "error": "Room not found"}), 404
+
+        audit(
+            "room.updated",
+            actor=access["user"],
+            target_type="room",
+            target_id=room["id"],
+            target_name=room["name"],
+            home_id=home_id,
+            metadata={"fields": list(updates.keys())},
+        )
+        return jsonify({"ok": True, "room": room})
+
+    @app.delete("/api/homes/<home_id>/rooms/<room_id>")
+    def delete_home_room(home_id: str, room_id: str) -> Any:
+        access = require_home_device_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        room = auth_store.delete_room(home_id, room_id)
+        if room is None:
+            return jsonify({"ok": False, "error": "Room not found"}), 404
+
+        audit(
+            "room.deleted",
+            actor=access["user"],
+            target_type="room",
+            target_id=room["id"],
+            target_name=room["name"],
+            home_id=home_id,
+        )
+        return jsonify({"ok": True, "room": room})
+
+    @app.get("/api/homes/<home_id>/devices")
+    def list_home_manual_devices(home_id: str) -> Any:
+        access = require_home_viewer(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        room_id = clean_optional_text(request.args.get("roomId"))
+        return jsonify({"ok": True, "devices": auth_store.list_manual_devices(home_id, room_id)})
+
+    @app.post("/api/homes/<home_id>/devices")
+    def create_home_manual_device(home_id: str) -> Any:
+        access = require_home_device_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        parsed = parse_device_payload(request_payload())
+        if isinstance(parsed, tuple):
+            return parsed[1]
+
+        try:
+            device = auth_store.create_manual_device(
+                home_id=home_id,
+                room_id=parsed.get("roomId"),
+                name=parsed["name"],
+                device_type=parsed["type"],
+                status=parsed.get("status", "unknown"),
+                rated_power_w=float(parsed.get("ratedPowerW") or 0),
+                is_controllable=bool(parsed.get("isControllable", True)),
+                plc_status_tag=parsed.get("plcStatusTag"),
+                plc_on_command_tag=parsed.get("plcOnCommandTag"),
+                plc_off_command_tag=parsed.get("plcOffCommandTag"),
+                metadata=parsed.get("metadata") or {},
+            )
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        except Exception as exc:
+            message = str(exc)
+            if "duplicate" in message.lower() or "unique" in message.lower():
+                return jsonify({"ok": False, "error": "Device name already exists"}), 409
+            return jsonify({"ok": False, "error": message}), 400
+
+        if device is None:
+            return jsonify({"ok": False, "error": "Home not found"}), 404
+
+        event = auth_store.record_device_event(
+            home_id=home_id,
+            room_id=device.get("roomId"),
+            device_id=device["id"],
+            actor_user_id=str(access["user"].get("id")) if access.get("user") else None,
+            event_type="created",
+            value={"deviceName": device["name"], "type": device["type"], "ratedPowerW": device["ratedPowerW"]},
+        )
+        audit(
+            "device.inventory_created",
+            actor=access["user"],
+            target_type="device",
+            target_id=device["id"],
+            target_name=device["name"],
+            home_id=home_id,
+            metadata={"eventId": event["id"], "type": device["type"]},
+        )
+        return jsonify({"ok": True, "device": device, "event": event}), 201
+
+    @app.patch("/api/homes/<home_id>/devices/<device_id>")
+    def update_home_manual_device(home_id: str, device_id: str) -> Any:
+        access = require_home_device_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        parsed = parse_device_payload(request_payload(), partial=True)
+        if isinstance(parsed, tuple):
+            return parsed[1]
+
+        try:
+            device = auth_store.update_manual_device(home_id=home_id, device_id=device_id, updates=parsed)
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        except Exception as exc:
+            message = str(exc)
+            if "duplicate" in message.lower() or "unique" in message.lower():
+                return jsonify({"ok": False, "error": "Device name already exists"}), 409
+            return jsonify({"ok": False, "error": message}), 400
+
+        if device is None:
+            return jsonify({"ok": False, "error": "Device not found"}), 404
+
+        event = auth_store.record_device_event(
+            home_id=home_id,
+            room_id=device.get("roomId"),
+            device_id=device["id"],
+            actor_user_id=str(access["user"].get("id")) if access.get("user") else None,
+            event_type="updated",
+            value={"fields": list(parsed.keys())},
+        )
+        audit(
+            "device.inventory_updated",
+            actor=access["user"],
+            target_type="device",
+            target_id=device["id"],
+            target_name=device["name"],
+            home_id=home_id,
+            metadata={"eventId": event["id"], "fields": list(parsed.keys())},
+        )
+        return jsonify({"ok": True, "device": device, "event": event})
+
+    @app.delete("/api/homes/<home_id>/devices/<device_id>")
+    def delete_home_manual_device(home_id: str, device_id: str) -> Any:
+        access = require_home_device_manager(home_id)
+        if not isinstance(access, dict):
+            return access
+
+        device = auth_store.delete_manual_device(home_id, device_id)
+        if device is None:
+            return jsonify({"ok": False, "error": "Device not found"}), 404
+
+        event = auth_store.record_device_event(
+            home_id=home_id,
+            room_id=device.get("roomId"),
+            device_id=None,
+            actor_user_id=str(access["user"].get("id")) if access.get("user") else None,
+            event_type="deleted",
+            value={"deviceId": device["id"], "deviceName": device["name"], "type": device["type"]},
+        )
+        audit(
+            "device.inventory_deleted",
+            actor=access["user"],
+            target_type="device",
+            target_id=device["id"],
+            target_name=device["name"],
+            home_id=home_id,
+            metadata={"eventId": event["id"]},
+        )
+        return jsonify({"ok": True, "device": device, "event": event})
 
     @app.post("/api/homes/<home_id>/members")
     def create_home_member(home_id: str) -> Any:

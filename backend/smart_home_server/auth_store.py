@@ -119,10 +119,57 @@ class AuthStore:
                     created_at TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS rooms (
+                    id TEXT PRIMARY KEY,
+                    home_id TEXT NOT NULL REFERENCES homes(id) ON DELETE CASCADE,
+                    name TEXT NOT NULL,
+                    type TEXT NOT NULL DEFAULT 'room',
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    metadata_json TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(home_id, name)
+                );
+
+                CREATE TABLE IF NOT EXISTS devices (
+                    id TEXT PRIMARY KEY,
+                    home_id TEXT NOT NULL REFERENCES homes(id) ON DELETE CASCADE,
+                    room_id TEXT REFERENCES rooms(id) ON DELETE SET NULL,
+                    name TEXT NOT NULL,
+                    type TEXT NOT NULL DEFAULT 'other',
+                    status TEXT NOT NULL DEFAULT 'unknown',
+                    rated_power_w REAL NOT NULL DEFAULT 0.0,
+                    is_controllable INTEGER NOT NULL DEFAULT 1,
+                    plc_status_tag TEXT,
+                    plc_on_command_tag TEXT,
+                    plc_off_command_tag TEXT,
+                    metadata_json TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(home_id, name)
+                );
+
+                CREATE TABLE IF NOT EXISTS device_events (
+                    id TEXT PRIMARY KEY,
+                    home_id TEXT NOT NULL REFERENCES homes(id) ON DELETE CASCADE,
+                    room_id TEXT REFERENCES rooms(id) ON DELETE SET NULL,
+                    device_id TEXT REFERENCES devices(id) ON DELETE SET NULL,
+                    actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+                    event_type TEXT NOT NULL,
+                    source TEXT NOT NULL DEFAULT 'manual',
+                    value_json TEXT,
+                    created_at TEXT NOT NULL
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_user_id);
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_home ON audit_logs(home_id);
                 CREATE INDEX IF NOT EXISTS idx_power_readings_home_time ON power_readings(home_id, timestamp);
+                CREATE INDEX IF NOT EXISTS idx_rooms_home_sort ON rooms(home_id, sort_order, name);
+                CREATE INDEX IF NOT EXISTS idx_devices_home_room ON devices(home_id, room_id);
+                CREATE INDEX IF NOT EXISTS idx_devices_home_type ON devices(home_id, type);
+                CREATE INDEX IF NOT EXISTS idx_device_events_home_time ON device_events(home_id, created_at);
+                CREATE INDEX IF NOT EXISTS idx_device_events_device_time ON device_events(device_id, created_at);
                 """
             )
             self.migrate_db(conn)
@@ -932,6 +979,306 @@ class AuthStore:
                 }
             )
         return readings
+
+    @staticmethod
+    def _json_obj(value: str | None) -> dict[str, Any]:
+        try:
+            return json.loads(value or "{}")
+        except json.JSONDecodeError:
+            return {}
+
+    @classmethod
+    def public_room(cls, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "homeId": row["home_id"],
+            "name": row["name"],
+            "type": row["type"],
+            "sortOrder": row["sort_order"],
+            "metadata": cls._json_obj(row["metadata_json"]),
+            "createdAt": row["created_at"],
+            "updatedAt": row["updated_at"],
+        }
+
+    @classmethod
+    def public_device(cls, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "homeId": row["home_id"],
+            "roomId": row["room_id"],
+            "name": row["name"],
+            "type": row["type"],
+            "status": row["status"],
+            "ratedPowerW": row["rated_power_w"],
+            "isControllable": bool(row["is_controllable"]),
+            "plcStatusTag": row["plc_status_tag"],
+            "plcOnCommandTag": row["plc_on_command_tag"],
+            "plcOffCommandTag": row["plc_off_command_tag"],
+            "metadata": cls._json_obj(row["metadata_json"]),
+            "createdAt": row["created_at"],
+            "updatedAt": row["updated_at"],
+        }
+
+    def list_rooms(self, home_id: str) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM rooms
+                WHERE home_id = ?
+                ORDER BY sort_order ASC, name ASC
+                """,
+                (home_id,),
+            ).fetchall()
+            return [self.public_room(row) for row in rows]
+
+    def create_room(
+        self,
+        *,
+        home_id: str,
+        name: str,
+        room_type: str = "room",
+        sort_order: int = 0,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        now = utc_now()
+        room_id = f"room-{secrets.token_hex(8)}"
+        with self.connect() as conn:
+            home = conn.execute("SELECT id FROM homes WHERE id = ?", (home_id,)).fetchone()
+            if home is None:
+                return None
+            conn.execute(
+                """
+                INSERT INTO rooms (id, home_id, name, type, sort_order, metadata_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (room_id, home_id, name, room_type, sort_order, json.dumps(metadata or {}, ensure_ascii=False), now, now),
+            )
+            row = conn.execute("SELECT * FROM rooms WHERE id = ?", (room_id,)).fetchone()
+            return self.public_room(row)
+
+    def update_room(
+        self,
+        *,
+        home_id: str,
+        room_id: str,
+        updates: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        allowed = {
+            "name": "name",
+            "type": "type",
+            "sortOrder": "sort_order",
+            "metadata": "metadata_json",
+        }
+        fields: list[str] = []
+        params: list[Any] = []
+        for key, column in allowed.items():
+            if key not in updates:
+                continue
+            value = updates[key]
+            if key == "metadata":
+                value = json.dumps(value or {}, ensure_ascii=False)
+            fields.append(f"{column} = ?")
+            params.append(value)
+
+        with self.connect() as conn:
+            current = conn.execute("SELECT * FROM rooms WHERE id = ? AND home_id = ?", (room_id, home_id)).fetchone()
+            if current is None:
+                return None
+            if fields:
+                fields.append("updated_at = ?")
+                params.append(utc_now())
+                params.extend([room_id, home_id])
+                conn.execute(f"UPDATE rooms SET {', '.join(fields)} WHERE id = ? AND home_id = ?", params)
+            row = conn.execute("SELECT * FROM rooms WHERE id = ? AND home_id = ?", (room_id, home_id)).fetchone()
+            return self.public_room(row)
+
+    def delete_room(self, home_id: str, room_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM rooms WHERE id = ? AND home_id = ?", (room_id, home_id)).fetchone()
+            if row is None:
+                return None
+            room = self.public_room(row)
+            conn.execute("DELETE FROM rooms WHERE id = ? AND home_id = ?", (room_id, home_id))
+            return room
+
+    def list_manual_devices(self, home_id: str, room_id: str | None = None) -> list[dict[str, Any]]:
+        clauses = ["home_id = ?"]
+        params: list[Any] = [home_id]
+        if room_id:
+            clauses.append("room_id = ?")
+            params.append(room_id)
+
+        with self.connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT * FROM devices
+                WHERE {' AND '.join(clauses)}
+                ORDER BY name ASC
+                """,
+                params,
+            ).fetchall()
+            return [self.public_device(row) for row in rows]
+
+    def create_manual_device(
+        self,
+        *,
+        home_id: str,
+        room_id: str | None,
+        name: str,
+        device_type: str,
+        status: str = "unknown",
+        rated_power_w: float = 0.0,
+        is_controllable: bool = True,
+        plc_status_tag: str | None = None,
+        plc_on_command_tag: str | None = None,
+        plc_off_command_tag: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        now = utc_now()
+        device_id = f"device-{secrets.token_hex(8)}"
+        with self.connect() as conn:
+            home = conn.execute("SELECT id FROM homes WHERE id = ?", (home_id,)).fetchone()
+            if home is None:
+                return None
+            if room_id:
+                room = conn.execute("SELECT id FROM rooms WHERE id = ? AND home_id = ?", (room_id, home_id)).fetchone()
+                if room is None:
+                    raise ValueError("Room not found in this home")
+
+            conn.execute(
+                """
+                INSERT INTO devices (
+                    id, home_id, room_id, name, type, status, rated_power_w,
+                    is_controllable, plc_status_tag, plc_on_command_tag, plc_off_command_tag,
+                    metadata_json, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    device_id,
+                    home_id,
+                    room_id,
+                    name,
+                    device_type,
+                    status,
+                    rated_power_w,
+                    1 if is_controllable else 0,
+                    plc_status_tag,
+                    plc_on_command_tag,
+                    plc_off_command_tag,
+                    json.dumps(metadata or {}, ensure_ascii=False),
+                    now,
+                    now,
+                ),
+            )
+            row = conn.execute("SELECT * FROM devices WHERE id = ?", (device_id,)).fetchone()
+            return self.public_device(row)
+
+    def update_manual_device(
+        self,
+        *,
+        home_id: str,
+        device_id: str,
+        updates: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        allowed = {
+            "roomId": "room_id",
+            "name": "name",
+            "type": "type",
+            "status": "status",
+            "ratedPowerW": "rated_power_w",
+            "isControllable": "is_controllable",
+            "plcStatusTag": "plc_status_tag",
+            "plcOnCommandTag": "plc_on_command_tag",
+            "plcOffCommandTag": "plc_off_command_tag",
+            "metadata": "metadata_json",
+        }
+        fields: list[str] = []
+        params: list[Any] = []
+
+        with self.connect() as conn:
+            current = conn.execute("SELECT * FROM devices WHERE id = ? AND home_id = ?", (device_id, home_id)).fetchone()
+            if current is None:
+                return None
+            if "roomId" in updates and updates["roomId"]:
+                room = conn.execute("SELECT id FROM rooms WHERE id = ? AND home_id = ?", (updates["roomId"], home_id)).fetchone()
+                if room is None:
+                    raise ValueError("Room not found in this home")
+
+            for key, column in allowed.items():
+                if key not in updates:
+                    continue
+                value = updates[key]
+                if key == "metadata":
+                    value = json.dumps(value or {}, ensure_ascii=False)
+                if key == "isControllable":
+                    value = 1 if value else 0
+                fields.append(f"{column} = ?")
+                params.append(value)
+
+            if fields:
+                fields.append("updated_at = ?")
+                params.append(utc_now())
+                params.extend([device_id, home_id])
+                conn.execute(f"UPDATE devices SET {', '.join(fields)} WHERE id = ? AND home_id = ?", params)
+
+            row = conn.execute("SELECT * FROM devices WHERE id = ? AND home_id = ?", (device_id, home_id)).fetchone()
+            return self.public_device(row)
+
+    def delete_manual_device(self, home_id: str, device_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM devices WHERE id = ? AND home_id = ?", (device_id, home_id)).fetchone()
+            if row is None:
+                return None
+            device = self.public_device(row)
+            conn.execute("DELETE FROM devices WHERE id = ? AND home_id = ?", (device_id, home_id))
+            return device
+
+    def record_device_event(
+        self,
+        *,
+        home_id: str,
+        room_id: str | None,
+        device_id: str | None,
+        actor_user_id: str | None,
+        event_type: str,
+        source: str = "manual",
+        value: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        event_id = f"device-event-{secrets.token_hex(12)}"
+        created_at = utc_now()
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO device_events (
+                    id, home_id, room_id, device_id, actor_user_id, event_type,
+                    source, value_json, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event_id,
+                    home_id,
+                    room_id,
+                    device_id,
+                    actor_user_id,
+                    event_type,
+                    source,
+                    json.dumps(value or {}, ensure_ascii=False),
+                    created_at,
+                ),
+            )
+        return {
+            "id": event_id,
+            "homeId": home_id,
+            "roomId": room_id,
+            "deviceId": device_id,
+            "actorUserId": actor_user_id,
+            "eventType": event_type,
+            "source": source,
+            "value": value or {},
+            "createdAt": created_at,
+        }
 
     def get_home_quota_status(self, home_id: str) -> dict[str, Any]:
         with self.connect() as conn:
