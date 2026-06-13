@@ -417,6 +417,9 @@ home_members
 sessions
 audit_logs
 power_readings
+rooms
+devices
+device_events
 ```
 
 Nguyen tac phan tach du lieu nhieu nha:
@@ -435,6 +438,7 @@ Dieu can trinh bay trong luan van:
 - App mobile khong truy cap Supabase truc tiep; app van goi Flask Backend.
 - Backend van la lop kiem tra token, phan quyen theo `home_id`, ghi audit log va giao tiep PLC.
 - Supabase/Postgres giup du lieu khong phu thuoc vao file SQLite tren laptop va phu hop hon khi demo nhieu thiet bi/nhieu nha.
+- Phan `rooms/devices` duoc xac dinh o muc 1: quan ly thu cong phong, thiet bi va cong suat dinh muc. Du lieu do dien thuc te hien van la tong nha trong `power_readings`.
 
 Luu y an toan:
 
@@ -449,3 +453,31 @@ c0e658dd Add Supabase Postgres backend option
 9fe96565 Load backend environment from local env file
 ```
 
+## Cap nhat 13/06/2026 - Rooms/Devices muc 1
+
+Huong da chot cho du an la quan ly phong/thiet bi o muc 1:
+
+```text
+Owner/Admin tu tao phong -> them thiet bi -> nhap cong suat dinh muc -> gan PLC tag neu co.
+```
+
+Da them migration:
+
+```text
+backend/smart_home_server/migrations/002_manual_rooms_devices.sql
+```
+
+Bang moi:
+
+```text
+rooms          -> phong thuoc tung nha qua home_id
+devices        -> thiet bi thuoc tung nha/phong, co rated_power_w
+device_events  -> lich su tao/sua/bat/tat/dong bo trang thai thiet bi
+```
+
+Ghi chu quan trong khi viet luan van:
+
+- `rated_power_w` la cong suat dinh muc do nguoi dung nhap hoac lay tu thong so thiet bi.
+- He thong chua khang dinh do rieng cong suat tung thiet bi neu chua co kenh PLC/cam bien rieng.
+- Du lieu dien thuc nghiem hien luu theo tong nha trong `power_readings`.
+- Kien truc nay phu hop prototype vi cho thay cau truc nha thong minh ro rang, dong thoi van de mo rong sang do rieng tung thiet bi sau nay.

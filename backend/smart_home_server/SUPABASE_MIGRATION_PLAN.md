@@ -36,6 +36,7 @@ Migration SQL:
 
 ```text
 backend/smart_home_server/migrations/001_supabase_schema.sql
+backend/smart_home_server/migrations/002_manual_rooms_devices.sql
 ```
 
 Postgres store:
@@ -61,6 +62,14 @@ File nay tao cac bang:
 - `audit_logs`
 - `power_readings`
 
+File `002_manual_rooms_devices.sql` tao them cac bang muc quan ly thu cong:
+
+- `rooms`
+- `devices`
+- `device_events`
+
+Day la muc 1 cua prototype: owner/admin tu khai bao phong, thiet bi, cong suat dinh muc va mapping PLC neu co. He thong chua bat buoc do rieng tung thiet bi; dien nang thuc te van nam o `power_readings` theo `home_id`.
+
 Va cac index quan trong:
 
 - `home_id + timestamp` cho lich su dien nang.
@@ -79,8 +88,14 @@ backend/smart_home_server/migrations/001_supabase_schema.sql
 ```
 
 4. Chay SQL.
-5. Vao `Project Settings -> Database`.
-6. Lay connection string Postgres.
+5. Copy va chay tiep file:
+
+```text
+backend/smart_home_server/migrations/002_manual_rooms_devices.sql
+```
+
+6. Vao `Project Settings -> Database`.
+7. Lay connection string Postgres.
 
 Khong commit connection string len GitHub.
 
@@ -219,6 +234,9 @@ Test theo thu tu:
 | POWER-02 | GET `/api/power/history` | Doc lai dung theo `homeId` |
 | QUOTA-01 | Update quota | Luu vao `homes.energy_limit_kwh` |
 | AUDIT-01 | Bat/tat device/login/admin action | Co audit log |
+| INVENTORY-01 | Kiem tra bang `rooms` | Moi phong co `home_id` rieng |
+| INVENTORY-02 | Kiem tra bang `devices` | Moi thiet bi co `home_id`, `room_id`, `rated_power_w` |
+| INVENTORY-03 | Kiem tra bang `device_events` | Co the log thao tac tao/sua/bat/tat thiet bi |
 
 ## 7. Du lieu nao nen migrate tu SQLite
 
@@ -231,6 +249,9 @@ home_members
 sessions
 audit_logs
 power_readings
+rooms
+devices
+device_events
 ```
 
 Luu y:
@@ -260,6 +281,33 @@ Sau khi Postgres chay on dinh:
 
 1. Them endpoint export CSV cho `power_readings`.
 2. Them backup/restore note cho database.
-3. Them bang `device_events` neu muon log tung lenh thiet bi ro hon.
+3. Them API CRUD cho `rooms` va `devices` de owner/admin quan ly thu cong tren app/admin site.
 4. Them Firebase Cloud Messaging neu can canh bao vuot quota/mat PLC.
 5. Them Prometheus/Grafana neu can monitoring backend.
+
+## 10. Huong quan ly phong/thiet bi muc 1
+
+Muc 1 khong yeu cau gan cam bien rieng cho tung thiet bi. Cau truc du lieu duoc hieu nhu sau:
+
+```text
+homes
+  -> rooms
+       -> devices
+  -> power_readings
+```
+
+Trong do:
+
+- `rooms`: danh sach phong do nguoi dung tao thu cong.
+- `devices`: danh sach thiet bi do nguoi dung tao thu cong, co `rated_power_w` de uoc tinh tai/cong suat dinh muc.
+- `device_events`: lich su thao tac thiet bi, phuc vu audit va thong ke.
+- `power_readings`: du lieu dien tong cua tung nha theo `home_id`.
+
+Khi bao ve/phan bien, nen noi ro:
+
+```text
+He thong hien quan ly cau truc nha, phong va thiet bi o muc khai bao thu cong.
+Cong suat tung thiet bi la cong suat dinh muc do nguoi dung nhap hoac lay tu thong so thiet bi.
+Du lieu do dien thuc te trong prototype duoc luu theo tong nha thong qua PLC/MFM384 trong bang power_readings.
+Khi mo rong, moi thiet bi co the gan them kenh do rieng hoac mapping PLC chi tiet hon.
+```

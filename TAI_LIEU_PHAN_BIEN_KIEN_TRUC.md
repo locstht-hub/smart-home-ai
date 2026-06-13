@@ -357,3 +357,40 @@ Cach nay hop ly hon viec dua backend truc tiep len cloud, vi PLC/MFM384 thuong n
 Cau tra loi ngan gon khi phan bien:
 
 > Trong prototype, backend chay tren laptop de de phat trien va kiem thu voi PLC. Du lieu da duoc tach sang Supabase/PostgreSQL de luu tru tap trung. Khi trien khai thuc te, backend se duoc chuyen sang edge gateway nhu mini PC hoac Raspberry Pi dat cung mang voi PLC/MFM384, giup he thong hoat dong lien tuc va giam phu thuoc vao may phat trien.
+
+---
+
+### Cau hoi moi - He thong quan ly thiet bi tung nha nhu the nao neu chi lam muc 1?
+
+**Tra loi:** Muc 1 cua du an la quan ly phong va thiet bi theo cach khai bao thu cong, phu hop voi prototype va luan van. Nguoi dung/owner/admin se tao phong, tao thiet bi, gan thiet bi vao phong va nhap cong suat dinh muc cua thiet bi.
+
+Cau truc du lieu tren Supabase/Postgres:
+
+```text
+homes
+  -> rooms
+       -> devices
+  -> power_readings
+```
+
+Trong do:
+
+1. `rooms` luu danh sach phong cua tung nha, moi phong co `home_id`.
+2. `devices` luu danh sach thiet bi, moi thiet bi co `home_id`, co the co `room_id`, loai thiet bi va `rated_power_w`.
+3. `device_events` luu lich su tao/sua/bat/tat/dong bo trang thai thiet bi.
+4. `power_readings` van luu du lieu do dien thuc te theo tong nha.
+
+Can noi ro khi phan bien:
+
+```text
+Cong suat tung thiet bi trong muc 1 la cong suat dinh muc do nguoi dung nhap,
+khong phai gia tri do rieng tung thiet bi trong thoi gian thuc.
+Du lieu do dien thuc te hien duoc lay theo tong nha tu PLC/MFM384 va luu vao power_readings.
+```
+
+Ly do cach nay hop ly:
+
+1. Phu hop voi giai doan prototype vi khong can lap cam bien rieng cho tung thiet bi.
+2. Van mo ta duoc cau truc nha thong minh: nha, phong, thiet bi, quyen nguoi dung.
+3. Du cho app/admin site hien thi va quan ly tai san thiet bi.
+4. De mo rong sau nay bang cach gan moi thiet bi voi kenh do rieng hoac PLC tag rieng.

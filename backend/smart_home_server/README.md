@@ -113,6 +113,7 @@ Neu co `DATABASE_URL`, backend se dung Supabase/Postgres qua `PostgresAuthStore`
 ```text
 backend/smart_home_server/SUPABASE_MIGRATION_PLAN.md
 backend/smart_home_server/migrations/001_supabase_schema.sql
+backend/smart_home_server/migrations/002_manual_rooms_devices.sql
 ```
 
 Lan dau chay server se tu tao tai khoan mau:
@@ -217,6 +218,25 @@ Payload mau de PLC/laptop ghi du lieu:
 ```
 
 Du lieu nay la nen tang de ve lich su 24h/ngay/thang va retrain model forecast rieng cho tung nha.
+
+## Quan ly phong/thiet bi muc 1
+
+Supabase co them schema muc 1 cho quan ly thu cong:
+
+```text
+rooms
+devices
+device_events
+```
+
+Y nghia:
+
+- `rooms`: phong thuoc tung nha qua `home_id`.
+- `devices`: thiet bi thuoc tung nha/phong qua `home_id` va `room_id`.
+- `rated_power_w`: cong suat dinh muc do nguoi dung nhap thu cong, khong phai so do rieng tung thiet bi neu chua co cam bien/kenh PLC rieng.
+- `device_events`: lich su tao/sua/bat/tat/dong bo trang thai thiet bi.
+
+Trong prototype hien tai, du lieu dien do thuc te van la tong nha trong `power_readings`. Bang `devices` giup app/admin site bieu dien cau truc nha thong minh ro hon va co nen tang de mo rong sang do rieng tung thiet bi sau nay.
 
 ## Bao mat API bang token
 
