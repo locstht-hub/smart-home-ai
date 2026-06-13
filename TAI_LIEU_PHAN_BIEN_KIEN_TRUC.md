@@ -281,3 +281,41 @@ Hướng phát triển sau này:
 4. LoRA local có thể triển khai riêng thành AI server, nhận context từ backend rồi trả lời.
 
 Kết luận: Gemini API là giải pháp runtime tạm thời để demo ổn định; LoRA/Unsloth là hướng phát triển để chủ động mô hình AI riêng, giảm phụ thuộc API ngoài và tăng giá trị nghiên cứu của đồ án.
+---
+
+### Cau hoi moi - Sau khi them Supabase thi SQLite con vai tro gi, va du lieu nhieu nha duoc tach nhu the nao?
+
+**Tra loi:** He thong hien tai ho tro hai che do luu tru:
+
+```text
+Khong co DATABASE_URL -> dung SQLite local
+Co DATABASE_URL       -> dung Supabase/Postgres
+```
+
+SQLite van co gia tri trong giai doan prototype vi chay local nhanh, de demo offline va de fallback khi chua cau hinh cloud database. Supabase/Postgres la huong nang cap de luu tru tap trung, phu hop hon khi can demo nhieu thiet bi, nhieu nha hoac can du lieu khong phu thuoc vao laptop local.
+
+Du lieu nhieu nha khong bi tron vi backend tach theo `home_id`:
+
+1. Bang `homes` luu tung nha, moi nha co `id` rieng.
+2. Bang `home_members` gan `user_id` voi `home_id` va vai tro trong nha.
+3. Bang `power_readings` luu du lieu dien nang, moi dong luon co `home_id`.
+4. Bang `audit_logs` co `home_id` de truy vet thao tac theo tung nha.
+5. Bang `users` chi luu tai khoan; quyen cua tai khoan trong tung nha nam o `home_members`.
+
+Luon dung luong truy cap:
+
+```text
+Mobile App/Admin Site -> Flask Backend -> SQLite hoac Supabase/Postgres
+```
+
+App mobile khong ghi truc tiep vao Supabase. Backend van la lop kiem tra token, kiem tra user co quyen tren `home_id` hay khong, ghi audit log, sau do moi doc/ghi database. Cach nay giup bao mat hon va giu duoc logic dieu khien PLC o backend.
+
+Neu hoi vi sao khong dung Supabase truc tiep tu app, cau tra loi ngan gon la: app khong nen co quyen truy cap database/PLC truc tiep. Tat ca lenh quan trong phai qua backend de kiem tra quyen, log thao tac va xu ly an toan.
+
+Trang thai hien tai nen trinh bay la:
+
+```text
+Da co tuy chon Supabase/Postgres va da test ket noi thanh cong.
+SQLite van duoc giu lam fallback local.
+Chua dung Supabase Auth; backend van dung auth/session rieng de giam rui ro thay doi lon.
+```

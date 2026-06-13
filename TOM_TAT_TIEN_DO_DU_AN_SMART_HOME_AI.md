@@ -386,4 +386,66 @@ Dự án đã có nền tảng phần mềm tốt để trình bày một hệ t
 Một câu tóm tắt ngắn gọn:
 
 > Dự án đã hoàn thành nền tảng phần mềm và mô hình AI dự báo cho hệ thống quản lý năng lượng nhà thông minh; bước tiếp theo là kiểm thử với PLC, đồng hồ điện và tải thực tế để biến prototype thành hệ thống vận hành thực nghiệm hoàn chỉnh.
+---
+
+## Cap nhat 13/06/2026 - Supabase/Postgres
+
+Du an da duoc bo sung tuy chon luu tru cloud bang Supabase/Postgres, nhung van giu SQLite local lam fallback.
+
+Kien truc luu tru hien tai co hai che do:
+
+```text
+Khong co DATABASE_URL -> Flask Backend -> SQLite local
+Co DATABASE_URL       -> Flask Backend -> Supabase/Postgres
+```
+
+Thay doi da lam:
+
+- Tao migration SQL cho Supabase/Postgres tai `backend/smart_home_server/migrations/001_supabase_schema.sql`.
+- Tao `PostgresAuthStore` tai `backend/smart_home_server/postgres_auth_store.py`.
+- Backend tu doc bien moi truong `DATABASE_URL` de chon database.
+- Them `.env.example` va ho tro doc `.env` local bang `python-dotenv`.
+- Cap nhat README backend va `SUPABASE_MIGRATION_PLAN.md`.
+- Da test ket noi Supabase thanh cong: login owner/admin, doc `/api/me`, ghi/doc `power_readings`, xem admin homes/users/audit logs.
+
+Cac bang tren Supabase/Postgres:
+
+```text
+users
+homes
+home_members
+sessions
+audit_logs
+power_readings
+```
+
+Nguyen tac phan tach du lieu nhieu nha:
+
+```text
+Moi nha co homes.id rieng.
+Moi user thuoc nha nao duoc quan ly qua home_members.
+Moi ban ghi dien nang trong power_readings luon gan voi home_id.
+Audit log cung co home_id de truy vet thao tac theo tung nha.
+```
+
+Dieu can trinh bay trong luan van:
+
+- SQLite la tang luu tru local cho giai doan prototype.
+- Supabase/Postgres la huong nang cap cloud storage de luu tap trung user, home, role, quota, audit log va power readings.
+- App mobile khong truy cap Supabase truc tiep; app van goi Flask Backend.
+- Backend van la lop kiem tra token, phan quyen theo `home_id`, ghi audit log va giao tiep PLC.
+- Supabase/Postgres giup du lieu khong phu thuoc vao file SQLite tren laptop va phu hop hon khi demo nhieu thiet bi/nhieu nha.
+
+Luu y an toan:
+
+- Khong commit `.env` that va khong dua password Supabase len GitHub.
+- File `.env.example` chi chua placeholder.
+- Neu connection string/password tung bi paste vao chat/log, nen reset database password tren Supabase va cap nhat lai `.env` local.
+
+Trang thai Git gan nhat cua phan nay:
+
+```text
+c0e658dd Add Supabase Postgres backend option
+9fe96565 Load backend environment from local env file
+```
 
