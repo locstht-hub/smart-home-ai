@@ -319,3 +319,41 @@ Da co tuy chon Supabase/Postgres va da test ket noi thanh cong.
 SQLite van duoc giu lam fallback local.
 Chua dung Supabase Auth; backend van dung auth/session rieng de giam rui ro thay doi lon.
 ```
+
+---
+
+### Cau hoi moi - Backend con chay tren laptop thi co thuc te khong?
+
+**Tra loi:** Trong giai doan prototype, backend duoc trien khai tren laptop de thuan tien phat trien, debug va kiem thu voi PLC/MFM384. Dieu nay phu hop voi giai doan do an vi lap trinh vien can sua code nhanh, xem log truc tiep va test lien tuc voi thiet bi trong phong lab.
+
+Tuy nhien, backend tren laptop khong nen duoc xem la kien truc production cuoi cung. Neu tat laptop thi app khong goi duoc backend, du server database Supabase van con du lieu. Vi vay du an da tach ro hai tang:
+
+```text
+Backend Flask: hien chay tren laptop de phat trien va kiem thu.
+Database: da co tuy chon Supabase/Postgres de luu tru tap trung tren cloud.
+```
+
+Khi trien khai thuc te, backend co the duoc chuyen sang edge gateway nhu mini PC, Raspberry Pi hoac industrial PC dat cung mang voi PLC/MFM384:
+
+```text
+Mobile App/Admin Site
+        |
+        v
+Edge Gateway chay Flask Backend
+        |
+        +--> PLC/MFM384 trong mang noi bo
+        |
+        +--> Supabase/Postgres cloud
+```
+
+Cach nay hop ly hon viec dua backend truc tiep len cloud, vi PLC/MFM384 thuong nam trong mang noi bo va khong nen mo truc tiep ra Internet. Edge gateway giup:
+
+1. Backend van doc/ghi PLC on dinh trong LAN.
+2. He thong van co the chay lien tuc ma khong phu thuoc laptop phat trien.
+3. Du lieu van duoc dong bo len Supabase/Postgres de luu tru tap trung.
+4. App co the goi backend qua LAN, Cloudflare Tunnel, VPN hoac domain rieng.
+5. Kien truc phu hop hon voi mo hinh IoT/industrial edge.
+
+Cau tra loi ngan gon khi phan bien:
+
+> Trong prototype, backend chay tren laptop de de phat trien va kiem thu voi PLC. Du lieu da duoc tach sang Supabase/PostgreSQL de luu tru tap trung. Khi trien khai thuc te, backend se duoc chuyen sang edge gateway nhu mini PC hoac Raspberry Pi dat cung mang voi PLC/MFM384, giup he thong hoat dong lien tuc va giam phu thuoc vao may phat trien.
