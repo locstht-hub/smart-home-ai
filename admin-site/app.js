@@ -9,6 +9,9 @@ const state = {
   users: [],
   logs: [],
   selectedHomeId: '',
+  homeDetail: null,
+  editingRoomId: '',
+  editingDeviceId: '',
 };
 
 const els = {
@@ -48,9 +51,27 @@ const els = {
   detailHomeId: document.getElementById('detailHomeId'),
   homeDetailSummary: document.getElementById('homeDetailSummary'),
   homeOverviewGrid: document.getElementById('homeOverviewGrid'),
+  homeRoomsBody: document.getElementById('homeRoomsBody'),
   homeDevicesBody: document.getElementById('homeDevicesBody'),
   homeMembersBody: document.getElementById('homeMembersBody'),
   homeLogsBody: document.getElementById('homeLogsBody'),
+  roomInventoryForm: document.getElementById('roomInventoryForm'),
+  roomNameInput: document.getElementById('roomNameInput'),
+  roomTypeInput: document.getElementById('roomTypeInput'),
+  roomSortInput: document.getElementById('roomSortInput'),
+  roomFormMessage: document.getElementById('roomFormMessage'),
+  roomSubmitBtn: document.getElementById('roomSubmitBtn'),
+  cancelRoomEditBtn: document.getElementById('cancelRoomEditBtn'),
+  deviceInventoryForm: document.getElementById('deviceInventoryForm'),
+  deviceNameInput: document.getElementById('deviceNameInput'),
+  deviceRoomSelect: document.getElementById('deviceRoomSelect'),
+  deviceTypeSelect: document.getElementById('deviceTypeSelect'),
+  devicePowerInput: document.getElementById('devicePowerInput'),
+  deviceStatusSelect: document.getElementById('deviceStatusSelect'),
+  deviceControllableInput: document.getElementById('deviceControllableInput'),
+  deviceFormMessage: document.getElementById('deviceFormMessage'),
+  deviceSubmitBtn: document.getElementById('deviceSubmitBtn'),
+  cancelDeviceEditBtn: document.getElementById('cancelDeviceEditBtn'),
   detailTabs: Array.from(document.querySelectorAll('.detail-tab')),
   detailTabPanels: Array.from(document.querySelectorAll('.detail-tab-panel')),
   ownerModal: document.getElementById('ownerModal'),
@@ -350,7 +371,10 @@ function normalizeManualDevices(devices) {
     name: device.name,
     roomId: device.roomId || '',
     power: Number(device.ratedPowerW || 0),
+    ratedPowerW: Number(device.ratedPowerW || 0),
+    type: device.type || 'other',
     status: device.status || 'unknown',
+    isControllable: Boolean(device.isControllable ?? true),
     source: 'manual-inventory',
   }));
 }
@@ -360,6 +384,47 @@ function inventoryStatusBadge(status) {
   if (status === 'off') return '<span class="badge off">Đang tắt</span>';
   if (status === 'offline') return '<span class="badge suspended">Offline</span>';
   return '<span class="badge off">Khai báo thủ công</span>';
+}
+
+function resetRoomForm() {
+  state.editingRoomId = '';
+  els.roomInventoryForm.reset();
+  els.roomTypeInput.value = 'room';
+  els.roomSortInput.value = '0';
+  els.roomFormMessage.textContent = '';
+  els.roomSubmitBtn.textContent = 'Them phong';
+  els.cancelRoomEditBtn.classList.add('hidden');
+}
+
+function resetDeviceForm() {
+  state.editingDeviceId = '';
+  els.deviceInventoryForm.reset();
+  els.devicePowerInput.value = '0';
+  els.deviceStatusSelect.value = 'unknown';
+  els.deviceTypeSelect.value = 'light';
+  els.deviceControllableInput.checked = true;
+  els.deviceFormMessage.textContent = '';
+  els.deviceSubmitBtn.textContent = 'Them thiet bi';
+  els.cancelDeviceEditBtn.classList.add('hidden');
+}
+
+function renderDeviceRoomOptions(rooms, selectedRoomId = '') {
+  els.deviceRoomSelect.innerHTML = `
+    <option value="">Khong gan phong</option>
+    ${rooms.map((room) => `
+      <option value="${escapeHtml(room.id)}">${escapeHtml(room.name)}</option>
+    `).join('')}
+  `;
+  els.deviceRoomSelect.value = selectedRoomId || '';
+}
+
+function inventoryActions(kind, id) {
+  return `
+    <div class="row-actions">
+      <button class="action-btn" data-${kind}-action="edit" data-${kind}-id="${escapeHtml(id)}" type="button">Sua</button>
+      <button class="action-btn danger" data-${kind}-action="delete" data-${kind}-id="${escapeHtml(id)}" type="button">Xoa</button>
+    </div>
+  `;
 }
 
 function renderHomeDetail(home, detail) {
@@ -398,6 +463,21 @@ function renderHomeDetail(home, detail) {
     ${detailCard('Log của nhà', escapeHtml(String(logs.length)), 'Hoạt động gần nhất')}
   `;
 
+  if (!state.editingDeviceId) {
+    renderDeviceRoomOptions(rooms);
+  } else {
+    renderDeviceRoomOptions(rooms, els.deviceRoomSelect.value);
+  }
+
+  els.homeRoomsBody.innerHTML = rooms.map((room) => `
+    <tr>
+      <td><strong>${escapeHtml(room.name || '-')}</strong></td>
+      <td>${escapeHtml(room.type || 'room')}</td>
+      <td>${escapeHtml(room.sortOrder ?? 0)}</td>
+      <td>${inventoryActions('room', room.id)}</td>
+    </tr>
+  `).join('') || emptyRow(4, 'Chua co phong nao. Hay them phong dau tien cho nha nay.');
+
   els.homeDevicesBody.innerHTML = devices.map((device) => `
     <tr>
       <td><strong>${escapeHtml(device.name || device.id || '-')}</strong></td>
@@ -405,8 +485,9 @@ function renderHomeDetail(home, detail) {
       <td>${formatNumber(device.power ?? device.ratedPowerW ?? 0, ' W')}</td>
       <td>${device.status ? inventoryStatusBadge(device.status) : deviceStatusBadge(device.isOn)}</td>
       <td>${escapeHtml(device.source || '-')}</td>
+      <td>${device.source === 'manual-inventory' ? inventoryActions('device', device.id) : '<span class="empty-row">Chi xem</span>'}</td>
     </tr>
-  `).join('') || emptyRow(5, devicesError ? 'Chưa lấy được thiết bị. Kiểm tra PLC/API rồi bấm làm mới chi tiết.' : 'Chưa có cấu hình thiết bị riêng cho nhà này.');
+  `).join('') || emptyRow(6, devicesError ? 'Chưa lấy được thiết bị. Kiểm tra PLC/API rồi bấm làm mới chi tiết.' : 'Chưa có cấu hình thiết bị riêng cho nhà này.');
 
   els.homeMembersBody.innerHTML = members.map((member) => `
     <tr>
@@ -429,11 +510,16 @@ function renderHomeDetail(home, detail) {
   `).join('') || emptyRow(5, 'Chưa có nhật ký riêng cho nhà này.');
 }
 
-async function openHomeDetail(homeId) {
+async function openHomeDetail(homeId, options = {}) {
   const home = state.homes.find((item) => item.id === homeId);
   if (!home) {
     setApiStatus('Không tìm thấy Home ID trong danh sách nhà', 'error');
     return;
+  }
+
+  if (!options.keepFormState) {
+    resetRoomForm();
+    resetDeviceForm();
   }
 
   state.selectedHomeId = homeId;
@@ -469,6 +555,7 @@ async function openHomeDetail(homeId) {
     devicesError,
   };
 
+  state.homeDetail = { home, ...detail };
   renderHomeDetail(home, detail);
   if (detail.devicesError) {
     setApiStatus(`Đã tải chi tiết Home ID: ${homeId}, nhưng chưa lấy được inventory thiết bị`, 'error');
@@ -523,6 +610,10 @@ function logout() {
   state.homes = [];
   state.users = [];
   state.logs = [];
+  state.selectedHomeId = '';
+  state.homeDetail = null;
+  state.editingRoomId = '';
+  state.editingDeviceId = '';
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   setAuthenticated(false);
@@ -611,6 +702,150 @@ async function updateHomeAction(homeId, action) {
   setApiStatus(action === 'suspend' ? 'API: đã khóa nhà' : 'API: đã mở nhà', 'ok');
 }
 
+async function refreshCurrentHomeDetail() {
+  const homeId = state.selectedHomeId;
+  await loadDashboard();
+  if (homeId) {
+    await openHomeDetail(homeId);
+    switchHomeTab('devices');
+  }
+}
+
+async function submitRoomInventory(event) {
+  event.preventDefault();
+  if (!state.selectedHomeId) return;
+
+  els.roomFormMessage.textContent = '';
+  const payload = {
+    name: els.roomNameInput.value.trim(),
+    type: els.roomTypeInput.value.trim() || 'room',
+    sortOrder: Number(els.roomSortInput.value || 0),
+  };
+
+  try {
+    const isEditing = Boolean(state.editingRoomId);
+    await apiFetch(
+      isEditing
+        ? `/api/homes/${encodeURIComponent(state.selectedHomeId)}/rooms/${encodeURIComponent(state.editingRoomId)}`
+        : `/api/homes/${encodeURIComponent(state.selectedHomeId)}/rooms`,
+      {
+        method: isEditing ? 'PATCH' : 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+    resetRoomForm();
+    setApiStatus(isEditing ? 'API: da sua phong' : 'API: da them phong', 'ok');
+    await refreshCurrentHomeDetail();
+  } catch (error) {
+    els.roomFormMessage.textContent = error.message || 'Khong luu duoc phong';
+    setApiStatus(`API: ${error.message}`, 'error');
+  }
+}
+
+async function submitDeviceInventory(event) {
+  event.preventDefault();
+  if (!state.selectedHomeId) return;
+
+  els.deviceFormMessage.textContent = '';
+  const payload = {
+    name: els.deviceNameInput.value.trim(),
+    roomId: els.deviceRoomSelect.value || null,
+    type: els.deviceTypeSelect.value || 'other',
+    status: els.deviceStatusSelect.value || 'unknown',
+    ratedPowerW: Number(els.devicePowerInput.value || 0),
+    isControllable: els.deviceControllableInput.checked,
+  };
+
+  try {
+    const isEditing = Boolean(state.editingDeviceId);
+    await apiFetch(
+      isEditing
+        ? `/api/homes/${encodeURIComponent(state.selectedHomeId)}/devices/${encodeURIComponent(state.editingDeviceId)}`
+        : `/api/homes/${encodeURIComponent(state.selectedHomeId)}/devices`,
+      {
+        method: isEditing ? 'PATCH' : 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+    resetDeviceForm();
+    setApiStatus(isEditing ? 'API: da sua thiet bi' : 'API: da them thiet bi', 'ok');
+    await refreshCurrentHomeDetail();
+  } catch (error) {
+    els.deviceFormMessage.textContent = error.message || 'Khong luu duoc thiet bi';
+    setApiStatus(`API: ${error.message}`, 'error');
+  }
+}
+
+function startRoomEdit(roomId) {
+  const room = (state.homeDetail?.rooms || []).find((item) => item.id === roomId);
+  if (!room) return;
+
+  state.editingRoomId = room.id;
+  els.roomNameInput.value = room.name || '';
+  els.roomTypeInput.value = room.type || 'room';
+  els.roomSortInput.value = room.sortOrder ?? 0;
+  els.roomFormMessage.textContent = '';
+  els.roomSubmitBtn.textContent = 'Luu phong';
+  els.cancelRoomEditBtn.classList.remove('hidden');
+  els.roomNameInput.focus();
+}
+
+function startDeviceEdit(deviceId) {
+  const device = (state.homeDetail?.devices || []).find((item) => item.id === deviceId);
+  if (!device || device.source !== 'manual-inventory') return;
+
+  state.editingDeviceId = device.id;
+  els.deviceNameInput.value = device.name || '';
+  els.deviceRoomSelect.value = device.roomId || '';
+  els.deviceTypeSelect.value = device.type || 'other';
+  els.devicePowerInput.value = device.ratedPowerW ?? device.power ?? 0;
+  els.deviceStatusSelect.value = device.status || 'unknown';
+  els.deviceControllableInput.checked = Boolean(device.isControllable);
+  els.deviceFormMessage.textContent = '';
+  els.deviceSubmitBtn.textContent = 'Luu thiet bi';
+  els.cancelDeviceEditBtn.classList.remove('hidden');
+  els.deviceNameInput.focus();
+}
+
+async function deleteRoom(roomId) {
+  if (!state.selectedHomeId || !window.confirm('Xoa phong nay? Thiet bi trong phong se duoc bo gan phong.')) return;
+  await apiFetch(`/api/homes/${encodeURIComponent(state.selectedHomeId)}/rooms/${encodeURIComponent(roomId)}`, {
+    method: 'DELETE',
+  });
+  resetRoomForm();
+  setApiStatus('API: da xoa phong', 'ok');
+  await refreshCurrentHomeDetail();
+}
+
+async function deleteDevice(deviceId) {
+  if (!state.selectedHomeId || !window.confirm('Xoa thiet bi nay khoi inventory?')) return;
+  await apiFetch(`/api/homes/${encodeURIComponent(state.selectedHomeId)}/devices/${encodeURIComponent(deviceId)}`, {
+    method: 'DELETE',
+  });
+  resetDeviceForm();
+  setApiStatus('API: da xoa thiet bi', 'ok');
+  await refreshCurrentHomeDetail();
+}
+
+async function handleInventoryAction(event) {
+  const roomButton = event.target.closest('button[data-room-action]');
+  const deviceButton = event.target.closest('button[data-device-action]');
+
+  try {
+    if (roomButton) {
+      if (roomButton.dataset.roomAction === 'edit') startRoomEdit(roomButton.dataset.roomId);
+      if (roomButton.dataset.roomAction === 'delete') await deleteRoom(roomButton.dataset.roomId);
+      return;
+    }
+    if (deviceButton) {
+      if (deviceButton.dataset.deviceAction === 'edit') startDeviceEdit(deviceButton.dataset.deviceId);
+      if (deviceButton.dataset.deviceAction === 'delete') await deleteDevice(deviceButton.dataset.deviceId);
+    }
+  } catch (error) {
+    setApiStatus(`API: ${error.message}`, 'error');
+  }
+}
+
 async function copyHomeId(homeId) {
   if (!homeId) return;
 
@@ -686,10 +921,16 @@ els.createOwnerHomeBtn.addEventListener('click', openOwnerModal);
 els.closeOwnerModalBtn.addEventListener('click', closeOwnerModal);
 els.cancelOwnerModalBtn.addEventListener('click', closeOwnerModal);
 els.ownerForm.addEventListener('submit', createOwnerHome);
+els.roomInventoryForm.addEventListener('submit', submitRoomInventory);
+els.deviceInventoryForm.addEventListener('submit', submitDeviceInventory);
+els.cancelRoomEditBtn.addEventListener('click', resetRoomForm);
+els.cancelDeviceEditBtn.addEventListener('click', resetDeviceForm);
 els.recentHomesBody.addEventListener('click', handleAdminTableAction);
 els.homesBody.addEventListener('click', handleAdminTableAction);
 els.usersBody.addEventListener('click', handleAdminTableAction);
 els.detailHomeId.addEventListener('click', handleAdminTableAction);
+els.homeRoomsBody.addEventListener('click', handleInventoryAction);
+els.homeDevicesBody.addEventListener('click', handleInventoryAction);
 els.detailTabs.forEach((tab) => {
   tab.addEventListener('click', () => switchHomeTab(tab.dataset.homeTab));
 });

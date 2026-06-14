@@ -231,6 +231,99 @@
               </section>
 
               <section class="detail-tab-panel hidden" data-home-tab-panel="devices">
+                <div class="inventory-tools">
+                  <form class="inventory-card" id="roomInventoryForm">
+                    <div class="inventory-card-head">
+                      <div>
+                        <h3>Quan ly phong</h3>
+                        <p>Them hoac sua phong thu cong cho nha nay.</p>
+                      </div>
+                      <button class="ghost-btn hidden" id="cancelRoomEditBtn" type="button">Huy sua</button>
+                    </div>
+                    <div class="inventory-form-grid">
+                      <label>
+                        Ten phong
+                        <input id="roomNameInput" required placeholder="Vi du: Phong khach">
+                      </label>
+                      <label>
+                        Loai phong
+                        <input id="roomTypeInput" placeholder="room" value="room">
+                      </label>
+                      <label>
+                        Thu tu
+                        <input id="roomSortInput" type="number" inputmode="numeric" value="0">
+                      </label>
+                    </div>
+                    <p class="form-message" id="roomFormMessage"></p>
+                    <button class="primary-btn" id="roomSubmitBtn" type="submit">Them phong</button>
+                  </form>
+
+                  <form class="inventory-card" id="deviceInventoryForm">
+                    <div class="inventory-card-head">
+                      <div>
+                        <h3>Quan ly thiet bi</h3>
+                        <p>Khai bao thiet bi va cong suat dinh muc theo tung phong.</p>
+                      </div>
+                      <button class="ghost-btn hidden" id="cancelDeviceEditBtn" type="button">Huy sua</button>
+                    </div>
+                    <div class="inventory-form-grid">
+                      <label>
+                        Ten thiet bi
+                        <input id="deviceNameInput" required placeholder="Vi du: Den phong khach">
+                      </label>
+                      <label>
+                        Phong
+                        <select id="deviceRoomSelect"></select>
+                      </label>
+                      <label>
+                        Loai
+                        <select id="deviceTypeSelect">
+                          <option value="light">Den</option>
+                          <option value="fan">Quat</option>
+                          <option value="aircon">May lanh</option>
+                          <option value="socket">O cam</option>
+                          <option value="sensor">Cam bien</option>
+                          <option value="appliance">Gia dung</option>
+                          <option value="other">Khac</option>
+                        </select>
+                      </label>
+                      <label>
+                        Cong suat W
+                        <input id="devicePowerInput" type="number" min="0" step="0.1" inputmode="decimal" value="0">
+                      </label>
+                      <label>
+                        Trang thai
+                        <select id="deviceStatusSelect">
+                          <option value="unknown">Chua ro</option>
+                          <option value="on">Dang bat</option>
+                          <option value="off">Dang tat</option>
+                          <option value="offline">Offline</option>
+                        </select>
+                      </label>
+                      <label class="checkbox-label">
+                        <input id="deviceControllableInput" type="checkbox" checked>
+                        Co the dieu khien
+                      </label>
+                    </div>
+                    <p class="form-message" id="deviceFormMessage"></p>
+                    <button class="primary-btn" id="deviceSubmitBtn" type="submit">Them thiet bi</button>
+                  </form>
+                </div>
+
+                <div class="table-wrap inventory-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Phong</th>
+                        <th>Loai</th>
+                        <th>Thu tu</th>
+                        <th>Thao tac</th>
+                      </tr>
+                    </thead>
+                    <tbody id="homeRoomsBody"></tbody>
+                  </table>
+                </div>
+
                 <div class="table-wrap">
                   <table>
                     <thead>
@@ -240,6 +333,7 @@
                         <th>Công suất định mức</th>
                         <th>Trạng thái</th>
                         <th>Nguồn</th>
+                        <th>Thao tac</th>
                       </tr>
                     </thead>
                     <tbody id="homeDevicesBody"></tbody>
@@ -351,6 +445,6 @@
       </div>
     </form>
   </div>
-  <script src="./app.js?v=20260609-admin-redesign"></script>
+  <script src="./app.js?v=20260614-inventory-crud"></script>
 </body>
 </html>
