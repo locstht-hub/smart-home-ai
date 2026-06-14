@@ -1,9 +1,10 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+﻿import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { defaultRooms, Device, ActivityLog } from '../constants/data';
 import { useAuth } from './AuthContext';
 import { useSmartHomeServer } from './SmartHomeServerContext';
 import { buildFallbackHouseDevices, HouseDevices, normalizeServerDevices } from '../services/smartHome/mappers';
+import { ManualDevice } from '../types/smartHomeServer';
 
 interface ComputedRoom {
     id: string;
@@ -11,7 +12,10 @@ interface ComputedRoom {
     devices: number;
     active: number;
     power: number;
+    source?: 'default' | 'manual';
 }
+
+type RoomDefinition = { id: string; name: string; source: 'default' | 'manual' };
 
 interface DataContextType {
     rooms: ComputedRoom[];
@@ -20,10 +24,13 @@ interface DataContextType {
     isServerControlled: boolean;
     serverError: string | null;
     isHomeSuspended: boolean;
+    canManageInventory: boolean;
+    isManualInventory: boolean;
     refresh: () => Promise<void>;
+    addRoom: (name: string) => Promise<{ success: boolean; error?: string }>;
     toggleDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<{ success: boolean; error?: string }>;
-    addDevice: (roomId: string, device: Omit<Device, 'id' | 'ownerId'>, targetUserId?: string) => Promise<void>;
-    deleteDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<void>;
+    addDevice: (roomId: string, device: Omit<Device, 'id' | 'ownerId'>, targetUserId?: string) => Promise<{ success: boolean; error?: string }>;
+    deleteDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<{ success: boolean; error?: string }>;
     turnAllOff: (targetUserId?: string) => Promise<boolean>;
     turnAllOn: (roomId: string, targetUserId?: string) => Promise<boolean>;
     turnAllOffRoom: (roomId: string, targetUserId?: string) => Promise<boolean>;
@@ -43,8 +50,8 @@ const SERVER_DEVICES_REFRESH_MS = 30000;
 
 export const useData = () => useContext(DataContext);
 
-const getRoomsForHouse = (house: HouseDevices): ComputedRoom[] => {
-    return defaultRooms.map(baseRoom => {
+const getRoomsForHouse = (house: HouseDevices, roomDefs: RoomDefinition[] = defaultRooms.map(room => ({ id: room.id, name: room.name, source: 'default' as const }))): ComputedRoom[] => {
+    return roomDefs.map(baseRoom => {
         const roomDevices = house[baseRoom.id] || [];
         const activeDevices = roomDevices.filter(device => device.isOn);
         return {
@@ -53,18 +60,54 @@ const getRoomsForHouse = (house: HouseDevices): ComputedRoom[] => {
             devices: roomDevices.length,
             active: activeDevices.length,
             power: activeDevices.reduce((sum, device) => sum + device.power, 0),
+            source: baseRoom.source,
         };
     });
+};
+
+const serverToLocalDeviceType = (type: ManualDevice['type']): Device['type'] => {
+    if (type === 'aircon') return 'ac';
+    if (type === 'socket' || type === 'sensor' || type === 'appliance' || type === 'other') return 'outlet';
+    return type;
+};
+
+const localToServerDeviceType = (type: Device['type']) => {
+    if (type === 'ac') return 'aircon';
+    if (type === 'outlet') return 'socket';
+    return type;
+};
+
+const buildManualHouseDevices = (manualDevices: ManualDevice[]): HouseDevices => {
+    return manualDevices.reduce((house, item) => {
+        const roomId = item.roomId || 'unassigned';
+        const device: Device = {
+            id: item.id,
+            name: item.name,
+            type: serverToLocalDeviceType(item.type),
+            isOn: item.status === 'on',
+            power: Number(item.ratedPowerW || 0),
+            roomId,
+            source: 'manual',
+            available: item.status !== 'offline',
+        };
+        house[roomId] = [...(house[roomId] || []), device];
+        return house;
+    }, {} as HouseDevices);
 };
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
     const { client, isConfigured } = useSmartHomeServer();
     const [devices, setDevices] = useState<HouseDevices>(buildFallbackHouseDevices());
+    const [roomDefinitions, setRoomDefinitions] = useState<RoomDefinition[]>(
+        defaultRooms.map(room => ({ id: room.id, name: room.name, source: 'default' })),
+    );
     const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
     const [hasLoadedStorage, setHasLoadedStorage] = useState(false);
     const [isServerControlled, setIsServerControlled] = useState(false);
+    const [isManualInventory, setIsManualInventory] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
+    const canManageInventory = Boolean(user?.role === 'admin' || user?.canManageDevices);
 
     useEffect(() => {
         const loadPersistedData = async () => {
@@ -104,7 +147,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const log: ActivityLog = {
             id: `log-${Date.now()}`,
             userId: user?.id || 'guest',
-            userName: user?.name || 'Hệ thống',
+            userName: user?.name || 'Há»‡ thá»‘ng',
             action,
             device: deviceName,
             room: roomName,
@@ -116,21 +159,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const refresh = useCallback(async () => {
         if (!isConfigured) {
             setIsServerControlled(false);
+            setIsManualInventory(false);
             setServerError(null);
             return;
         }
 
         try {
+            if (user?.homeId) {
+                const [manualRooms, manualDevices] = await Promise.all([
+                    client.getManualRooms(user.homeId),
+                    client.getManualDevices(user.homeId),
+                ]);
+
+                if (manualRooms.length || manualDevices.length) {
+                    const nextRoomDefs = manualRooms.map(room => ({
+                        id: room.id,
+                        name: room.name,
+                        source: 'manual' as const,
+                    }));
+                    const roomIds = new Set(nextRoomDefs.map(room => room.id));
+                    manualDevices.forEach(device => {
+                        const roomId = device.roomId || 'unassigned';
+                        if (!roomIds.has(roomId)) {
+                            nextRoomDefs.push({ id: roomId, name: roomId === 'unassigned' ? 'ChÆ°a phÃ¢n phÃ²ng' : 'PhÃ²ng khÃ¡c', source: 'manual' });
+                            roomIds.add(roomId);
+                        }
+                    });
+
+                    setRoomDefinitions(nextRoomDefs);
+                    setDevices(buildManualHouseDevices(manualDevices));
+                    setIsServerControlled(true);
+                    setIsManualInventory(true);
+                    setServerError(null);
+                    return;
+                }
+            }
+
             const nextDevices = await client.getDevices();
+            setRoomDefinitions(defaultRooms.map(room => ({ id: room.id, name: room.name, source: 'default' })));
             setDevices(normalizeServerDevices(nextDevices));
             setIsServerControlled(true);
+            setIsManualInventory(false);
             setServerError(null);
         } catch (error) {
             console.error('Error refreshing Smart Home server devices:', error);
             setIsServerControlled(true);
-            setServerError(error instanceof Error ? error.message : 'Không thể tải dữ liệu server');
+            setServerError(error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u server');
         }
-    }, [client, isConfigured]);
+    }, [client, isConfigured, user?.homeId]);
 
     useEffect(() => {
         if (!hasLoadedStorage) return;
@@ -143,19 +219,49 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => clearInterval(interval);
     }, [hasLoadedStorage, refresh]);
 
-    const rooms = useMemo(() => getRoomsForHouse(devices), [devices]);
+    const rooms = useMemo(() => getRoomsForHouse(devices, roomDefinitions), [devices, roomDefinitions]);
 
     const updateLocalHouse = useCallback((updater: (house: HouseDevices) => HouseDevices) => {
         setDevices(prev => updater(prev));
     }, []);
 
     const getRoomName = useCallback((roomId: string) => {
-        return defaultRooms.find(room => room.id === roomId)?.name;
-    }, []);
+        return roomDefinitions.find(room => room.id === roomId)?.name || defaultRooms.find(room => room.id === roomId)?.name;
+    }, [roomDefinitions]);
+
+    const addRoom = useCallback(async (name: string): Promise<{ success: boolean; error?: string }> => {
+        const cleanName = name.trim();
+        if (!cleanName) return { success: false, error: 'Vui lÃ²ng nháº­p tÃªn phÃ²ng' };
+
+        try {
+            if (isConfigured && user?.homeId) {
+                await client.createManualRoom(user.homeId, {
+                    name: cleanName,
+                    type: 'room',
+                    sortOrder: rooms.length,
+                });
+                await refresh();
+            } else {
+                const roomId = `room-${Date.now()}`;
+                setRoomDefinitions(prev => [...prev, { id: roomId, name: cleanName, source: 'manual' }]);
+                updateLocalHouse(house => ({ ...house, [roomId]: [] }));
+            }
+            addLog('ThÃªm phÃ²ng má»›i', undefined, cleanName);
+            return { success: true };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ thÃªm phÃ²ng';
+            setServerError(message);
+            return { success: false, error: message };
+        }
+    }, [addLog, client, isConfigured, refresh, rooms.length, updateLocalHouse, user?.homeId]);
 
     const toggleDevice = useCallback(async (roomId: string, deviceId: string): Promise<{ success: boolean; error?: string }> => {
         const currentDevice = (devices[roomId] || []).find(device => device.id === deviceId);
-        if (!currentDevice) return { success: false, error: 'Không tìm thấy thiết bị' };
+        if (!currentDevice) return { success: false, error: 'KhÃ´ng tÃ¬m tháº¥y thiáº¿t bá»‹' };
+
+        if (currentDevice.source === 'manual') {
+            return { success: false, error: 'Thiáº¿t bá»‹ nÃ y Ä‘ang lÃ  khai bÃ¡o thá»§ cÃ´ng, chÆ°a gáº¯n lá»‡nh Ä‘iá»u khiá»ƒn PLC.' };
+        }
 
         const nextState = !currentDevice.isOn;
 
@@ -172,21 +278,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }));
             }
 
-            addLog(currentDevice.isOn ? 'Tắt thiết bị' : 'Bật thiết bị', currentDevice.name, getRoomName(roomId));
+            addLog(currentDevice.isOn ? 'Táº¯t thiáº¿t bá»‹' : 'Báº­t thiáº¿t bá»‹', currentDevice.name, getRoomName(roomId));
             return { success: true };
         } catch (error) {
             console.error('Error toggling device:', error);
-            const message = error instanceof Error ? error.message : 'Không thể điều khiển thiết bị';
+            const message = error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ Ä‘iá»u khiá»ƒn thiáº¿t bá»‹';
             setServerError(message);
-            addLog('Lỗi điều khiển thiết bị', currentDevice.name, getRoomName(roomId));
+            addLog('Lá»—i Ä‘iá»u khiá»ƒn thiáº¿t bá»‹', currentDevice.name, getRoomName(roomId));
             return { success: false, error: message };
         }
     }, [addLog, client, devices, getRoomName, isConfigured, isServerControlled, refresh, updateLocalHouse]);
 
-    const addDevice = useCallback(async (roomId: string, device: Omit<Device, 'id' | 'ownerId'>) => {
+    const addDevice = useCallback(async (roomId: string, device: Omit<Device, 'id' | 'ownerId'>): Promise<{ success: boolean; error?: string }> => {
+        if (isConfigured && user?.homeId && (isManualInventory || isServerControlled)) {
+            try {
+                await client.createManualDevice(user.homeId, {
+                    roomId,
+                    name: device.name,
+                    type: localToServerDeviceType(device.type),
+                    status: device.isOn ? 'on' : 'off',
+                    ratedPowerW: device.power,
+                    isControllable: false,
+                });
+                await refresh();
+                addLog('ThÃªm thiáº¿t bá»‹ thá»§ cÃ´ng', device.name, getRoomName(roomId));
+                return { success: true };
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ thÃªm thiáº¿t bá»‹';
+                setServerError(message);
+                return { success: false, error: message };
+            }
+        }
+
         if (isServerControlled) {
-            addLog('Yêu cầu thêm thiết bị trên server', device.name, getRoomName(roomId));
-            return;
+            addLog('YÃªu cáº§u thÃªm thiáº¿t bá»‹ trÃªn server', device.name, getRoomName(roomId));
+            return { success: false, error: 'Thiet bi server can duoc them qua inventory thu cong.' };
         }
 
         const newDevice: Device = {
@@ -201,16 +327,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             [roomId]: [...(house[roomId] || []), newDevice],
         }));
 
-        addLog('Thêm thiết bị mới', newDevice.name, getRoomName(roomId));
-    }, [addLog, getRoomName, isServerControlled, updateLocalHouse]);
+        addLog('ThÃªm thiáº¿t bá»‹ má»›i', newDevice.name, getRoomName(roomId));
+        return { success: true };
+    }, [addLog, client, getRoomName, isConfigured, isManualInventory, isServerControlled, refresh, updateLocalHouse, user?.homeId]);
 
-    const deleteDevice = useCallback(async (roomId: string, deviceId: string) => {
+    const deleteDevice = useCallback(async (roomId: string, deviceId: string): Promise<{ success: boolean; error?: string }> => {
         const currentDevice = (devices[roomId] || []).find(device => device.id === deviceId);
-        if (!currentDevice) return;
+        if (!currentDevice) return { success: false, error: 'Khong tim thay thiet bi' };
+
+        if (isConfigured && user?.homeId && currentDevice.source === 'manual') {
+            try {
+                await client.deleteManualDevice(user.homeId, currentDevice.id);
+                await refresh();
+                addLog('Xoa thiet bi thu cong', currentDevice.name, getRoomName(roomId));
+                return { success: true };
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Khong the xoa thiet bi';
+                setServerError(message);
+                return { success: false, error: message };
+            }
+        }
 
         if (isServerControlled && currentDevice.source === 'server') {
-            addLog('Yêu cầu xóa thiết bị trên server', currentDevice.name, getRoomName(roomId));
-            return;
+            addLog('YÃªu cáº§u xÃ³a thiáº¿t bá»‹ trÃªn server', currentDevice.name, getRoomName(roomId));
+            return { success: false, error: 'Thiet bi PLC phai duoc quan ly tren server/PLC.' };
         }
 
         updateLocalHouse(house => ({
@@ -218,13 +358,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             [roomId]: house[roomId].filter(device => device.id !== deviceId),
         }));
 
-        addLog('Xóa thiết bị', currentDevice.name, getRoomName(roomId));
-    }, [addLog, devices, getRoomName, isServerControlled, updateLocalHouse]);
+        addLog('XÃ³a thiáº¿t bá»‹', currentDevice.name, getRoomName(roomId));
+        return { success: true };
+    }, [addLog, client, devices, getRoomName, isConfigured, isServerControlled, refresh, updateLocalHouse, user?.homeId]);
 
     const setAllDevicesState = useCallback(async (roomId: string | null, nextState: boolean): Promise<boolean> => {
         const targetDevices = roomId ? devices[roomId] || [] : Object.values(devices).flat();
 
         try {
+            if (isManualInventory) {
+                return false;
+            }
             if (isConfigured && isServerControlled) {
                 await Promise.all(targetDevices.map(device => client.setDeviceState(device.id, nextState)));
                 await refresh();
@@ -247,26 +391,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return true;
         } catch (error) {
             console.error('Error setting all devices state:', error);
-            setServerError(error instanceof Error ? error.message : 'Không thể điều khiển thiết bị');
+            setServerError(error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ Ä‘iá»u khiá»ƒn thiáº¿t bá»‹');
             return false;
         }
-    }, [client, devices, isConfigured, isServerControlled, refresh, updateLocalHouse]);
+    }, [client, devices, isConfigured, isManualInventory, isServerControlled, refresh, updateLocalHouse]);
 
     const turnAllOff = useCallback(async () => {
         const success = await setAllDevicesState(null, false);
-        addLog(success ? 'Tắt tất cả thiết bị' : 'Lỗi tắt tất cả thiết bị');
+        addLog(success ? 'Táº¯t táº¥t cáº£ thiáº¿t bá»‹' : 'Lá»—i táº¯t táº¥t cáº£ thiáº¿t bá»‹');
         return success;
     }, [addLog, setAllDevicesState]);
 
     const turnAllOn = useCallback(async (roomId: string) => {
         const success = await setAllDevicesState(roomId, true);
-        addLog(success ? 'Bật tất cả thiết bị' : 'Lỗi bật tất cả thiết bị', undefined, getRoomName(roomId));
+        addLog(success ? 'Báº­t táº¥t cáº£ thiáº¿t bá»‹' : 'Lá»—i báº­t táº¥t cáº£ thiáº¿t bá»‹', undefined, getRoomName(roomId));
         return success;
     }, [addLog, getRoomName, setAllDevicesState]);
 
     const turnAllOffRoom = useCallback(async (roomId: string) => {
         const success = await setAllDevicesState(roomId, false);
-        addLog(success ? 'Tắt tất cả thiết bị' : 'Lỗi tắt tất cả thiết bị', undefined, getRoomName(roomId));
+        addLog(success ? 'Táº¯t táº¥t cáº£ thiáº¿t bá»‹' : 'Lá»—i táº¯t táº¥t cáº£ thiáº¿t bá»‹', undefined, getRoomName(roomId));
         return success;
     }, [addLog, getRoomName, setAllDevicesState]);
 
@@ -301,16 +445,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         } catch (error) {
             console.error('Error applying scene:', error);
-            setServerError(error instanceof Error ? error.message : 'Không thể kích hoạt cảnh');
+            setServerError(error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ kÃ­ch hoáº¡t cáº£nh');
         }
 
         const sceneNames: Record<'morning' | 'work' | 'weekend' | 'sleep', string> = {
-            morning: 'Buổi sáng',
-            work: 'Đi làm',
-            weekend: 'Cuối tuần',
-            sleep: 'Chế độ ngủ',
+            morning: 'Buá»•i sÃ¡ng',
+            work: 'Äi lÃ m',
+            weekend: 'Cuá»‘i tuáº§n',
+            sleep: 'Cháº¿ Ä‘á»™ ngá»§',
         };
-        addLog(`${success ? 'Kích hoạt cảnh' : 'Lỗi kích hoạt cảnh'}: ${sceneNames[scene]}`);
+        addLog(`${success ? 'KÃ­ch hoáº¡t cáº£nh' : 'Lá»—i kÃ­ch hoáº¡t cáº£nh'}: ${sceneNames[scene]}`);
         return success;
     }, [addLog, client, isConfigured, isServerControlled, refresh, setAllDevicesState, updateLocalHouse]);
 
@@ -345,8 +489,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             activityLogs,
             isServerControlled,
             serverError,
-            isHomeSuspended: serverError === 'Nhà đang bị tạm khóa' || serverError === 'Nha dang bi tam khoa',
+            isHomeSuspended: serverError === 'NhÃ  Ä‘ang bá»‹ táº¡m khÃ³a' || serverError === 'Nha dang bi tam khoa',
+            canManageInventory,
+            isManualInventory,
             refresh,
+            addRoom,
             toggleDevice,
             addDevice,
             deleteDevice,

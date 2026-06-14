@@ -148,3 +148,54 @@ export interface HomeQuota {
     currentMonthEnergyKwh: number;
     quotaSource?: string;
 }
+
+export interface ManualRoom {
+    id: string;
+    homeId: string;
+    name: string;
+    type: string;
+    sortOrder: number;
+    metadata?: Record<string, unknown>;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export type ManualDeviceType = 'light' | 'fan' | 'aircon' | 'socket' | 'sensor' | 'appliance' | 'other';
+export type ManualDeviceStatus = 'on' | 'off' | 'offline' | 'unknown';
+
+export interface ManualDevice {
+    id: string;
+    homeId: string;
+    roomId?: string | null;
+    name: string;
+    type: ManualDeviceType;
+    status: ManualDeviceStatus;
+    ratedPowerW: number;
+    isControllable: boolean;
+    plcStatusTag?: string | null;
+    plcOnCommandTag?: string | null;
+    plcOffCommandTag?: string | null;
+    metadata?: Record<string, unknown>;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreateManualRoomPayload {
+    name: string;
+    type?: string;
+    sortOrder?: number;
+    metadata?: Record<string, unknown>;
+}
+
+export interface CreateManualDevicePayload {
+    roomId?: string | null;
+    name: string;
+    type: ManualDeviceType;
+    status?: ManualDeviceStatus;
+    ratedPowerW?: number;
+    isControllable?: boolean;
+    plcStatusTag?: string | null;
+    plcOnCommandTag?: string | null;
+    plcOffCommandTag?: string | null;
+    metadata?: Record<string, unknown>;
+}

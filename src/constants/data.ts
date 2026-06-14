@@ -18,7 +18,7 @@ export interface Device {
     entityId?: string;
     domain?: string;
     roomId?: string;
-    source?: 'server' | 'local';
+    source?: 'server' | 'local' | 'manual';
     available?: boolean;
 }
 

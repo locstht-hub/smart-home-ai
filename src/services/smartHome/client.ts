@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Device } from '../../constants/data';
-import { CreateMemberPayload, HomeActivityLog, HomeMember, HomeQuota, LoginResponse, PowerCurrentResponse, PowerHistoryResponse, PowerReading, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
+import { CreateManualDevicePayload, CreateManualRoomPayload, CreateMemberPayload, HomeActivityLog, HomeMember, HomeQuota, LoginResponse, ManualDevice, ManualRoom, PowerCurrentResponse, PowerHistoryResponse, PowerReading, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
 
 interface DevicesResponse {
     devices: Record<string, Device[]>;
@@ -211,6 +211,47 @@ export class SmartHomeApiClient {
             body: JSON.stringify({ energyLimitKwh: limit }),
         });
         return response.quota;
+    }
+
+    async getManualRooms(homeId: string): Promise<ManualRoom[]> {
+        const response = await this.request<{ ok: boolean; rooms: ManualRoom[] }>(`/api/homes/${encodeURIComponent(homeId)}/rooms`);
+        return response.rooms;
+    }
+
+    async createManualRoom(homeId: string, data: CreateManualRoomPayload): Promise<ManualRoom> {
+        const response = await this.request<{ ok: boolean; room: ManualRoom }>(`/api/homes/${encodeURIComponent(homeId)}/rooms`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+        return response.room;
+    }
+
+    async deleteManualRoom(homeId: string, roomId: string): Promise<void> {
+        await this.request(`/api/homes/${encodeURIComponent(homeId)}/rooms/${encodeURIComponent(roomId)}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async getManualDevices(homeId: string, roomId?: string): Promise<ManualDevice[]> {
+        const path = roomId
+            ? `/api/homes/${encodeURIComponent(homeId)}/devices?roomId=${encodeURIComponent(roomId)}`
+            : `/api/homes/${encodeURIComponent(homeId)}/devices`;
+        const response = await this.request<{ ok: boolean; devices: ManualDevice[] }>(path);
+        return response.devices;
+    }
+
+    async createManualDevice(homeId: string, data: CreateManualDevicePayload): Promise<ManualDevice> {
+        const response = await this.request<{ ok: boolean; device: ManualDevice }>(`/api/homes/${encodeURIComponent(homeId)}/devices`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+        return response.device;
+    }
+
+    async deleteManualDevice(homeId: string, deviceId: string): Promise<void> {
+        await this.request(`/api/homes/${encodeURIComponent(homeId)}/devices/${encodeURIComponent(deviceId)}`, {
+            method: 'DELETE',
+        });
     }
 
 
