@@ -254,12 +254,27 @@ class PostgresAuthStore:
                 """
                 SELECT homes.id, homes.name, homes.owner_id, homes.status, homes.created_at,
                        users.name AS owner_name, users.username AS owner_username,
-                       COUNT(home_members.user_id) AS member_count
+                       COALESCE(member_stats.member_count, 0) AS member_count,
+                       COALESCE(room_stats.room_count, 0) AS room_count,
+                       COALESCE(device_stats.device_count, 0) AS device_count,
+                       COALESCE(device_stats.total_rated_power_w, 0) AS total_rated_power_w
                 FROM public.homes
                 JOIN public.users ON users.id = homes.owner_id
-                LEFT JOIN public.home_members ON home_members.home_id = homes.id
-                GROUP BY homes.id, homes.name, homes.owner_id, homes.status, homes.created_at,
-                         users.name, users.username
+                LEFT JOIN (
+                    SELECT home_id, COUNT(*) AS member_count
+                    FROM public.home_members
+                    GROUP BY home_id
+                ) AS member_stats ON member_stats.home_id = homes.id
+                LEFT JOIN (
+                    SELECT home_id, COUNT(*) AS room_count
+                    FROM public.rooms
+                    GROUP BY home_id
+                ) AS room_stats ON room_stats.home_id = homes.id
+                LEFT JOIN (
+                    SELECT home_id, COUNT(*) AS device_count, SUM(rated_power_w) AS total_rated_power_w
+                    FROM public.devices
+                    GROUP BY home_id
+                ) AS device_stats ON device_stats.home_id = homes.id
                 ORDER BY homes.created_at DESC
                 """
             ).fetchall()
@@ -273,6 +288,9 @@ class PostgresAuthStore:
                     "ownerUsername": row["owner_username"],
                     "status": row["status"],
                     "memberCount": row["member_count"],
+                    "roomCount": row["room_count"],
+                    "deviceCount": row["device_count"],
+                    "totalRatedPowerW": row["total_rated_power_w"],
                     "createdAt": iso_value(row["created_at"]),
                 }
                 for row in rows

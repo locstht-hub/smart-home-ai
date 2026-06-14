@@ -263,22 +263,26 @@ function renderHomes() {
       <td>${escapeHtml(home.ownerName || '-')}</td>
       <td>${escapeHtml(home.ownerUsername || '-')}</td>
       <td>${escapeHtml(home.memberCount ?? 0)}</td>
+      <td>${escapeHtml(home.roomCount ?? 0)}</td>
+      <td>${escapeHtml(home.deviceCount ?? 0)}</td>
+      <td>${formatNumber(home.totalRatedPowerW || 0, ' W')}</td>
       <td>${formatDate(home.createdAt)}</td>
       <td>${statusBadge(home.status)}</td>
       <td>${homeActions(home)}</td>
     </tr>
   `).join('');
 
-  els.homesBody.innerHTML = rows || emptyRow(8, 'Chưa có nhà nào trong hệ thống.');
+  els.homesBody.innerHTML = rows || emptyRow(11, 'Chưa có nhà nào trong hệ thống.');
   els.recentHomesBody.innerHTML = state.homes.slice(0, 5).map((home) => `
     <tr>
       <td><strong>${escapeHtml(home.name)}</strong></td>
       <td>${homeIdCell(home.id)}</td>
       <td>${escapeHtml(home.ownerName || '-')}</td>
       <td>${escapeHtml(home.memberCount ?? 0)}</td>
+      <td>${escapeHtml(home.deviceCount ?? 0)}</td>
       <td>${statusBadge(home.status)}</td>
     </tr>
-  `).join('') || emptyRow(5, 'Chưa có dữ liệu nhà.');
+  `).join('') || emptyRow(6, 'Chưa có dữ liệu nhà.');
 }
 
 function renderUsers() {
@@ -340,19 +344,41 @@ function flattenDevices(devicesByRoom) {
   );
 }
 
+function normalizeManualDevices(devices) {
+  return (Array.isArray(devices) ? devices : []).map((device) => ({
+    id: device.id,
+    name: device.name,
+    roomId: device.roomId || '',
+    power: Number(device.ratedPowerW || 0),
+    status: device.status || 'unknown',
+    source: 'manual-inventory',
+  }));
+}
+
+function inventoryStatusBadge(status) {
+  if (status === 'on') return '<span class="badge active">Đang bật</span>';
+  if (status === 'off') return '<span class="badge off">Đang tắt</span>';
+  if (status === 'offline') return '<span class="badge suspended">Offline</span>';
+  return '<span class="badge off">Khai báo thủ công</span>';
+}
+
 function renderHomeDetail(home, detail) {
   const quota = detail.quota || {};
   const members = detail.members || [];
   const logs = detail.logs || [];
+  const rooms = detail.rooms || [];
   const devices = detail.devices || [];
   const devicesError = detail.devicesError || '';
   const used = Number(quota.currentMonthEnergyKwh || 0);
   const limit = Number(quota.energyLimitKwh || 0);
   const quotaPercent = limit > 0 ? Math.min((used / limit) * 100, 999) : 0;
   const deviceCountValue = devicesError ? '<span class="muted-value">Chưa lấy được</span>' : escapeHtml(String(devices.length));
+  const roomCountValue = devicesError ? '<span class="muted-value">-</span>' : escapeHtml(String(rooms.length));
+  const totalRatedPowerW = devices.reduce((sum, device) => sum + Number(device.power || device.ratedPowerW || 0), 0);
+  const roomNameMap = Object.fromEntries(rooms.map((room) => [room.id, room.name]));
   const deviceHint = devicesError
     ? 'PLC/API thiết bị chưa sẵn sàng, bấm làm mới khi backend đọc được PLC'
-    : 'Đang lấy từ backend thiết bị hiện tại';
+    : 'Ưu tiên inventory thủ công; fallback về thiết bị PLC nếu chưa khai báo';
 
   els.detailHomeName.textContent = home?.name || 'Chi tiết nhà';
   els.detailHomeId.innerHTML = homeIdCell(home?.id || state.selectedHomeId);
@@ -366,16 +392,18 @@ function renderHomeDetail(home, detail) {
   els.homeOverviewGrid.innerHTML = `
     ${detailCard('Home ID', homeIdCell(home?.id || state.selectedHomeId), 'Mã dùng để gán PLC, thiết bị, phòng và quota')}
     ${detailCard('Quota tháng', `${escapeHtml(`${formatNumber(used, ' kWh')} / ${formatNumber(limit, ' kWh')}`)} ${quotaStatusBadge(quotaPercent)}`, `${formatNumber(quotaPercent, '%')} đã dùng`)}
-    ${detailCard('Thiết bị cấu hình', deviceCountValue, deviceHint)}
+    ${detailCard('Phòng khai báo', roomCountValue, 'Số phòng trong inventory thủ công')}
+    ${detailCard('Thiết bị khai báo', deviceCountValue, deviceHint)}
+    ${detailCard('Công suất định mức', escapeHtml(formatNumber(totalRatedPowerW, ' W')), 'Tổng ratedPowerW của thiết bị')}
     ${detailCard('Log của nhà', escapeHtml(String(logs.length)), 'Hoạt động gần nhất')}
   `;
 
   els.homeDevicesBody.innerHTML = devices.map((device) => `
     <tr>
       <td><strong>${escapeHtml(device.name || device.id || '-')}</strong></td>
-      <td>${escapeHtml(roomLabel(device.roomId))}</td>
-      <td>${formatNumber(device.power, ' W')}</td>
-      <td>${deviceStatusBadge(device.isOn)}</td>
+      <td>${escapeHtml(roomNameMap[device.roomId] || roomLabel(device.roomId))}</td>
+      <td>${formatNumber(device.power ?? device.ratedPowerW ?? 0, ' W')}</td>
+      <td>${device.status ? inventoryStatusBadge(device.status) : deviceStatusBadge(device.isOn)}</td>
       <td>${escapeHtml(device.source || '-')}</td>
     </tr>
   `).join('') || emptyRow(5, devicesError ? 'Chưa lấy được thiết bị. Kiểm tra PLC/API rồi bấm làm mới chi tiết.' : 'Chưa có cấu hình thiết bị riêng cho nhà này.');
@@ -412,24 +440,38 @@ async function openHomeDetail(homeId) {
   switchView('homeDetail');
   setApiStatus(`Đang tải chi tiết ${homeId}...`, '');
 
-  const [quotaResult, membersResult, logsResult, devicesResult] = await Promise.allSettled([
+  const [quotaResult, membersResult, logsResult, roomsResult, manualDevicesResult, plcDevicesResult] = await Promise.allSettled([
     apiFetch(`/api/homes/${encodeURIComponent(homeId)}/quota`),
     apiFetch(`/api/homes/${encodeURIComponent(homeId)}/members`),
     apiFetch(`/api/homes/${encodeURIComponent(homeId)}/activity?limit=80`),
+    apiFetch(`/api/homes/${encodeURIComponent(homeId)}/rooms`),
+    apiFetch(`/api/homes/${encodeURIComponent(homeId)}/devices`),
     apiFetch(`/api/devices?homeId=${encodeURIComponent(homeId)}`),
   ]);
+
+  const manualDevices = manualDevicesResult.status === 'fulfilled'
+    ? normalizeManualDevices(manualDevicesResult.value.devices)
+    : [];
+  const plcDevices = plcDevicesResult.status === 'fulfilled'
+    ? flattenDevices(plcDevicesResult.value.devices)
+    : [];
+  const devices = manualDevices.length ? manualDevices : plcDevices;
+  const devicesError = manualDevicesResult.status === 'rejected' && plcDevicesResult.status === 'rejected'
+    ? manualDevicesResult.reason?.message || plcDevicesResult.reason?.message || 'Không lấy được thiết bị'
+    : '';
 
   const detail = {
     quota: quotaResult.status === 'fulfilled' ? quotaResult.value.quota : null,
     members: membersResult.status === 'fulfilled' ? membersResult.value.members || [] : [],
     logs: logsResult.status === 'fulfilled' ? logsResult.value.logs || [] : [],
-    devices: devicesResult.status === 'fulfilled' ? flattenDevices(devicesResult.value.devices) : [],
-    devicesError: devicesResult.status === 'rejected' ? devicesResult.reason?.message || 'Không lấy được thiết bị' : '',
+    rooms: roomsResult.status === 'fulfilled' ? roomsResult.value.rooms || [] : [],
+    devices,
+    devicesError,
   };
 
   renderHomeDetail(home, detail);
   if (detail.devicesError) {
-    setApiStatus(`Đã tải chi tiết Home ID: ${homeId}, nhưng thiết bị PLC chưa sẵn sàng`, 'error');
+    setApiStatus(`Đã tải chi tiết Home ID: ${homeId}, nhưng chưa lấy được inventory thiết bị`, 'error');
   } else {
     setApiStatus(`Đã tải chi tiết Home ID: ${homeId}`, 'ok');
   }

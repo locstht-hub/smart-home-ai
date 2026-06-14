@@ -7,6 +7,8 @@ Web admin tĩnh cho `system_admin`.
 - Đăng nhập bằng `POST /api/auth/login`
 - Xem tổng quan số nhà, số tài khoản, số owner, số audit log
 - Xem danh sách nhà bằng `GET /api/admin/homes`
+- Xem inventory theo từng nhà: số phòng, số thiết bị, tổng công suất định mức từ bảng `rooms/devices`
+- Mở chi tiết nhà để xem phòng, thiết bị, thành viên, quota và audit log theo `home_id`
 - Xem danh sách tài khoản bằng `GET /api/admin/users`
 - Xem lịch sử hoạt động bằng `GET /api/admin/audit-logs`
 
