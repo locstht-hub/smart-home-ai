@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smart Home AI Admin</title>
+  <title>Quản trị Smart Home AI</title>
   <link rel="stylesheet" href="./styles.css?v=20260609-admin-redesign">
 </head>
 <body>
@@ -13,7 +13,7 @@
         <div class="brand-mark" aria-hidden="true">SH</div>
         <div>
           <strong>Smart Home AI</strong>
-          <span>Admin Console</span>
+          <span>Bảng quản trị</span>
         </div>
       </div>
 
@@ -62,15 +62,15 @@
         <div class="login-copy">
           <p class="eyebrow">Bảng quản trị</p>
           <h2>Đăng nhập để quản lý hệ thống</h2>
-          <p>Trang này chỉ dành cho tài khoản system admin. Mọi thao tác quan trọng sẽ được lưu vào audit log.</p>
+          <p>Trang này chỉ dành cho tài khoản quản trị hệ thống. Mọi thao tác quan trọng sẽ được lưu vào nhật ký.</p>
         </div>
         <form id="loginForm" class="login-form">
           <label>
-            Username
+            Tên đăng nhập
             <input id="usernameInput" name="username" autocomplete="username">
           </label>
           <label>
-            Password
+            Mật khẩu
             <input id="passwordInput" name="password" type="password" autocomplete="current-password">
           </label>
           <button type="submit">Đăng nhập</button>
@@ -89,7 +89,7 @@
             <article class="metric">
               <span>Tài khoản</span>
               <strong id="userCount">0</strong>
-              <small>Admin, owner và thành viên</small>
+              <small>Quản trị, chủ nhà và thành viên</small>
             </article>
             <article class="metric">
               <span>Tài khoản cha</span>
@@ -116,7 +116,7 @@
                   <thead>
                     <tr>
                       <th>Tên nhà</th>
-                      <th>Home ID</th>
+                      <th>Mã nhà</th>
                       <th>Chủ nhà</th>
                       <th>Thành viên</th>
                       <th>Thiết bị</th>
@@ -132,7 +132,7 @@
               <div class="panel-head">
                 <div>
                   <h2>Hoạt động mới</h2>
-                  <p>Các thao tác vừa diễn ra trên backend.</p>
+                  <p>Các thao tác vừa diễn ra trên máy chủ.</p>
                 </div>
               </div>
               <div class="log-list" id="recentLogsList"></div>
@@ -145,7 +145,7 @@
             <div class="panel-head">
               <div>
                 <h2>Danh sách nhà</h2>
-                <p>Theo dõi owner, số thành viên và trạng thái từng nhà.</p>
+                <p>Theo dõi chủ nhà, số thành viên và trạng thái từng nhà.</p>
               </div>
               <div class="panel-actions">
                 <button class="primary-btn" id="createOwnerHomeBtn" type="button">Tạo chủ nhà</button>
@@ -157,9 +157,9 @@
                 <thead>
                   <tr>
                     <th>Tên nhà</th>
-                    <th>Home ID</th>
-                    <th>Owner</th>
-                    <th>Username</th>
+                    <th>Mã nhà</th>
+                    <th>Chủ nhà</th>
+                    <th>Tên đăng nhập</th>
                     <th>Thành viên</th>
                     <th>Phòng</th>
                     <th>Thiết bị</th>
@@ -189,10 +189,10 @@
                 <thead>
                   <tr>
                     <th>Tên</th>
-                    <th>Username</th>
-                    <th>Home ID</th>
+                    <th>Tên đăng nhập</th>
+                    <th>Mã nhà</th>
                     <th>SĐT</th>
-                    <th>Role</th>
+                    <th>Vai trò</th>
                     <th>Hoạt động cuối</th>
                     <th>Trạng thái</th>
                     <th>Thao tác</th>
@@ -235,78 +235,82 @@
                   <form class="inventory-card" id="roomInventoryForm">
                     <div class="inventory-card-head">
                       <div>
-                        <h3>Quan ly phong</h3>
-                        <p>Them hoac sua phong thu cong cho nha nay.</p>
+                        <h3>Quản lý phòng</h3>
+                        <p>Thêm hoặc sửa phòng thủ công cho nhà này.</p>
                       </div>
-                      <button class="ghost-btn hidden" id="cancelRoomEditBtn" type="button">Huy sua</button>
+                      <button class="ghost-btn hidden" id="cancelRoomEditBtn" type="button">Hủy sửa</button>
                     </div>
                     <div class="inventory-form-grid">
                       <label>
-                        Ten phong
-                        <input id="roomNameInput" required placeholder="Vi du: Phong khach">
+                        Tên phòng
+                        <input id="roomNameInput" required placeholder="Ví dụ: Phòng khách">
                       </label>
                       <label>
-                        Loai phong
-                        <input id="roomTypeInput" placeholder="room" value="room">
+                        Loại phòng
+                        <select id="roomTypeInput">
+                          <option value="room">Phòng</option>
+                          <option value="area">Khu vực</option>
+                          <option value="floor">Tầng</option>
+                        </select>
                       </label>
                       <label>
-                        Thu tu
+                        Thứ tự
                         <input id="roomSortInput" type="number" inputmode="numeric" value="0">
                       </label>
                     </div>
                     <p class="form-message" id="roomFormMessage"></p>
-                    <button class="primary-btn" id="roomSubmitBtn" type="submit">Them phong</button>
+                    <button class="primary-btn" id="roomSubmitBtn" type="submit">Thêm phòng</button>
                   </form>
 
                   <form class="inventory-card" id="deviceInventoryForm">
                     <div class="inventory-card-head">
                       <div>
-                        <h3>Quan ly thiet bi</h3>
-                        <p>Khai bao thiet bi va cong suat dinh muc theo tung phong.</p>
+                        <h3>Quản lý thiết bị</h3>
+                        <p>Khai báo thiết bị và công suất định mức theo từng phòng.</p>
                       </div>
-                      <button class="ghost-btn hidden" id="cancelDeviceEditBtn" type="button">Huy sua</button>
+                      <button class="ghost-btn hidden" id="cancelDeviceEditBtn" type="button">Hủy sửa</button>
                     </div>
                     <div class="inventory-form-grid">
                       <label>
-                        Ten thiet bi
-                        <input id="deviceNameInput" required placeholder="Vi du: Den phong khach">
+                        Tên thiết bị
+                        <input id="deviceNameInput" required placeholder="Ví dụ: Đèn phòng khách">
                       </label>
                       <label>
-                        Phong
+                        Phòng
                         <select id="deviceRoomSelect"></select>
                       </label>
                       <label>
-                        Loai
+                        Loại
                         <select id="deviceTypeSelect">
-                          <option value="light">Den</option>
-                          <option value="fan">Quat</option>
-                          <option value="aircon">May lanh</option>
-                          <option value="socket">O cam</option>
-                          <option value="sensor">Cam bien</option>
-                          <option value="appliance">Gia dung</option>
-                          <option value="other">Khac</option>
+                          <option value="light">Đèn</option>
+                          <option value="fan">Quạt</option>
+                          <option value="aircon">Máy lạnh</option>
+                          <option value="socket">Ổ cắm</option>
+                          <option value="sensor">Cảm biến</option>
+                          <option value="appliance">Gia dụng</option>
+                          <option value="other">Khác</option>
                         </select>
                       </label>
                       <label>
-                        Cong suat W
+                        Công suất W
                         <input id="devicePowerInput" type="number" min="0" step="0.1" inputmode="decimal" value="0">
                       </label>
                       <label>
-                        Trang thai
+                        Trạng thái
                         <select id="deviceStatusSelect">
-                          <option value="unknown">Chua ro</option>
-                          <option value="on">Dang bat</option>
-                          <option value="off">Dang tat</option>
-                          <option value="offline">Offline</option>
+                          <option value="unknown">Chưa rõ</option>
+                          <option value="on">Đang bật</option>
+                          <option value="off">Đang tắt</option>
+                          <option value="offline">Mất kết nối</option>
                         </select>
                       </label>
                       <label class="checkbox-label">
                         <input id="deviceControllableInput" type="checkbox" checked>
-                        Co the dieu khien
+                        Có thể điều khiển
                       </label>
                     </div>
                     <p class="form-message" id="deviceFormMessage"></p>
-                    <button class="primary-btn" id="deviceSubmitBtn" type="submit">Them thiet bi</button>
+                    <button class="primary-btn" id="deviceSubmitBtn" type="submit">Thêm thiết bị</button>
                   </form>
                 </div>
 
@@ -314,10 +318,10 @@
                   <table>
                     <thead>
                       <tr>
-                        <th>Phong</th>
-                        <th>Loai</th>
-                        <th>Thu tu</th>
-                        <th>Thao tac</th>
+                        <th>Phòng</th>
+                        <th>Loại</th>
+                        <th>Thứ tự</th>
+                        <th>Thao tác</th>
                       </tr>
                     </thead>
                     <tbody id="homeRoomsBody"></tbody>
@@ -333,7 +337,7 @@
                         <th>Công suất định mức</th>
                         <th>Trạng thái</th>
                         <th>Nguồn</th>
-                        <th>Thao tac</th>
+                        <th>Thao tác</th>
                       </tr>
                     </thead>
                     <tbody id="homeDevicesBody"></tbody>
@@ -347,7 +351,7 @@
                     <thead>
                       <tr>
                         <th>Tên</th>
-                        <th>Username</th>
+                        <th>Tên đăng nhập</th>
                         <th>Quyền trong nhà</th>
                         <th>Điều khiển</th>
                         <th>Trạng thái</th>
@@ -383,7 +387,7 @@
             <div class="panel-head">
               <div>
                 <h2>Lịch sử hoạt động</h2>
-                <p>Audit log giúp truy vết ai đã làm gì và khi nào.</p>
+                <p>Nhật ký giúp truy vết ai đã làm gì và khi nào.</p>
               </div>
               <button class="refresh-btn" data-refresh="logs" type="button">Làm mới</button>
             </div>
@@ -393,7 +397,7 @@
                   <tr>
                     <th>Thời gian</th>
                     <th>Người thực hiện</th>
-                    <th>Role</th>
+                    <th>Vai trò</th>
                     <th>Hành động</th>
                     <th>Đối tượng</th>
                     <th>IP</th>
@@ -422,7 +426,7 @@
           <input id="ownerNameInput" name="ownerName" required placeholder="Ví dụ: Nguyễn Văn A">
         </label>
         <label>
-          Username
+          Tên đăng nhập
           <input id="ownerUsernameInput" name="username" required placeholder="vd: nguyenvana">
         </label>
         <label>
@@ -445,6 +449,6 @@
       </div>
     </form>
   </div>
-  <script src="./app.js?v=20260614-inventory-crud"></script>
+  <script src="./app.js?v=20260614-admin-vietnamese"></script>
 </body>
 </html>

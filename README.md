@@ -2,6 +2,23 @@
 
 Smart Home AI là đồ án giám sát điện năng và điều khiển nhà thông minh dùng MFM384, PLC Siemens S7-1200 CPU 1215C, backend API, app Android và website giới thiệu.
 
+## Trạng thái hiện tại
+
+Trước khi làm tiếp dự án bằng IDE khác, đọc file:
+
+```text
+PROJECT_HANDOFF_CURRENT_STATUS.md
+```
+
+Mốc mới nhất đã có:
+
+- Backend Flask vẫn là lớp API trung tâm.
+- Supabase/PostgreSQL đã được thêm để lưu dữ liệu tập trung.
+- Schema Supabase đã có `users`, `homes`, `home_members`, `audit_logs`, `power_readings`, `rooms`, `devices`, `device_events`.
+- Admin site đã đăng nhập được, xem nhà/tài khoản/nhật ký, và quản lý thủ công phòng/thiết bị.
+- Mobile RoomsScreen đã nối với API rooms/devices thủ công.
+- Dự án đang ở mức prototype/luận văn, phù hợp để demo và tiếp tục kiểm thử phần cứng.
+
 ## Thành phần
 
 - `src/`: app React Native / Expo.

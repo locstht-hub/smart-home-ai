@@ -95,7 +95,7 @@ const titles = {
 };
 
 const roleLabels = {
-  system_admin: 'System admin',
+  system_admin: 'Quản trị hệ thống',
   owner: 'Tài khoản cha',
   member: 'Thành viên',
   viewer: 'Chỉ xem',
@@ -105,6 +105,64 @@ const statusLabels = {
   active: 'Hoạt động',
   suspended: 'Tạm khóa',
 };
+
+const auditActionLabels = {
+  'admin.view_homes': 'Xem danh sách nhà',
+  'admin.view_users': 'Xem danh sách tài khoản',
+  'admin.view_audit_logs': 'Xem lịch sử hoạt động',
+  'admin.create_owner_home': 'Tạo chủ nhà',
+  'admin.suspend_user': 'Khóa tài khoản',
+  'admin.activate_user': 'Mở khóa tài khoản',
+  'admin.reset_user_password': 'Đặt lại mật khẩu',
+  'admin.suspend_home': 'Khóa nhà',
+  'admin.activate_home': 'Mở nhà',
+  'auth.login_success': 'Đăng nhập thành công',
+  'auth.login_failed': 'Đăng nhập thất bại',
+  'auth.change_password': 'Đổi mật khẩu',
+  'home.view_members': 'Xem thành viên nhà',
+  'home.view_activity': 'Xem nhật ký nhà',
+  'home.view_quota': 'Xem hạn mức điện',
+  'home.quota_updated': 'Cập nhật hạn mức điện',
+  'room.created': 'Thêm phòng',
+  'room.updated': 'Sửa phòng',
+  'room.deleted': 'Xóa phòng',
+  'device.inventory_created': 'Thêm thiết bị',
+  'device.inventory_updated': 'Sửa thiết bị',
+  'device.inventory_deleted': 'Xóa thiết bị',
+};
+
+const roomTypeLabels = {
+  room: 'Phòng',
+  area: 'Khu vực',
+  floor: 'Tầng',
+};
+
+const sourceLabels = {
+  'manual-inventory': 'Khai báo thủ công',
+  server: 'Thiết bị PLC',
+  mock: 'Mô phỏng',
+  'plc-s7-1200': 'PLC S7-1200',
+};
+
+function displayUserName(user) {
+  if (!user) return '';
+  if (user.role === 'system_admin' && user.name === 'System Admin') {
+    return 'Quản trị hệ thống';
+  }
+  return user.name || user.username || '';
+}
+
+function formatAuditAction(action) {
+  return auditActionLabels[action] || action || '-';
+}
+
+function formatSource(source) {
+  return sourceLabels[source] || source || '-';
+}
+
+function formatRoomType(type) {
+  return roomTypeLabels[type] || type || '-';
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -180,7 +238,7 @@ function setAuthenticated(isAuthenticated) {
   els.refreshAllBtn.classList.toggle('hidden', !isAuthenticated);
   els.createOwnerTopBtn.classList.toggle('hidden', !isAuthenticated);
   els.sessionName.textContent = state.user
-    ? `${state.user.name} (${roleLabels[state.user.role] || state.user.role})`
+    ? `${displayUserName(state.user)} (${roleLabels[state.user.role] || state.user.role})`
     : 'Chưa đăng nhập';
 }
 
@@ -214,8 +272,8 @@ function homeIdCell(homeId) {
   return `
     <div class="home-id-cell">
       <code>${safeHomeId}</code>
-      <button class="copy-id-btn" data-copy-home-id="${safeHomeId}" type="button" title="Sao chép Home ID">
-        Copy
+      <button class="copy-id-btn" data-copy-home-id="${safeHomeId}" type="button" title="Sao chép mã nhà">
+        Sao chép
       </button>
     </div>
   `;
@@ -309,7 +367,7 @@ function renderHomes() {
 function renderUsers() {
   els.usersBody.innerHTML = state.users.map((user) => `
     <tr>
-      <td><strong>${escapeHtml(user.name)}</strong></td>
+      <td><strong>${escapeHtml(displayUserName(user))}</strong></td>
       <td>${escapeHtml(user.username)}</td>
       <td>${homeIdsCell(user.homeIds)}</td>
       <td>${escapeHtml(user.phone || '-')}</td>
@@ -327,18 +385,18 @@ function renderLogs() {
       <td>${formatDate(log.createdAt)}</td>
       <td>${escapeHtml(log.actorUsername || '-')}</td>
       <td>${escapeHtml(roleLabels[log.actorRole] || log.actorRole || '-')}</td>
-      <td><strong>${escapeHtml(log.action)}</strong></td>
+      <td><strong>${escapeHtml(formatAuditAction(log.action))}</strong></td>
       <td>${escapeHtml(log.targetName || log.targetId || log.targetType || '-')}</td>
       <td>${escapeHtml(log.ipAddress || '-')}</td>
     </tr>
-  `).join('') || emptyRow(6, 'Chưa có audit log nào.');
+  `).join('') || emptyRow(6, 'Chưa có nhật ký nào.');
 
   els.recentLogsList.innerHTML = state.logs.slice(0, 8).map((log) => `
     <div class="log-item">
-      <strong>${escapeHtml(log.action)}</strong>
+      <strong>${escapeHtml(formatAuditAction(log.action))}</strong>
       <span>${escapeHtml(log.actorUsername || '-')} - ${formatDate(log.createdAt)}</span>
     </div>
-  `).join('') || '<div class="log-item"><strong>Chưa có hoạt động</strong><span>Audit log sẽ xuất hiện khi có thao tác mới.</span></div>';
+  `).join('') || '<div class="log-item"><strong>Chưa có hoạt động</strong><span>Nhật ký sẽ xuất hiện khi có thao tác mới.</span></div>';
 }
 
 function renderOverview() {
@@ -382,7 +440,7 @@ function normalizeManualDevices(devices) {
 function inventoryStatusBadge(status) {
   if (status === 'on') return '<span class="badge active">Đang bật</span>';
   if (status === 'off') return '<span class="badge off">Đang tắt</span>';
-  if (status === 'offline') return '<span class="badge suspended">Offline</span>';
+  if (status === 'offline') return '<span class="badge suspended">Mất kết nối</span>';
   return '<span class="badge off">Khai báo thủ công</span>';
 }
 
@@ -392,7 +450,7 @@ function resetRoomForm() {
   els.roomTypeInput.value = 'room';
   els.roomSortInput.value = '0';
   els.roomFormMessage.textContent = '';
-  els.roomSubmitBtn.textContent = 'Them phong';
+  els.roomSubmitBtn.textContent = 'Thêm phòng';
   els.cancelRoomEditBtn.classList.add('hidden');
 }
 
@@ -404,13 +462,13 @@ function resetDeviceForm() {
   els.deviceTypeSelect.value = 'light';
   els.deviceControllableInput.checked = true;
   els.deviceFormMessage.textContent = '';
-  els.deviceSubmitBtn.textContent = 'Them thiet bi';
+  els.deviceSubmitBtn.textContent = 'Thêm thiết bị';
   els.cancelDeviceEditBtn.classList.add('hidden');
 }
 
 function renderDeviceRoomOptions(rooms, selectedRoomId = '') {
   els.deviceRoomSelect.innerHTML = `
-    <option value="">Khong gan phong</option>
+    <option value="">Không gán phòng</option>
     ${rooms.map((room) => `
       <option value="${escapeHtml(room.id)}">${escapeHtml(room.name)}</option>
     `).join('')}
@@ -421,8 +479,8 @@ function renderDeviceRoomOptions(rooms, selectedRoomId = '') {
 function inventoryActions(kind, id) {
   return `
     <div class="row-actions">
-      <button class="action-btn" data-${kind}-action="edit" data-${kind}-id="${escapeHtml(id)}" type="button">Sua</button>
-      <button class="action-btn danger" data-${kind}-action="delete" data-${kind}-id="${escapeHtml(id)}" type="button">Xoa</button>
+      <button class="action-btn" data-${kind}-action="edit" data-${kind}-id="${escapeHtml(id)}" type="button">Sửa</button>
+      <button class="action-btn danger" data-${kind}-action="delete" data-${kind}-id="${escapeHtml(id)}" type="button">Xóa</button>
     </div>
   `;
 }
@@ -442,8 +500,8 @@ function renderHomeDetail(home, detail) {
   const totalRatedPowerW = devices.reduce((sum, device) => sum + Number(device.power || device.ratedPowerW || 0), 0);
   const roomNameMap = Object.fromEntries(rooms.map((room) => [room.id, room.name]));
   const deviceHint = devicesError
-    ? 'PLC/API thiết bị chưa sẵn sàng, bấm làm mới khi backend đọc được PLC'
-    : 'Ưu tiên inventory thủ công; fallback về thiết bị PLC nếu chưa khai báo';
+    ? 'Thiết bị PLC/API chưa sẵn sàng, bấm làm mới khi máy chủ đọc được PLC'
+    : 'Ưu tiên danh mục thủ công; nếu chưa khai báo thì hiển thị thiết bị PLC';
 
   els.detailHomeName.textContent = home?.name || 'Chi tiết nhà';
   els.detailHomeId.innerHTML = homeIdCell(home?.id || state.selectedHomeId);
@@ -455,9 +513,9 @@ function renderHomeDetail(home, detail) {
   `;
 
   els.homeOverviewGrid.innerHTML = `
-    ${detailCard('Home ID', homeIdCell(home?.id || state.selectedHomeId), 'Mã dùng để gán PLC, thiết bị, phòng và quota')}
+    ${detailCard('Mã nhà', homeIdCell(home?.id || state.selectedHomeId), 'Mã dùng để gán PLC, thiết bị, phòng và hạn mức')}
     ${detailCard('Quota tháng', `${escapeHtml(`${formatNumber(used, ' kWh')} / ${formatNumber(limit, ' kWh')}`)} ${quotaStatusBadge(quotaPercent)}`, `${formatNumber(quotaPercent, '%')} đã dùng`)}
-    ${detailCard('Phòng khai báo', roomCountValue, 'Số phòng trong inventory thủ công')}
+    ${detailCard('Phòng khai báo', roomCountValue, 'Số phòng trong danh mục thủ công')}
     ${detailCard('Thiết bị khai báo', deviceCountValue, deviceHint)}
     ${detailCard('Công suất định mức', escapeHtml(formatNumber(totalRatedPowerW, ' W')), 'Tổng ratedPowerW của thiết bị')}
     ${detailCard('Log của nhà', escapeHtml(String(logs.length)), 'Hoạt động gần nhất')}
@@ -472,11 +530,11 @@ function renderHomeDetail(home, detail) {
   els.homeRoomsBody.innerHTML = rooms.map((room) => `
     <tr>
       <td><strong>${escapeHtml(room.name || '-')}</strong></td>
-      <td>${escapeHtml(room.type || 'room')}</td>
+      <td>${escapeHtml(formatRoomType(room.type || 'room'))}</td>
       <td>${escapeHtml(room.sortOrder ?? 0)}</td>
       <td>${inventoryActions('room', room.id)}</td>
     </tr>
-  `).join('') || emptyRow(4, 'Chua co phong nao. Hay them phong dau tien cho nha nay.');
+  `).join('') || emptyRow(4, 'Chưa có phòng nào. Hãy thêm phòng đầu tiên cho nhà này.');
 
   els.homeDevicesBody.innerHTML = devices.map((device) => `
     <tr>
@@ -484,8 +542,8 @@ function renderHomeDetail(home, detail) {
       <td>${escapeHtml(roomNameMap[device.roomId] || roomLabel(device.roomId))}</td>
       <td>${formatNumber(device.power ?? device.ratedPowerW ?? 0, ' W')}</td>
       <td>${device.status ? inventoryStatusBadge(device.status) : deviceStatusBadge(device.isOn)}</td>
-      <td>${escapeHtml(device.source || '-')}</td>
-      <td>${device.source === 'manual-inventory' ? inventoryActions('device', device.id) : '<span class="empty-row">Chi xem</span>'}</td>
+      <td>${escapeHtml(formatSource(device.source))}</td>
+      <td>${device.source === 'manual-inventory' ? inventoryActions('device', device.id) : '<span class="empty-row">Chỉ xem</span>'}</td>
     </tr>
   `).join('') || emptyRow(6, devicesError ? 'Chưa lấy được thiết bị. Kiểm tra PLC/API rồi bấm làm mới chi tiết.' : 'Chưa có cấu hình thiết bị riêng cho nhà này.');
 
@@ -503,7 +561,7 @@ function renderHomeDetail(home, detail) {
     <tr>
       <td>${formatDate(log.createdAt)}</td>
       <td>${escapeHtml(log.actorUsername || '-')}</td>
-      <td><strong>${escapeHtml(log.action || '-')}</strong></td>
+      <td><strong>${escapeHtml(formatAuditAction(log.action))}</strong></td>
       <td>${escapeHtml(log.targetName || log.targetId || log.targetType || '-')}</td>
       <td>${escapeHtml(log.ipAddress || '-')}</td>
     </tr>
@@ -513,7 +571,7 @@ function renderHomeDetail(home, detail) {
 async function openHomeDetail(homeId, options = {}) {
   const home = state.homes.find((item) => item.id === homeId);
   if (!home) {
-    setApiStatus('Không tìm thấy Home ID trong danh sách nhà', 'error');
+    setApiStatus('Không tìm thấy mã nhà trong danh sách nhà', 'error');
     return;
   }
 
@@ -558,9 +616,9 @@ async function openHomeDetail(homeId, options = {}) {
   state.homeDetail = { home, ...detail };
   renderHomeDetail(home, detail);
   if (detail.devicesError) {
-    setApiStatus(`Đã tải chi tiết Home ID: ${homeId}, nhưng chưa lấy được inventory thiết bị`, 'error');
+    setApiStatus(`Đã tải chi tiết mã nhà: ${homeId}, nhưng chưa lấy được danh mục thiết bị`, 'error');
   } else {
-    setApiStatus(`Đã tải chi tiết Home ID: ${homeId}`, 'ok');
+    setApiStatus(`Đã tải chi tiết mã nhà: ${homeId}`, 'ok');
   }
 }
 
@@ -665,7 +723,7 @@ async function createOwnerHome(event) {
     closeOwnerModal();
     await loadDashboard();
     switchView('homes');
-    const createdHomeId = result.home?.id ? ` - Home ID: ${result.home.id}` : '';
+    const createdHomeId = result.home?.id ? ` - Mã nhà: ${result.home.id}` : '';
     setApiStatus(`API: đã tạo chủ nhà mới${createdHomeId}`, 'ok');
   } catch (error) {
     els.ownerFormMessage.textContent = error.message || 'Không thể tạo chủ nhà';
@@ -734,10 +792,10 @@ async function submitRoomInventory(event) {
       },
     );
     resetRoomForm();
-    setApiStatus(isEditing ? 'API: da sua phong' : 'API: da them phong', 'ok');
+    setApiStatus(isEditing ? 'API: đã sửa phòng' : 'API: đã thêm phòng', 'ok');
     await refreshCurrentHomeDetail();
   } catch (error) {
-    els.roomFormMessage.textContent = error.message || 'Khong luu duoc phong';
+    els.roomFormMessage.textContent = error.message || 'Không lưu được phòng';
     setApiStatus(`API: ${error.message}`, 'error');
   }
 }
@@ -768,10 +826,10 @@ async function submitDeviceInventory(event) {
       },
     );
     resetDeviceForm();
-    setApiStatus(isEditing ? 'API: da sua thiet bi' : 'API: da them thiet bi', 'ok');
+    setApiStatus(isEditing ? 'API: đã sửa thiết bị' : 'API: đã thêm thiết bị', 'ok');
     await refreshCurrentHomeDetail();
   } catch (error) {
-    els.deviceFormMessage.textContent = error.message || 'Khong luu duoc thiet bi';
+    els.deviceFormMessage.textContent = error.message || 'Không lưu được thiết bị';
     setApiStatus(`API: ${error.message}`, 'error');
   }
 }
@@ -785,7 +843,7 @@ function startRoomEdit(roomId) {
   els.roomTypeInput.value = room.type || 'room';
   els.roomSortInput.value = room.sortOrder ?? 0;
   els.roomFormMessage.textContent = '';
-  els.roomSubmitBtn.textContent = 'Luu phong';
+  els.roomSubmitBtn.textContent = 'Lưu phòng';
   els.cancelRoomEditBtn.classList.remove('hidden');
   els.roomNameInput.focus();
 }
@@ -802,28 +860,28 @@ function startDeviceEdit(deviceId) {
   els.deviceStatusSelect.value = device.status || 'unknown';
   els.deviceControllableInput.checked = Boolean(device.isControllable);
   els.deviceFormMessage.textContent = '';
-  els.deviceSubmitBtn.textContent = 'Luu thiet bi';
+  els.deviceSubmitBtn.textContent = 'Lưu thiết bị';
   els.cancelDeviceEditBtn.classList.remove('hidden');
   els.deviceNameInput.focus();
 }
 
 async function deleteRoom(roomId) {
-  if (!state.selectedHomeId || !window.confirm('Xoa phong nay? Thiet bi trong phong se duoc bo gan phong.')) return;
+  if (!state.selectedHomeId || !window.confirm('Xóa phòng này? Thiết bị trong phòng sẽ được bỏ gán phòng.')) return;
   await apiFetch(`/api/homes/${encodeURIComponent(state.selectedHomeId)}/rooms/${encodeURIComponent(roomId)}`, {
     method: 'DELETE',
   });
   resetRoomForm();
-  setApiStatus('API: da xoa phong', 'ok');
+  setApiStatus('API: đã xóa phòng', 'ok');
   await refreshCurrentHomeDetail();
 }
 
 async function deleteDevice(deviceId) {
-  if (!state.selectedHomeId || !window.confirm('Xoa thiet bi nay khoi inventory?')) return;
+  if (!state.selectedHomeId || !window.confirm('Xóa thiết bị này khỏi danh mục thiết bị?')) return;
   await apiFetch(`/api/homes/${encodeURIComponent(state.selectedHomeId)}/devices/${encodeURIComponent(deviceId)}`, {
     method: 'DELETE',
   });
   resetDeviceForm();
-  setApiStatus('API: da xoa thiet bi', 'ok');
+  setApiStatus('API: đã xóa thiết bị', 'ok');
   await refreshCurrentHomeDetail();
 }
 
@@ -851,9 +909,9 @@ async function copyHomeId(homeId) {
 
   try {
     await navigator.clipboard.writeText(homeId);
-    setApiStatus(`Đã copy Home ID: ${homeId}`, 'ok');
+    setApiStatus(`Đã sao chép mã nhà: ${homeId}`, 'ok');
   } catch {
-    window.prompt('Copy Home ID này:', homeId);
+    window.prompt('Sao chép mã nhà này:', homeId);
   }
 }
 
