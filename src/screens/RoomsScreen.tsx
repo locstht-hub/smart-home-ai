@@ -35,63 +35,63 @@ export default function RoomsScreen({ route }: any) {
             <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.roomHeader}>
                     <TouchableOpacity onPress={() => setSelectedRoom(null)} style={styles.backBtn}>
-                        <Text style={{ fontSize: 22 }}>â†</Text>
+                        <Text style={{ fontSize: 22 }}>←</Text>
                     </TouchableOpacity>
                     {roomIconImages[room.id] && (
                         <Image source={roomIconImages[room.id]} style={styles.roomHeaderImage} resizeMode="cover" />
                     )}
                     <View style={{ flex: 1 }}>
                         <Text style={styles.roomTitle}>{room.name}</Text>
-                        <Text style={styles.roomSubtitle}>{activeDevices}/{roomDevices.length} thiáº¿t bá»‹ hoáº¡t Ä‘á»™ng</Text>
+                        <Text style={styles.roomSubtitle}>{activeDevices}/{roomDevices.length} thiết bị hoạt động</Text>
                     </View>
                 </View>
 
                 <View style={styles.roomStats}>
                     <View style={styles.roomStatCard}>
-                        <Text style={{ fontSize: 14 }}>âš¡</Text>
-                        <Text style={styles.roomStatLabel}>CÃ´ng suáº¥t</Text>
+                        <Text style={{ fontSize: 14 }}>⚡</Text>
+                        <Text style={styles.roomStatLabel}>Công suất</Text>
                         <Text style={styles.roomStatValue}>{totalPower}W</Text>
                     </View>
                     <View style={styles.roomStatCard}>
-                        <Text style={{ fontSize: 14 }}>ðŸ“±</Text>
-                        <Text style={styles.roomStatLabel}>Thiáº¿t bá»‹</Text>
+                        <Text style={{ fontSize: 14 }}>📱</Text>
+                        <Text style={styles.roomStatLabel}>Thiết bị</Text>
                         <Text style={styles.roomStatValue}>{roomDevices.length}</Text>
                     </View>
                     <View style={styles.roomStatCard}>
-                        <Text style={{ fontSize: 14 }}>âœ…</Text>
-                        <Text style={styles.roomStatLabel}>Äang báº­t</Text>
+                        <Text style={{ fontSize: 14 }}>✅</Text>
+                        <Text style={styles.roomStatLabel}>Đang bật</Text>
                         <Text style={styles.roomStatValue}>{activeDevices}</Text>
                     </View>
                 </View>
 
                 {isHomeSuspended && (
                     <View style={styles.lockedBanner}>
-                        <Text style={styles.lockedTitle}>NhÃ  Ä‘ang bá»‹ táº¡m khÃ³a</Text>
-                        <Text style={styles.lockedText}>Báº¡n khÃ´ng thá»ƒ báº­t/táº¯t thiáº¿t bá»‹ cho tá»›i khi admin má»Ÿ khÃ³a nhÃ .</Text>
+                        <Text style={styles.lockedTitle}>Nhà đang bị tạm khóa</Text>
+                        <Text style={styles.lockedText}>Bạn không thể bật/tắt thiết bị cho tới khi admin mở khóa nhà.</Text>
                     </View>
                 )}
 
                 <View style={styles.allBtnRow}>
                     <TouchableOpacity disabled={isHomeSuspended || isManualInventory} style={[styles.allBtn, { backgroundColor: Colors.green[500] }, (isHomeSuspended || isManualInventory) && styles.disabledBtn]} onPress={async () => {
                         const success = await turnAllOn(selectedRoom);
-                        if (!success) Alert.alert('Lá»—i', 'ChÆ°a thá»ƒ báº­t táº¥t cáº£ thiáº¿t bá»‹ trong phÃ²ng. Kiá»ƒm tra PLC/server rá»“i thá»­ láº¡i.');
+                        if (!success) Alert.alert('Lỗi', 'Chưa thể bật tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
                     }}>
-                        <Text style={styles.allBtnText}>âš¡ Báº­t táº¥t cáº£</Text>
+                        <Text style={styles.allBtnText}>⚡ Bật tất cả</Text>
                     </TouchableOpacity>
                     <TouchableOpacity disabled={isHomeSuspended || isManualInventory} style={[styles.allBtn, { backgroundColor: Colors.slate[200] }, (isHomeSuspended || isManualInventory) && styles.disabledBtn]} onPress={async () => {
                         const success = await turnAllOffRoom(selectedRoom);
-                        if (!success) Alert.alert('Lá»—i', 'ChÆ°a thá»ƒ táº¯t táº¥t cáº£ thiáº¿t bá»‹ trong phÃ²ng. Kiá»ƒm tra PLC/server rá»“i thá»­ láº¡i.');
+                        if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
                     }}>
-                        <Text style={[styles.allBtnText, { color: Colors.slate[700] }]}>ðŸ”Œ Táº¯t táº¥t cáº£</Text>
+                        <Text style={[styles.allBtnText, { color: Colors.slate[700] }]}>🔌 Tắt tất cả</Text>
                     </TouchableOpacity>
                 </View>
 
-                <Text style={styles.sectionTitle}>Thiáº¿t bá»‹</Text>
+                <Text style={styles.sectionTitle}>Thiết bị</Text>
                 {roomDevices.length === 0 ? (
                     <View style={styles.emptyDevicesCard}>
-                        <Text style={styles.emptyDevicesIcon}>ðŸ“¦</Text>
-                        <Text style={styles.emptyDevicesTitle}>PhÃ²ng nÃ y chÆ°a cÃ³ thiáº¿t bá»‹</Text>
-                        <Text style={styles.emptyDevicesText}>HÃ£y thÃªm cÃ¡c thiáº¿t bá»‹ thá»±c táº¿ Ä‘ang cÃ³ trong nhÃ  cá»§a báº¡n.</Text>
+                        <Text style={styles.emptyDevicesIcon}>📦</Text>
+                        <Text style={styles.emptyDevicesTitle}>Phòng này chưa có thiết bị</Text>
+                        <Text style={styles.emptyDevicesText}>Hãy thêm các thiết bị thực tế đang có trong nhà của bạn.</Text>
                     </View>
                 ) : (
                     roomDevices.map(device => (
@@ -99,7 +99,7 @@ export default function RoomsScreen({ route }: any) {
                             <View style={styles.deviceLeft}>
                                 <View style={[styles.deviceIcon, { backgroundColor: device.isOn ? Colors.green[100] : Colors.slate[100] }]}>
                                     <Text style={{ fontSize: 20 }}>
-                                        {device.type === 'light' ? 'ðŸ’¡' : device.type === 'fan' ? 'ðŸŒ€' : device.type === 'ac' ? 'â„ï¸' : 'ðŸ”Œ'}
+                                        {device.type === 'light' ? '💡' : device.type === 'fan' ? '🌀' : device.type === 'ac' ? '❄️' : '🔌'}
                                     </Text>
                                 </View>
                                 <View>
@@ -114,7 +114,7 @@ export default function RoomsScreen({ route }: any) {
                                     onPress={async () => {
                                         const result = await toggleDevice(selectedRoom, device.id);
                                         if (!result.success) {
-                                            Alert.alert('Lá»—i', result.error || 'ChÆ°a thá»ƒ Ä‘iá»u khiá»ƒn thiáº¿t bá»‹. Kiá»ƒm tra PLC/server rá»“i thá»­ láº¡i.');
+                                            Alert.alert('Lỗi', result.error || 'Chưa thể điều khiển thiết bị. Kiểm tra PLC/server rồi thử lại.');
                                         }
                                     }}
                                 >
@@ -124,13 +124,13 @@ export default function RoomsScreen({ route }: any) {
                                     <TouchableOpacity
                                         style={styles.deleteDeviceBtn}
                                         onPress={() => {
-                                            Alert.alert('XÃ³a thiáº¿t bá»‹', `XÃ³a "${device.name}" khá»i ${room.name}?`, [
-                                                { text: 'Há»§y', style: 'cancel' },
+                                            Alert.alert('Xóa thiết bị', `Xóa "${device.name}" khỏi ${room.name}?`, [
+                                                { text: 'Hủy', style: 'cancel' },
                                                 { text: 'Xoa', style: 'destructive', onPress: async () => { const result = await deleteDevice(selectedRoom, device.id); if (!result.success) Alert.alert('Loi', result.error || 'Khong the xoa thiet bi'); } },
                                             ]);
                                         }}
                                     >
-                                        <Text style={styles.deleteDeviceText}>XÃ³a</Text>
+                                        <Text style={styles.deleteDeviceText}>Xóa</Text>
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -141,15 +141,15 @@ export default function RoomsScreen({ route }: any) {
                 {canManageInventory && (isManualInventory || !isServerControlled) && (
                     <TouchableOpacity style={styles.addDeviceBtn} onPress={() => setShowAddDevice(true)}>
                         <LinearGradient colors={[Colors.primary[500], Colors.primary[700]]} style={styles.addDeviceBtnGradient}>
-                            <Text style={styles.addDeviceBtnText}>+ ThÃªm thiáº¿t bá»‹ má»›i</Text>
+                            <Text style={styles.addDeviceBtnText}>+ Thêm thiết bị mới</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 )}
 
                 {isServerControlled && !canManageInventory && (
                     <View style={styles.haHintCard}>
-                        <Text style={styles.haHintTitle}>Thiáº¿t bá»‹ Ä‘ang Ä‘á»“ng bá»™ tá»« server riÃªng</Text>
-                        <Text style={styles.haHintText}>Muá»‘n thÃªm hoáº·c xÃ³a thiáº¿t bá»‹, hÃ£y cáº­p nháº­t trÃªn server/PLC rá»“i Ä‘á»ƒ app Ä‘á»“ng bá»™ láº¡i.</Text>
+                        <Text style={styles.haHintTitle}>Thiết bị đang đồng bộ từ server riêng</Text>
+                        <Text style={styles.haHintText}>Muốn thêm hoặc xóa thiết bị, hãy cập nhật trên server/PLC rồi để app đồng bộ lại.</Text>
                     </View>
                 )}
 
@@ -160,16 +160,16 @@ export default function RoomsScreen({ route }: any) {
                         keyboardVerticalOffset={Platform.OS === 'ios' ? 16 : 0}
                     >
                         <View style={styles.modalContent}>
-                            <Text style={styles.modalTitle}>ThÃªm thiáº¿t bá»‹ má»›i</Text>
-                            <TextInput style={styles.modalInput} placeholder="TÃªn thiáº¿t bá»‹" value={newDeviceName} onChangeText={setNewDeviceName} placeholderTextColor={Colors.slate[400]} />
+                            <Text style={styles.modalTitle}>Thêm thiết bị mới</Text>
+                            <TextInput style={styles.modalInput} placeholder="Tên thiết bị" value={newDeviceName} onChangeText={setNewDeviceName} placeholderTextColor={Colors.slate[400]} />
 
-                            <Text style={styles.modalLabel}>Loáº¡i thiáº¿t bá»‹</Text>
+                            <Text style={styles.modalLabel}>Loại thiết bị</Text>
                             <View style={styles.typeRow}>
                                 {[
-                                    { type: 'light' as const, label: 'ðŸ’¡ ÄÃ¨n' },
-                                    { type: 'fan' as const, label: 'ðŸŒ€ Quáº¡t' },
-                                    { type: 'ac' as const, label: 'â„ï¸ MÃ¡y láº¡nh' },
-                                    { type: 'outlet' as const, label: 'ðŸ”Œ á»” cáº¯m' },
+                                    { type: 'light' as const, label: '💡 Đèn' },
+                                    { type: 'fan' as const, label: '🌀 Quạt' },
+                                    { type: 'ac' as const, label: '❄️ Máy lạnh' },
+                                    { type: 'outlet' as const, label: '🔌 Ổ cắm' },
                                 ].map(item => (
                                     <TouchableOpacity key={item.type} style={[styles.typeBtn, newDeviceType === item.type && styles.typeBtnActive]} onPress={() => setNewDeviceType(item.type)}>
                                         <Text style={[styles.typeBtnText, newDeviceType === item.type && styles.typeBtnTextActive]}>{item.label}</Text>
@@ -177,17 +177,17 @@ export default function RoomsScreen({ route }: any) {
                                 ))}
                             </View>
 
-                            <TextInput style={styles.modalInput} placeholder="CÃ´ng suáº¥t (W)" value={newDevicePower} onChangeText={setNewDevicePower} keyboardType="numeric" placeholderTextColor={Colors.slate[400]} />
+                            <TextInput style={styles.modalInput} placeholder="Công suất (W)" value={newDevicePower} onChangeText={setNewDevicePower} keyboardType="numeric" placeholderTextColor={Colors.slate[400]} />
 
                             <View style={styles.modalBtnRow}>
                                 <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowAddDevice(false)}>
-                                    <Text style={styles.modalCancelText}>Há»§y</Text>
+                                    <Text style={styles.modalCancelText}>Hủy</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={styles.modalSaveBtn}
                                     onPress={async () => {
                                         if (!newDeviceName.trim() || !newDevicePower.trim()) {
-                                            Alert.alert('Lá»—i', 'Vui lÃ²ng nháº­p Ä‘áº§y Ä‘á»§ thÃ´ng tin');
+                                            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
                                             return;
                                         }
                                         const result = await addDevice(selectedRoom, {
@@ -203,10 +203,10 @@ export default function RoomsScreen({ route }: any) {
                                         setNewDeviceName('');
                                         setNewDevicePower('');
                                         setShowAddDevice(false);
-                                        Alert.alert('ThÃ nh cÃ´ng', 'ÄÃ£ thÃªm thiáº¿t bá»‹ má»›i');
+                                        Alert.alert('Thành công', 'Đã thêm thiết bị mới');
                                     }}
                                 >
-                                    <Text style={styles.modalSaveText}>ThÃªm</Text>
+                                    <Text style={styles.modalSaveText}>Thêm</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -220,7 +220,7 @@ export default function RoomsScreen({ route }: any) {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            <Text style={styles.pageTitle}>Quáº£n lÃ½ phÃ²ng</Text>
+            <Text style={styles.pageTitle}>Quản lý phòng</Text>
 
             {canManageInventory && (
                 <TouchableOpacity style={styles.addRoomBtn} onPress={() => setShowAddRoom(true)}>
@@ -230,22 +230,22 @@ export default function RoomsScreen({ route }: any) {
 
             {isHomeSuspended && (
                 <View style={styles.lockedBanner}>
-                    <Text style={styles.lockedTitle}>NhÃ  Ä‘ang bá»‹ táº¡m khÃ³a</Text>
-                    <Text style={styles.lockedText}>Demo phÃ¢n quyá»n: admin web khÃ³a nhÃ  thÃ¬ app mobile khÃ´ng Ä‘Æ°á»£c xem dá»¯ liá»‡u má»›i hoáº·c Ä‘iá»u khiá»ƒn thiáº¿t bá»‹.</Text>
+                    <Text style={styles.lockedTitle}>Nhà đang bị tạm khóa</Text>
+                    <Text style={styles.lockedText}>Demo phân quyền: admin web khóa nhà thì app mobile không được xem dữ liệu mới hoặc điều khiển thiết bị.</Text>
                 </View>
             )}
 
             {!isHomeSuspended && serverError && isServerControlled && (
                 <View style={styles.adminHintCard}>
-                    <Text style={styles.adminHintTitle}>PLC/Server chÆ°a sáºµn sÃ ng</Text>
+                    <Text style={styles.adminHintTitle}>PLC/Server chưa sẵn sàng</Text>
                     <Text style={styles.adminHintText}>{serverError}</Text>
                 </View>
             )}
 
             {user?.role === 'admin' && (
                 <View style={styles.adminHintCard}>
-                    <Text style={styles.adminHintTitle}>Quáº£n trá»‹ viÃªn</Text>
-                    <Text style={styles.adminHintText}>Há»‡ thá»‘ng Ä‘ang dÃ¹ng server riÃªng lÃ m trung tÃ¢m. Quáº£n lÃ½ user váº«n náº±m á»Ÿ tab Quáº£n lÃ½.</Text>
+                    <Text style={styles.adminHintTitle}>Quản trị viên</Text>
+                    <Text style={styles.adminHintText}>Hệ thống đang dùng server riêng làm trung tâm. Quản lý user vẫn nằm ở tab Quản lý.</Text>
                 </View>
             )}
 
@@ -259,40 +259,40 @@ export default function RoomsScreen({ route }: any) {
                                 {roomIconImages[room.id] ? (
                                     <Image source={roomIconImages[room.id]} style={styles.roomCardIconImage} resizeMode="cover" />
                                 ) : (
-                                    <Text style={{ fontSize: 22 }}>ðŸ </Text>
+                                    <Text style={{ fontSize: 22 }}>🏠</Text>
                                 )}
                             </View>
                             <Text style={styles.roomCardName}>{room.name}</Text>
-                            <Text style={styles.roomCardSub}>{room.active}/{room.devices} thiáº¿t bá»‹</Text>
+                            <Text style={styles.roomCardSub}>{room.active}/{room.devices} thiết bị</Text>
                             <View style={styles.roomCardStats}>
-                                <Text style={styles.roomCardStat}>âš¡ {room.power}W</Text>
-                                <Text style={styles.roomCardStat}>ðŸ“± {room.devices} thiáº¿t bá»‹</Text>
+                                <Text style={styles.roomCardStat}>⚡ {room.power}W</Text>
+                                <Text style={styles.roomCardStat}>📱 {room.devices} thiết bị</Text>
                             </View>
                         </TouchableOpacity>
                     );
                 })}
             </View>
 
-            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Cáº£nh nhanh</Text>
+            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Cảnh nhanh</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {[
-                    { label: 'â˜€ï¸ Buá»•i sÃ¡ng', colors: ['#d97706', '#f59e0b'], scene: 'morning' as const },
-                    { label: 'âš¡ Äi lÃ m', colors: ['#0f766e', '#115e59'], scene: 'work' as const },
-                    { label: 'ðŸŽ‰ Cuá»‘i tuáº§n', colors: ['#256f5f', '#173a31'], scene: 'weekend' as const },
-                    { label: 'ðŸ˜´ Ngá»§', colors: ['#334155', '#13251f'], scene: 'sleep' as const },
+                    { label: '☀️ Buổi sáng', colors: ['#d97706', '#f59e0b'], scene: 'morning' as const },
+                    { label: '⚡ Đi làm', colors: ['#0f766e', '#115e59'], scene: 'work' as const },
+                    { label: '🎉 Cuối tuần', colors: ['#256f5f', '#173a31'], scene: 'weekend' as const },
+                    { label: '💤 Ngủ', colors: ['#334155', '#13251f'], scene: 'sleep' as const },
                 ].map((item, index) => (
                     <TouchableOpacity
                         key={index}
                         onPress={() => {
-                            Alert.alert('KÃ­ch hoáº¡t cáº£nh', `Báº­t cháº¿ Ä‘á»™ ${item.label}?`, [
-                                { text: 'Há»§y', style: 'cancel' },
+                            Alert.alert('Kích hoạt cảnh', `Bật chế độ ${item.label}?`, [
+                                { text: 'Hủy', style: 'cancel' },
                                 {
-                                    text: 'Báº­t',
+                                    text: 'Bật',
                                     onPress: async () => {
                                         const success = await applyScene(item.scene);
                                         Alert.alert(
-                                            success ? 'ThÃ nh cÃ´ng' : 'Lá»—i',
-                                            success ? `ÄÃ£ kÃ­ch hoáº¡t cáº£nh ${item.label}` : `ChÆ°a thá»ƒ kÃ­ch hoáº¡t cáº£nh ${item.label}. Kiá»ƒm tra PLC/server rá»“i thá»­ láº¡i.`,
+                                            success ? 'Thành công' : 'Lỗi',
+                                            success ? `Đã kích hoạt cảnh ${item.label}` : `Chưa thể kích hoạt cảnh ${item.label}. Kiểm tra PLC/server rồi thử lại.`,
                                         );
                                     },
                                 },
@@ -307,7 +307,7 @@ export default function RoomsScreen({ route }: any) {
             </ScrollView>
 
             <View style={styles.energyCard}>
-                <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>TiÃªu thá»¥ theo phÃ²ng</Text>
+                <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Tiêu thụ theo phòng</Text>
                 {rooms.map(room => {
                     const maxPower = Math.max(...rooms.map(item => item.power), 1);
                     const pct = Math.round((room.power / maxPower) * 100);

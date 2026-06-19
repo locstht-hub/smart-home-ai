@@ -78,6 +78,18 @@ function renderMetrics() {
   `;
 }
 
+function flashElement(el, color = "var(--cyan)") {
+  if (!el) return;
+  el.style.transition = "none";
+  el.style.color = color;
+  el.style.textShadow = `0 0 12px ${color}`;
+  setTimeout(() => {
+    el.style.transition = "color 0.6s ease-out, text-shadow 0.6s ease-out";
+    el.style.color = "";
+    el.style.textShadow = "";
+  }, 50);
+}
+
 function startLiveMetrics() {
   setInterval(() => {
     // Voltage fluctuates between 218.2V and 221.8V
@@ -100,11 +112,26 @@ function startLiveMetrics() {
     const qBar = document.querySelector("#live-quota-bar");
     const fEl = document.querySelector("#live-forecast");
 
-    if (vEl) vEl.textContent = `${liveData.voltage} V`;
-    if (iEl) iEl.textContent = `${liveData.current} A`;
-    if (pEl) pEl.textContent = `${liveData.power} kW`;
-    if (eEl) eEl.textContent = `${liveData.energy} kWh`;
-    if (qEl) qEl.textContent = `${liveData.quota}%`;
+    if (vEl) {
+      vEl.textContent = `${liveData.voltage} V`;
+      flashElement(vEl, "var(--cyan)");
+    }
+    if (iEl) {
+      iEl.textContent = `${liveData.current} A`;
+      flashElement(iEl, "var(--cyan)");
+    }
+    if (pEl) {
+      pEl.textContent = `${liveData.power} kW`;
+      flashElement(pEl, "var(--cyan)");
+    }
+    if (eEl) {
+      eEl.textContent = `${liveData.energy} kWh`;
+      flashElement(eEl, "var(--cyan)");
+    }
+    if (qEl) {
+      qEl.textContent = `${liveData.quota}%`;
+      flashElement(qEl, "var(--amber)");
+    }
     if (qBar) qBar.style.width = `${liveData.quota}%`;
 
     if (fEl) {
@@ -226,13 +253,30 @@ function setFloatingChatOpen(isOpen) {
   }
 }
 
+const forecastScenarios = {
+  morning: [42, 48, 55, 60, 50, 45, 38, 30, 28, 24, 20, 18],
+  noon: [48, 58, 65, 72, 75, 78, 80, 85, 88, 82, 74, 65],
+  peak: [65, 72, 78, 84, 88, 92, 95, 90, 88, 92, 74, 64],
+  night: [40, 35, 30, 28, 25, 22, 20, 18, 15, 12, 10, 12]
+};
+
+function applyForecastScenario(name) {
+  const chart = document.querySelector(".forecast-chart");
+  if (!chart) return;
+  const bars = chart.querySelectorAll("span");
+  const heights = forecastScenarios[name] || forecastScenarios.morning;
+
+  bars.forEach((bar, idx) => {
+    if (heights[idx] !== undefined) {
+      bar.style.height = `${heights[idx]}%`;
+    }
+  });
+}
+
 function animateForecastChart() {
   const chart = document.querySelector(".forecast-chart");
   if (!chart) return;
   const bars = chart.querySelectorAll("span");
-  
-  // Save heights
-  const heights = Array.from(bars).map(bar => bar.style.height || "50%");
   
   // Reset heights to 0% for animation
   bars.forEach(bar => {
@@ -242,10 +286,11 @@ function animateForecastChart() {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        // Cascade animation
+        // Cascade animation to default scenario (morning)
+        const heights = forecastScenarios.morning;
         bars.forEach((bar, idx) => {
           setTimeout(() => {
-            bar.style.height = heights[idx];
+            bar.style.height = `${heights[idx]}%`;
           }, idx * 60);
         });
         observer.unobserve(entry.target);
@@ -294,6 +339,16 @@ function bindEvents() {
     if (window.location.hash === "#assistant") {
       setFloatingChatOpen(true);
     }
+  });
+
+  const forecastTabs = document.querySelectorAll(".forecast-tab");
+  forecastTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      forecastTabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      const scenario = tab.dataset.scenario;
+      applyForecastScenario(scenario);
+    });
   });
 }
 

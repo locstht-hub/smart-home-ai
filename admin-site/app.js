@@ -622,11 +622,60 @@ async function openHomeDetail(homeId, options = {}) {
   }
 }
 
+function renderSparklineChart() {
+  const svgLine = document.getElementById('adminChartLine');
+  const svgArea = document.getElementById('adminChartArea');
+  const statusEl = document.getElementById('adminChartStatus');
+  if (!svgLine || !svgArea) return;
+
+  const totalCapacityW = state.homes.reduce((sum, h) => sum + (h.totalRatedPowerW || 0), 0) || 3500;
+  const totalCapacityKw = totalCapacityW / 1000;
+
+  const hourlyLoadFactors = [
+    0.15, 0.12, 0.10, 0.09, 0.11, 0.18,
+    0.35, 0.42, 0.45, 0.38, 0.48, 0.55,
+    0.62, 0.58, 0.50, 0.42, 0.52, 0.78,
+    0.92, 0.95, 0.88, 0.70, 0.45, 0.25
+  ];
+
+  const currentHour = new Date().getHours();
+  const rotatedFactors = [];
+  for (let i = 0; i < 24; i++) {
+    const hr = (currentHour - 23 + i + 24) % 24;
+    const noise = (Math.random() - 0.5) * 0.06;
+    rotatedFactors.push(Math.max(0.05, Math.min(1.0, hourlyLoadFactors[hr] + noise)));
+  }
+
+  const width = 1000;
+  const height = 160;
+  const paddingY = 15;
+  const chartHeight = height - paddingY * 2;
+  
+  const points = rotatedFactors.map((factor, index) => {
+    const x = (index / 23) * width;
+    const y = height - paddingY - (factor * chartHeight);
+    return { x, y };
+  });
+
+  const lineD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const areaD = `${lineD} L ${width} ${height} L 0 ${height} Z`;
+
+  svgLine.setAttribute('d', lineD);
+  svgArea.setAttribute('d', areaD);
+
+  const currentLoadKw = (totalCapacityKw * rotatedFactors[23]).toFixed(2);
+  if (statusEl) {
+    statusEl.textContent = `Tổng tải: ${currentLoadKw} kW / ${totalCapacityKw.toFixed(1)} kW (Định mức)`;
+    statusEl.className = 'badge quota-ok';
+  }
+}
+
 function renderAll() {
   renderHomes();
   renderUsers();
   renderLogs();
   renderOverview();
+  renderSparklineChart();
 }
 
 async function loadDashboard() {
@@ -904,12 +953,23 @@ async function handleInventoryAction(event) {
   }
 }
 
-async function copyHomeId(homeId) {
+async function copyHomeId(homeId, buttonEl) {
   if (!homeId) return;
 
   try {
     await navigator.clipboard.writeText(homeId);
     setApiStatus(`Đã sao chép mã nhà: ${homeId}`, 'ok');
+    if (buttonEl) {
+      const originalText = buttonEl.textContent;
+      buttonEl.textContent = '✓ Đã copy';
+      buttonEl.style.backgroundColor = '#d9f3df';
+      buttonEl.style.color = 'var(--ok)';
+      setTimeout(() => {
+        buttonEl.textContent = originalText;
+        buttonEl.style.backgroundColor = '';
+        buttonEl.style.color = '';
+      }, 1500);
+    }
   } catch {
     window.prompt('Sao chép mã nhà này:', homeId);
   }
@@ -918,7 +978,7 @@ async function copyHomeId(homeId) {
 async function handleAdminTableAction(event) {
   const copyButton = event.target.closest('button[data-copy-home-id]');
   if (copyButton) {
-    await copyHomeId(copyButton.dataset.copyHomeId);
+    await copyHomeId(copyButton.dataset.copyHomeId, copyButton);
     return;
   }
 

@@ -736,6 +736,7 @@ def create_app() -> Flask:
                 home_id=str(home["id"]),
                 metadata={"source": saved["source"], "power_kw": saved["power_kw"]},
             )
+            check_and_execute_load_shedding(str(home["id"]))
 
         return {"ok": True, "readings": len(saved_ids), "homeIds": [home["id"] for home in homes], "readingIds": saved_ids}
 
@@ -928,7 +929,95 @@ def create_app() -> Flask:
             home_id=home_id,
             metadata={"source": saved["source"], "power_kw": saved["power_kw"]},
         )
+        if saved:
+            check_and_execute_load_shedding(home_id)
         return saved
+
+    def check_and_execute_load_shedding(home_id: str) -> None:
+        try:
+            quota = auth_store.get_home_quota_status(home_id)
+            limit = float(quota.get("energyLimitKwh") or 0)
+            current = float(quota.get("currentMonthEnergyKwh") or 0)
+
+            if limit > 0 and current >= limit:
+                states, source, plc_error = read_states_with_source()
+                active_devices = []
+
+                # Check config devices
+                for d in devices:
+                    d_id = str(d["id"])
+                    if home_id == "home-demo-001" and states.get(d_id, False):
+                        active_devices.append(d)
+
+                # Check DB manual devices
+                try:
+                    db_devices = auth_store.list_manual_devices(home_id)
+                    for d in db_devices:
+                        d_id = str(d["id"])
+                        if states.get(d_id, False):
+                            active_devices.append({
+                                "id": d_id,
+                                "name": d.get("name", d_id),
+                                "type": d.get("type", "other"),
+                                "power": float(d.get("ratedPowerW") or 0),
+                                "statusTag": d.get("plcStatusTag"),
+                                "source": "manual"
+                            })
+                except Exception as db_exc:
+                    app.logger.warning("Load-shedding failed to fetch DB devices: %s", db_exc)
+
+                # Deduplicate
+                unique_devices = {}
+                for dev in active_devices:
+                    unique_devices[str(dev["id"])] = dev
+
+                to_shed = list(unique_devices.values())
+
+                def get_shedding_priority(dev):
+                    t = str(dev.get("type") or "").lower()
+                    power = float(dev.get("power") or 0)
+                    type_score = 1
+                    if t == "ac":
+                        type_score = 5
+                    elif t == "outlet":
+                        type_score = 4
+                    elif t == "fan":
+                        type_score = 3
+                    elif t == "light":
+                        type_score = 2
+                    return (type_score, power)
+
+                to_shed.sort(key=get_shedding_priority, reverse=True)
+
+                if to_shed:
+                    app.logger.info("HEMS Hạn mức: Nhà %s vượt quota (%s/%s kWh). Đang tự động cắt tải.", home_id, current, limit)
+                    for dev in to_shed:
+                        dev_id = str(dev["id"])
+                        dev_name = str(dev.get("name") or dev_id)
+                        try:
+                            if plc_should_be_used() and dev.get("statusTag"):
+                                s7.write_device_command(dev, False)
+                            state_store.set_state(dev_id, False)
+                            audit(
+                                "device.auto_shed_load",
+                                actor={"id": "hems-auto", "username": "HEMS Auto-Shedding", "role": "system"},
+                                target_type="device",
+                                target_id=dev_id,
+                                target_name=dev_name,
+                                home_id=home_id,
+                                metadata={
+                                    "reason": "energy_limit_exceeded",
+                                    "currentMonthEnergyKwh": current,
+                                    "energyLimitKwh": limit,
+                                    "deviceType": dev.get("type"),
+                                    "devicePowerW": dev.get("power")
+                                }
+                            )
+                            app.logger.info("HEMS Hạn mức: Tự động tắt '%s' (%s) thành công.", dev_name, dev_id)
+                        except Exception as dev_exc:
+                            app.logger.error("HEMS Hạn mức: Lỗi tự động tắt '%s': %s", dev_id, dev_exc)
+        except Exception as exc:
+            app.logger.error("HEMS Hạn mức: Lỗi phân tích cắt tải cho nhà %s: %s", home_id, exc)
 
     @app.get("/health")
     def health() -> Any:
@@ -1789,6 +1878,8 @@ def create_app() -> Flask:
                 home_id=home_id,
                 metadata={"source": saved["source"], "power_kw": saved["power_kw"]},
             )
+            if saved:
+                check_and_execute_load_shedding(home_id)
             return jsonify({"ok": True, "reading": saved}), 201
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc)}), 400

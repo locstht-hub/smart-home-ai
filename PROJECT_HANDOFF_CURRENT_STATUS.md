@@ -222,6 +222,7 @@ Da thong nhat lap luan quan trong:
 - Trien khai thuc te co the chuyen backend sang edge gateway mini PC/Raspberry Pi.
 - Dieu nay phu hop thuc te vi gateway dat cung mang voi PLC/MFM384 se on dinh hon laptop dev.
 - Muc 1 quan ly thiet bi la thu cong: admin/owner nhap phong, thiet bi, cong suat dinh muc.
+- Da tich hop he thong Active HEMS: tu dong cat tai chu dong (load-shedding) khi san luong kWh trong thang vuot qua han muc (quota) da dang ky. He thong se tu dong tat cac thiet bi cong suat lon, phi thiet yeu truoc (nhu AC, fan, outlet) va ghi nhat ky.
 
 Noi dung nen dung khi phan bien:
 
@@ -230,6 +231,7 @@ Trong giai doan prototype, backend duoc trien khai tren laptop de thuan tien pha
 Du lieu duoc tach sang Supabase/PostgreSQL nham luu tru tap trung.
 Khi trien khai thuc te, backend co the duoc chuyen sang edge gateway nhu mini PC hoac Raspberry Pi dat cung mang voi PLC/MFM384,
 giup he thong hoat dong lien tuc va giam phu thuoc vao may phat trien.
+Co che Active HEMS ho tro tu dong cat cac tai cong suat cao khi qua han muc kWh de bao ve he thong.
 ```
 
 ---
@@ -244,6 +246,7 @@ Can uu tien test:
 - Kiem tra moi nha chi thay dung phong/thiet bi cua nha do.
 - Kiem tra audit log khi admin/owner thao tac.
 - Kiem tra quota/hien thi dien nang.
+- Kiem tra co che tu dong cat tai (auto load-shedding) khi dat luong kWh vuot quota.
 - Kiem tra API backend voi Supabase co giu du lieu sau khi restart server.
 - Kiem tra do tre API public qua Cloudflare.
 - Kiem tra do tre local LAN khi backend chay cung mang PLC.

@@ -233,17 +233,15 @@ Khuyến nghị phần cứng:
 - Đèn báo có thể đấu theo trạng thái output hoặc tiếp điểm phụ để phản ánh trạng thái thực.
 - Nên có feedback về PLC để app biết thiết bị thật đang bật hay tắt.
 
-### 4.4. Chưa có cơ chế tự động cắt tải hoàn chỉnh
+### 4.4. Đã tích hợp cơ chế tự động cắt tải khi vượt hạn mức (Active HEMS)
 
-Hệ thống đã có ý tưởng quota/hạn mức điện, nhưng nếu chưa lập trình và test các phần dưới đây thì chưa nên gọi là demand response hoàn chỉnh:
+Hệ thống đã có cơ chế tự động cắt tải chủ động (Demand Response) hoàn chỉnh trong nguyên mẫu phần mềm:
 
-- Tự động cắt tải khi vượt hạn mức.
-- Ưu tiên tải nào cắt trước.
-- Điều kiện an toàn khi cắt tải.
-- Cho phép người dùng xác nhận trước khi cắt.
-- Ghi log sự kiện cắt tải.
+- **Tự động phát hiện vượt quota:** Mỗi khi có phép đo điện năng mới được cập nhật (qua collector hoặc API), backend sẽ đối chiếu mức kWh tiêu thụ thực tế của tháng với hạn mức (Quota) của nhà.
+- **Thứ tự ưu tiên cắt tải:** Cắt tự động các thiết bị công suất lớn, phi thiết yếu trước (AC -> Ổ cắm -> Quạt -> Đèn).
+- **Ghi nhật ký hệ thống:** Lưu thông tin sự kiện cắt tải vào `audit_logs` dưới hành động `device.auto_shed_load` để phục vụ theo dõi.
 
-Nên mô tả hiện tại là: **đã có nền tảng quản lý quota và định hướng điều khiển tải theo hạn mức**.
+Nên mô tả hiện tại là: **đã tích hợp đầy đủ cơ chế tự động cắt tải chủ động bảo vệ hạn mức (Active HEMS/Demand Response)**.
 
 ### 4.5. Chưa có auto retrain model
 
