@@ -16,7 +16,7 @@
 
 1. **Thách thức về quản lý năng lượng hộ gia đình:** Trong bối cảnh giá điện gia tăng và xu hướng chuyển dịch năng lượng xanh, việc tối ưu hóa mức tiêu thụ điện trong hộ gia đình (HEMS - Home Energy Management System) trở thành nhu cầu cấp thiết. Các hệ thống Smart Home hiện nay đa phần chỉ dừng lại ở mức điều khiển bật/tắt thiết bị đơn thuần mà thiếu đi tính năng giám sát công suất tức thời và dự báo nhu cầu tiêu thụ.
 2. **Yêu cầu về độ tin cậy chuẩn công nghiệp:** Việc áp dụng bộ điều khiển lập trình được (PLC - Programmable Logic Controller) Siemens S7-1200 kết hợp với đồng hồ đo điện đa năng công nghiệp MFM384 đảm bảo độ tin cậy, tính ổn định cao và khả năng chống nhiễu vượt trội so với các vi điều khiển phổ thông.
-3. **Ứng dụng Trí tuệ nhân tạo (AI):** Sự kết hợp giữa hạ tầng điều khiển cứng (PLC/IoT) và các thuật toán học máy (Machine Learning) cho phép dự đoán xu hướng tiêu thụ điện năng 24h tiếp theo, từ đó đưa ra các cảnh báo vượt hạn mức (Quota) và hỗ trợ cơ chế đề xuất sa thải phụ tải phi thiết yếu có điều kiện khi tiệm cận hạn mức điện năng tháng.
+3. **Ứng dụng Trí tuệ nhân tạo (AI):** Sự kết hợp giữa hạ tầng điều khiển cứng (PLC/IoT) và các thuật toán học máy (Machine Learning) cho phép dự đoán xu hướng tiêu thụ điện năng 24h tiếp theo, từ đó đưa ra các cảnh báo vượt hạn mức điện năng tháng (Quota) và hỗ trợ cơ chế đề xuất sa thải phụ tải phi thiết yếu có điều kiện khi tiệm cận hạn mức điện năng tháng.
 
 ---
 

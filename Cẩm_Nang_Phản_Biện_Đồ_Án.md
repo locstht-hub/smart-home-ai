@@ -485,7 +485,7 @@ Ly do cach nay hop ly:
 
 **Trả lời:** Hệ thống **không tự động ngắt tải ngay lập tức** khi vượt quota điện năng tháng (kWh). Logic xử lý được phân tầng rõ ràng để đảm bảo an toàn sinh hoạt:
 1. **Cảnh báo và Đề xuất (Chính):** Khi điện năng tháng (kWh) chạm các ngưỡng 80%, 90%, và 100% hạn mức, hệ thống chỉ gửi thông báo đẩy (push notification) lên ứng dụng di động và gửi SMS cảnh báo đến chủ nhà, kèm theo đề xuất giải pháp tiết kiệm để chủ nhà tự điều chỉnh thiết bị.
-2. **Sa thải phụ tải có điều kiện (Nâng cao):** Việc tự động ngắt tải chỉ áp dụng cho các thiết bị phi thiết yếu (như bình nóng lạnh, điều hòa phòng khách) và chỉ kích hoạt khi chủ nhà chủ động thiết lập bật 'Chế độ tự động sa thải tải' trên ứng dụng di động. Các tải thiết yếu (chiếu sáng phòng ngủ, thiết bị y tế, tủ lạnh) hoàn toàn không bị ảnh hưởng, đảm bảo an toàn tuyệt đối cho người sử dụng.
+2. **Sa thải phụ tải có điều kiện (Nâng cao):** Việc tự động ngắt tải chỉ áp dụng cho các thiết bị phi thiết yếu (như bình nóng lạnh, điều hòa phòng khách) và chỉ kích hoạt khi chủ nhà chủ động thiết lập bật 'Chế độ tự động sa thải tải' trên ứng dụng di động. Các tải thiết yếu (chiếu sáng phòng ngủ, thiết bị y tế, tủ lạnh) hoàn toàn không bị ảnh hưởng, đảm bảo giảm rủi ro ảnh hưởng đến tải quan trọng và nâng cao an toàn vận hành cho người sử dụng.
 3. **Ngưỡng công suất tức thời ($P_{limit}$):** Hệ thống phân biệt rõ quota điện năng tháng (kWh) và ngưỡng công suất tức thời $P_{limit}$ (kW). Việc ngắt tải để bảo vệ an toàn điện chỉ xảy ra khi công suất tức thời vượt quá giới hạn an toàn của đường dây (kW) để tránh chập cháy, và cũng tuân thủ feedback phản hồi khép kín từ PLC.
 
 ---
