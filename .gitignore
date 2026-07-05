@@ -83,3 +83,7 @@ build/
 # generated native folders
 /ios
 /android
+
+
+# Word temporary files
+~$*
