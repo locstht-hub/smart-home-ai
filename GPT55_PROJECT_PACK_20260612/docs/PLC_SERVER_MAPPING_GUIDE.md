@@ -1,4 +1,4 @@
-# PLC - Server - App Mapping Guide
+﻿# PLC - Server - App Mapping Guide
 
 ## 1. Muc tieu
 
@@ -85,20 +85,4 @@ Domain/VPS: https://api-tenmiencuaban.com
 3. Server doc PLC bang `python-snap7`.
 4. App chi doc/ghi qua server API.
 5. Chat AI/Unsloth sau nay nam sau endpoint `/api/assistant/chat`.
-
-## 7. Kien truc Multi-Home va Quy tac Quy hoach Tag PLC
-
-### 7.1 Quy tac mo rong Tag khi tao thiet bi moi trong cung nha
-Moi thiet bi co 3 tag: `plc_on_command_tag` (DB7), `plc_off_command_tag` (DB7), va `plc_status_tag` (DB1). Khi tao thiet bi moi, tag duoc danh theo quy tac noi tiep bit/byte:
-- Thiet bi 1: Bap `DB7.DBX0.0`, Tat `DB7.DBX0.1`, Status `DB1.DBX1.2`
-- Thiet bi 2: Bap `DB7.DBX0.2`, Tat `DB7.DBX0.3`, Status `DB1.DBX1.3`
-- Thiet bi 3: Bap `DB7.DBX0.4`, Tat `DB7.DBX0.5`, Status `DB1.DBX1.4`
-- Thiet bi 4 (Moi): Bap `DB7.DBX0.6`, Tat `DB7.DBX0.7`, Status `DB1.DBX1.5`
-- Thiet bi 5 (Moi): Bap `DB7.DBX1.0`, Tat `DB7.DBX1.1`, Status `DB1.DBX1.6`
-
-### 7.2 Quan ly nhieu nha (Multi-Home PLC Routing)
-Trong thuc te, moi nha co 1 tu dien va 1 PLC S7-1200 rieng:
-- **Kien truc Template:** Chuong trinh TIA Portal tren PLC cac nha duoc **chuan hoa giong het nhau 100%** (deu dung DB7.DBX0.0 cho den 1).
-- **Phan bien bang IP:** Backend Flask quan ly danh sach nha va tra cuu IP PLC theo `home_id`. Khi nhan lenh dieu khien, backend mo ket noi Snap7 toi dung IP cua PLC nha do va ghi tag tuong ung.
-- **Demo Lab (1 PLC chung):** Neu demo trong lab voi 1 PLC duy nhất cho 2 nha mo hinh, ta chia vung nho DB7/DB8: Nha 1 dung `DB7.DBX0.x`, Nha 2 dung `DB7.DBX1.x` hoac Data Block `DB8`.
 

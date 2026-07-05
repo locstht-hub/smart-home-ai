@@ -1,0 +1,46 @@
+﻿{
+  "expo": {
+    "name": "smart-home-app",
+    "slug": "smart-home-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#05122A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.smarthomeapp"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sharing",
+      [
+        "react-native-voicekit",
+        {
+          "speechRecognitionPermission": "Allow Smart Home App to recognize speech for smart home commands.",
+          "microphonePermission": "Allow Smart Home App to use the microphone for voice commands."
+        }
+      ],
+      "expo-font"
+    ]
+  }
+}
+

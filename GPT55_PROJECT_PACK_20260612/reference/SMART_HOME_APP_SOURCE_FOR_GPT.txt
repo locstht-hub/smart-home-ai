@@ -1,0 +1,412 @@
+﻿SMART HOME APP - SOURCE CONTEXT CHO GPT WEB
+Cap nhat: 25/04/2026
+Workspace: c:\Users\ADMIN\.gemini\antigravity\scratch\smart-home-app
+
+MUC DICH FILE
+File nay gom lai noi dung tu link ChatGPT share va trang thai source hien tai cua du an Smart Home App, de co the dua cho GPT tren web doc nhu mot tai lieu nguon.
+
+Ghi chu quan trong:
+- Link ChatGPT share co tieu de: "Nghien cuu he thong dien thong minh".
+- Noi dung trich duoc tu link xoay quanh nghien cuu du bao phu tai dien, AI, LSTM, PLC/SCADA va nha thong minh.
+- Workspace hien tai dang co app React Native/Expo o thu muc goc.
+- Tai lieu tien trinh co ghi da tao Flutter song song o `flutter_app/`, nhung khi kiem tra workspace ngay 25/04/2026 thi chua thay thu muc `flutter_app/`. Vi vay, Flutter nen duoc xem la huong migration/ke hoach song song can xac minh lai source hoac khoi phuc neu nam o noi khac.
+
+======================================================================
+1. TOM TAT TU LINK CHATGPT SHARE
+======================================================================
+
+Chu de chung:
+- Nghien cuu he thong dien thong minh.
+- Du bao phu tai dien trong nha thong minh.
+- Ung dung AI/deep learning de nhan dien va du bao hanh vi tieu thu dien.
+- Ket hop PLC, SCADA/Home Assistant va ung dung mobile de dieu khien/giam sat thiet bi.
+
+Y tuong ky thuat chinh:
+- Du lieu phu tai dien co tinh chu ky, phi tuyen va co the bien dong theo thoi gian.
+- LSTM phu hop voi chuoi thoi gian phu tai vi co kha nang hoc quan he theo thoi gian, xu ly mau tieu thu khong on dinh va phu thuoc ngu canh.
+- CNN-LSTM co the dung de bat dac trung cuc bo tren chuoi tin hieu, sau do LSTM hoc quan he dai han.
+- Cac model co the so sanh: Random Forest, XGBoost, LSTM, CNN-LSTM.
+- Trong giai do demo, co the dung dataset cong khai hoac du lieu mo phong; ve sau thay bang du lieu thu that tu PLC/cam bien.
+- Kien truc thuc te nen chia thanh cac lop: PLC/cam bien -> gateway/SCADA/Home Assistant -> backend AI/forecast API -> mobile app.
+
+Huong nghien cuu/de tai:
+- "Nghien cuu ve du bao tai va tich hop AI voi PLC/SCADA trong tu dong hoa".
+- "Nghien cuu AI va PLC cho nha thong minh".
+- App mobile khong nen dieu khien PLC truc tiep; nen di qua Home Assistant/gateway de an toan va de mo rong.
+- Can co pipeline thu thap du lieu, tien xu ly, train model, deploy API, hien thi ket qua forecast/canh bao tren app.
+
+Ket luan tu link de ap dung vao app:
+- App Smart Home nen lay Home Assistant lam hub dieu khien local.
+- Forecast/AI nen tach thanh backend API rieng, co the doi model bang config.
+- PLC nen dong vai tro tang thiet bi/thuc thi lenh, Home Assistant/gateway dong bo trang thai sang app.
+- Voice/chat nen la mot duong gui lenh tu nhien toi Home Assistant conversation hoac bo xu ly lenh local.
+
+======================================================================
+2. TRANG THAI APP HIEN TAI
+======================================================================
+
+Ten app:
+- Smart Home - Dieu khien nha thong minh.
+
+Cong nghe hien tai trong workspace:
+- React Native 0.83.2
+- Expo SDK 55
+- TypeScript
+- Android native project da co trong thu muc `android/`
+- Luu tru local bang AsyncStorage
+- Dieu huong bang React Navigation
+- Chart bang react-native-chart-kit
+- Chat bang react-native-gifted-chat
+- Voice input bang react-native-voicekit
+
+Muc tieu do an:
+- He thong quan ly nha thong minh tich hop du bao phu tai dien.
+- Giam sat cong suat, trang thai thiet bi, canh bao bat thuong.
+- Dieu khien thiet bi thong qua Home Assistant/PLC gateway.
+- Co backend AI du bao phu tai 24 gio.
+
+Tab/man hinh chinh:
+1. Tong quan
+   - Hien thi tong cong suat hien tai.
+   - Hien thi so thiet bi dang bat.
+   - Hien thi ngay gio live.
+   - Co thao tac nhanh: tat tat ca, che do dem, vang nha.
+
+2. Phong
+   - Quan ly cac phong va thiet bi.
+   - Bat/tat tung thiet bi.
+   - Bat/tat tat ca thiet bi trong phong.
+   - Them/xoa thiet bi local khi chua bi Home Assistant kiem soat.
+   - Canh nhanh: buoi sang, di lam, cuoi tuan, ngu.
+
+3. Phan tich
+   - Hien thi du bao phu tai.
+   - Hien thi canh bao bat thuong.
+   - Hien thi goi y tiet kiem dien.
+   - Co thong tin model.
+   - Co chuc nang xuat PDF trong ban RN/Expo.
+
+4. Chat
+   - Chat text voi tro ly Smart Home.
+   - Neu da cau hinh Home Assistant, gui cau lenh sang `/api/conversation/process`.
+   - Neu chua cau hinh, tra loi fallback local.
+   - Co quick replies: bat den phong khach, tat tat ca, muc tieu thu dien hom nay, bat che do ngu.
+   - Co mic speech-to-text tieng Viet `vi-VN`; transcript duoc gui qua cung duong xu ly chat.
+
+5. Quan ly/Admin
+   - Admin duyet hoac tu choi user dang ky.
+   - Xem activity logs.
+   - Quan ly nguoi dung trong app.
+
+6. Cai dat
+   - Doi mat khau.
+   - Cau hinh Home Assistant: base URL, long-lived token.
+   - Cau hinh Forecast API URL.
+   - Chon model forecast: `xgboost` hoac `lstm`.
+   - Xem thong tin PLC/mapping.
+
+Tai khoan test:
+- Admin: 0123456789 / <demo_password_removed>
+- User mau theo tai lieu Flutter cu: 0987654321 / user123
+- User dang ky moi can admin duyet.
+
+======================================================================
+3. HOME ASSISTANT LA HUB CHINH
+======================================================================
+
+Nguyen tac:
+- App khong doc/ghi PLC truc tiep.
+- App uu tien doc trang thai tu Home Assistant.
+- Home Assistant dong vai tro hub local cho entity, service va conversation.
+- Neu chua cau hinh Home Assistant, app dung local cache/mock fallback.
+
+Cau hinh mac dinh:
+- Emulator Android: `http://10.0.2.2:8123`
+- Dien thoai that: `http://<IP-LAN-Home-Assistant>:8123`
+- Can long-lived access token cua Home Assistant.
+
+API Home Assistant dang dung:
+- `GET /api/states`
+- `POST /api/services/<domain>/turn_on`
+- `POST /api/services/<domain>/turn_off`
+- `POST /api/conversation/process`
+- WebSocket event `state_changed` de dong bo trang thai/log.
+
+DataContext hien tai:
+- Load cache local tu AsyncStorage.
+- Neu Home Assistant configured thi `refresh()` goi `client.getStates()`.
+- Map states tu HA sang danh sach phong/thiet bi trong app.
+- Toggle device se goi service `turn_on`/`turn_off` neu device co `entityId`.
+- Neu khong co HA thi toggle local.
+- Activity logs luu toi da 100 log moi nhat.
+- Poll refresh moi 15 giay khi co HA.
+
+======================================================================
+4. PLC - HOME ASSISTANT - APP MAPPING
+======================================================================
+
+Luon du lieu khuyen nghi:
+1. PLC/HMI cap nhat status tag.
+2. Gateway dong bo status sang Home Assistant entity.
+3. App doc Home Assistant entity de hien thi ON/OFF.
+4. Neu app gui lenh, Home Assistant/gateway ghi command tag.
+5. PLC xu ly lenh xong cap nhat lai status tag.
+
+Mapping mau hien co:
+1. Den chinh phong khach: M100.0 / M110.0 -> light.living_main_light
+2. Den hat phong khach: M100.1 / M110.1 -> light.living_ambient_light
+3. Quat tran phong khach: M100.2 / M110.2 -> fan.living_ceiling_fan
+4. May lanh phong ngu: M100.3 / M110.3 -> climate.bedroom_ac
+5. Den ngu: M100.4 / M110.4 -> light.bedroom_light
+6. Den bep: M100.5 / M110.5 -> light.kitchen_light
+7. Quat hut bep: M100.6 / M110.6 -> fan.kitchen_exhaust_fan
+8. O cam tu lanh: M100.7 / M110.7 -> switch.kitchen_fridge_outlet
+9. Den garage: M101.0 / M111.0 -> light.garage_light
+10. Cua cuon garage: M101.1 / M111.1 -> switch.garage_door_motor
+
+Gateway PLC trong repo:
+- Thu muc: `backend/plc_gateway/`
+- Co `gateway.py`, config mau, start/stop PowerShell scripts.
+- Gateway nen la thanh phan trung gian doc/ghi PLC qua Modbus TCP, Node-RED hoac MQTT bridge.
+
+======================================================================
+5. FORECAST / AI BACKEND
+======================================================================
+
+Muc tieu forecast:
+- Du bao phu tai 24 gio tiep theo.
+- Phat hien canh bao bat thuong.
+- Dua ra insight/goi y tiet kiem dien.
+- So sanh model va chon model phu hop.
+
+Model hien co/du kien:
+- Random Forest baseline.
+- XGBoost main/default.
+- LSTM.
+- CNN-LSTM.
+
+Training pipeline:
+- Thu muc: `ml-training/forecast-24h-colab/`
+- Script RandomForest/XGBoost: `train_24h_forecast.py`
+- Script LSTM/CNN-LSTM: `train_lstm_forecast.py`
+- Dataset V1 khuyen nghi: UCI Individual Household Electric Power Consumption.
+- Co file schema mau PLC CSV: `plc_schema_example.csv`.
+- LSTM dung sliding window 168h input -> 24h output.
+- Export model/scaler/metrics/sample forecast.
+
+Forecast API:
+- Thu muc: `backend/forecast_api/`
+- Flask API chinh: `app.py`
+- LSTM predictor: `lstm_predictor.py`
+- Node fallback server: `server.js`
+- Artifact model nam trong `ml-training/modeltrainingdone/`.
+
+Endpoints trong README hien tai:
+- `GET /health`
+- `GET /forecast/model-info`
+- `GET /forecast/sample`
+- `POST /forecast/predictions`
+- `POST /forecast/insights`
+- `POST /forecast/anomalies`
+
+Theo tien trinh Session 7, API da/nen ho tro:
+- Query param `?model=lstm`.
+- Endpoint `GET /forecast/model-compare`.
+- XGBoost la default.
+- Auto-detect LSTM artifacts khi khoi dong.
+
+ForecastContext trong app:
+- Neu co `forecastApiUrl`, uu tien `FlaskForecastProvider`.
+- Neu co Home Assistant nhung chua co Forecast API, dung `HomeAssistantRuleProvider`.
+- Neu loi hoac chua cau hinh, dung mock fallback.
+- Refresh forecast moi 60 giay.
+
+======================================================================
+6. CHAT VA VOICE COMMAND
+======================================================================
+
+Muc tieu:
+- Chat la noi nguoi dung ra lenh tu nhien cho nha thong minh.
+- Text, quick replies va speech transcript cung di qua `processUserText()`.
+- Neu HA configured, goi Home Assistant conversation API.
+- Neu HA chua configured, bot noi ro dang dung fallback.
+
+Voice:
+- Locale: `vi-VN`.
+- Mode: `ContinuousAndStop`.
+- Android can quyen `RECORD_AUDIO`.
+- Can development/release build co native module; Expo Go co the khong test duoc voice that.
+
+Vi du lenh:
+- Bat den phong khach.
+- Tat tat ca thiet bi.
+- Bat che do ngu.
+- Muc tieu thu dien hom nay.
+
+======================================================================
+7. BUILD VA TEST RN/EXPO HIEN TAI
+======================================================================
+
+Yeu cau:
+- Node.js + npm.
+- Android SDK.
+- JDK 17, duong dan da dung truoc day: `C:\Program Files\Eclipse Adoptium\jdk-17.0.18.8-hotspot`.
+- Junction path khuyen nghi: `C:\sha` tro den workspace de tranh loi path dai tren Windows.
+
+Lenh build release RN/Expo da ghi trong tai lieu:
+```powershell
+cd c:\Users\ADMIN\.gemini\antigravity\scratch\smart-home-app
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.18.8-hotspot"
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+$env:NODE_ENV = "production"
+cd android
+.\gradlew.bat assembleRelease --no-daemon --console=plain
+```
+
+APK output:
+- `android/app/build/outputs/apk/release/app-release.apk`
+
+Luu y:
+- Ban release gan day theo tien trinh co the dang build ABI `x86_64` de test emulator.
+- Neu can cai tren dien thoai that, can build `arm64-v8a` hoac universal APK.
+
+======================================================================
+8. HUONG FLUTTER SONG SONG
+======================================================================
+
+Yeu cau chien luoc cua du an:
+- Tao ban Flutter song song.
+- Port UI + logic Home Assistant truoc.
+- Khi Flutter chay on dinh moi bo Expo/RN.
+- Khong xoa app RN/Expo khi Flutter chua duoc chung minh on dinh.
+
+Theo tai lieu tien trinh Session 8:
+- Da cai Flutter SDK tai `C:\Users\ADMIN\development\flutter`.
+- Da tao `flutter_app/`.
+- Da port lan 1 UI + logic HA/PLC/Forecast.
+- Da chay `flutter pub get`, `flutter analyze`, `flutter test`, `flutter build apk --debug`.
+- Artifact du kien: `flutter_app/build/app/outputs/flutter-apk/app-debug.apk`.
+
+Trang thai kiem tra workspace ngay 25/04/2026:
+- Khong thay thu muc `flutter_app/` trong workspace hien tai.
+- GPT/web agent can uu tien kiem tra lai file system hoac hoi nguoi dung folder Flutter dang nam o dau.
+- Neu can tiep tuc migration, nen tao/khôi phuc Flutter song song, khong thay the RN ngay.
+
+Scope can port sang Flutter:
+- Dang nhap/dang ky/admin approval.
+- Bottom navigation cac tab: Tong quan, Phong, Phan tich, Chat, Quan ly, Cai dat.
+- Device/room local state va HA-controlled state.
+- HA REST client va config storage.
+- Forecast provider va model switch.
+- Chat text + conversation API.
+- PLC mapping viewer.
+- Admin users/activity logs.
+
+Buoc tiep theo cho Flutter:
+1. Xac minh hoac khoi phuc `flutter_app/`.
+2. Neu chua co, tao Flutter project song song.
+3. Port theo module nho: models -> HA client -> device state -> screens -> forecast -> chat -> admin/settings.
+4. Chay `flutter analyze`, `flutter test`, `flutter build apk --debug`.
+5. Test APK tren emulator/thiet bi that voi HA token that.
+6. Khi Flutter dat parity va on dinh moi tinh viec bo RN/Expo.
+
+======================================================================
+9. VIEC CHUA LAM / ROADMAP
+======================================================================
+
+Backend va du lieu that:
+- Viet script thu thap du lieu tu PLC moi 2 phut/lần.
+- Thu thap 5-10 ngay du lieu thuc, toi thieu 3,000-6,000 mau.
+- Muc tieu tot hon: 15,000+ mau de cai thien MAPE.
+- Chuan hoa schema CSV tu PLC theo `plc_schema_example.csv`.
+- Train lai XGBoost/RandomForest/LSTM bang du lieu that.
+- Deploy Forecast API local/LAN.
+- Ket noi app voi Forecast API thay mock/demo rule.
+
+Home Assistant/PLC:
+- Hoan thien gateway PLC -> HA entity.
+- Kiem tra mapping 1-1 giua status tag, command tag va entity.
+- Them handling cho entity domain dac biet nhu climate/cover neu can.
+- Dam bao lenh app -> HA -> gateway -> PLC -> status update khong bi lap vo han.
+
+Mobile app:
+- Kiem tra end-to-end Home Assistant voi token that.
+- Kiem tra voice tren development/release build that, khong chi Expo Go.
+- Cai thien loi encoding tieng Viet trong mot so file/doc neu can.
+- Tach bot command local fallback ro rang hon.
+- Them man hinh trang thai ket noi HA/Forecast/PLC gateway.
+- Them log loi de debug khi mat ket noi LAN.
+
+Flutter:
+- Xac minh thu muc `flutter_app/`.
+- Neu chua co, tao lai ban Flutter song song.
+- Port UI/logic theo huong conservative, giu RN lam rollback.
+- Sau khi Flutter on dinh: test parity, build APK, test thiet bi that, roi moi deprecate RN.
+
+Bao cao/do an:
+- Dung link nghien cuu lam nen ly thuyet: LSTM/AI cho du bao phu tai, PLC/SCADA trong tu dong hoa nha thong minh.
+- Viet ro kien truc: PLC/cam bien -> gateway/Home Assistant -> Forecast API -> Mobile App.
+- So sanh model RF/XGBoost/LSTM/CNN-LSTM bang metrics nhu MAPE, RMSE, MAE.
+- Trinh bay demo app: dieu khien thiet bi, forecast, canh bao, chat voice command.
+
+======================================================================
+10. CAC FILE QUAN TRONG TRONG REPO
+======================================================================
+
+Tai lieu:
+- `TIEN_TRINH_DU_AN.md`: tien trinh du an.
+- `HUONG_DAN_SU_DUNG_APP.md`: huong dan cai dat/su dung.
+- `PLC_HA_MAPPING_GUIDE.md`: mapping PLC - HA - App.
+
+RN app:
+- `App.tsx`
+- `src/navigation/AppNavigator.tsx`
+- `src/contexts/AuthContext.tsx`
+- `src/contexts/DataContext.tsx`
+- `src/contexts/HomeAssistantContext.tsx`
+- `src/contexts/ForecastContext.tsx`
+- `src/screens/DashboardScreen.tsx`
+- `src/screens/RoomsScreen.tsx`
+- `src/screens/AnalysisScreen.tsx`
+- `src/screens/ChatScreen.tsx`
+- `src/screens/AdminScreen.tsx`
+- `src/screens/SettingsScreen.tsx`
+
+Services/types:
+- `src/services/homeAssistant/client.ts`
+- `src/services/homeAssistant/mappers.ts`
+- `src/services/forecast/flaskForecastProvider.ts`
+- `src/services/forecast/homeAssistantRuleProvider.ts`
+- `src/services/forecast/mockFallback.ts`
+- `src/types/homeAssistant.ts`
+- `src/types/forecast.ts`
+- `src/constants/plcMapping.ts`
+- `src/constants/data.ts`
+
+Backend:
+- `backend/forecast_api/app.py`
+- `backend/forecast_api/lstm_predictor.py`
+- `backend/forecast_api/server.js`
+- `backend/plc_gateway/gateway.py`
+
+ML:
+- `ml-training/forecast-24h-colab/train_24h_forecast.py`
+- `ml-training/forecast-24h-colab/train_lstm_forecast.py`
+- `ml-training/modeltrainingdone/`
+
+Home Assistant:
+- `home-assistant/demo-forecast-rules.yaml`
+
+======================================================================
+11. PROMPT GOI Y CHO GPT WEB
+======================================================================
+
+Neu dua file nay cho GPT web, co the hoi:
+
+"Hay doc file source context nay va giup toi lap ke hoach tiep tuc phat trien Smart Home App. Yeu cau: giu React Native hien tai lam rollback, tao/kiem tra Flutter song song, uu tien Home Assistant lam hub, Forecast API tach rieng, PLC chi giao tiep qua gateway/Home Assistant. Hay de xuat roadmap, task checklist, rui ro ky thuat va thu tu implement."
+
+Hoac:
+
+"Tu file source context nay, hay viet lai phan thuyet minh do an tot nghiep: tong quan he thong, kien truc PLC/Home Assistant/App, AI du bao phu tai, model XGBoost/LSTM/CNN-LSTM, va ke hoach demo."
+
+

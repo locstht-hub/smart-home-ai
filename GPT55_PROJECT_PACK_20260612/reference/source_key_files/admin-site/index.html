@@ -1,0 +1,353 @@
+﻿<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Home AI Admin</title>
+  <link rel="stylesheet" href="./styles.css?v=20260609-admin-redesign">
+</head>
+<body>
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">SH</div>
+        <div>
+          <strong>Smart Home AI</strong>
+          <span>Admin Console</span>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Điều hướng quản trị">
+        <button class="nav-item active" data-view="overview" type="button">
+          <span class="nav-icon">OV</span>
+          <span>Tổng quan</span>
+        </button>
+        <button class="nav-item" data-view="homes" type="button">
+          <span class="nav-icon">HM</span>
+          <span>Nhà</span>
+        </button>
+        <button class="nav-item" data-view="users" type="button">
+          <span class="nav-icon">US</span>
+          <span>Tài khoản</span>
+        </button>
+        <button class="nav-item" data-view="logs" type="button">
+          <span class="nav-icon">LG</span>
+          <span>Lịch sử</span>
+        </button>
+      </nav>
+
+      <div class="session-box">
+        <span>Phiên đăng nhập</span>
+        <strong id="sessionName">Chưa đăng nhập</strong>
+        <button id="logoutBtn" type="button">Đăng xuất</button>
+      </div>
+    </aside>
+
+    <section class="content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Smart Home AI</p>
+          <h1 id="pageTitle">Tổng quan hệ thống</h1>
+          <p class="page-subtitle">Theo dõi nhà, tài khoản cha và lịch sử thao tác trên hệ thống.</p>
+        </div>
+        <div class="topbar-actions">
+          <div class="version-pill">Bản UI mới 22/05</div>
+          <div class="api-status" id="apiStatus">API: chưa kiểm tra</div>
+          <button class="primary-btn hidden" id="createOwnerTopBtn" type="button">Tạo chủ nhà</button>
+          <button class="ghost-btn" id="refreshAllBtn" type="button">Làm mới</button>
+        </div>
+      </header>
+
+      <section class="login-panel" id="loginPanel">
+        <div class="login-copy">
+          <p class="eyebrow">Bảng quản trị</p>
+          <h2>Đăng nhập để quản lý hệ thống</h2>
+          <p>Trang này chỉ dành cho tài khoản system admin. Mọi thao tác quan trọng sẽ được lưu vào audit log.</p>
+        </div>
+        <form id="loginForm" class="login-form">
+          <label>
+            Username
+            <input id="usernameInput" name="username" autocomplete="username">
+          </label>
+          <label>
+            Password
+            <input id="passwordInput" name="password" type="password" autocomplete="current-password">
+          </label>
+          <button type="submit">Đăng nhập</button>
+          <p id="loginMessage" class="form-message"></p>
+        </form>
+      </section>
+
+      <section class="workspace hidden" id="workspace">
+        <section class="view" id="overviewView">
+          <div class="metrics">
+            <article class="metric">
+              <span>Nhà đang quản lý</span>
+              <strong id="homeCount">0</strong>
+              <small>Tổng số không gian đã tạo</small>
+            </article>
+            <article class="metric">
+              <span>Tài khoản</span>
+              <strong id="userCount">0</strong>
+              <small>Admin, owner và thành viên</small>
+            </article>
+            <article class="metric">
+              <span>Tài khoản cha</span>
+              <strong id="ownerCount">0</strong>
+              <small>Người quản lý từng nhà</small>
+            </article>
+            <article class="metric">
+              <span>Log gần đây</span>
+              <strong id="logCount">0</strong>
+              <small>100 hoạt động mới nhất</small>
+            </article>
+          </div>
+
+          <div class="split">
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>Nhà mới nhất</h2>
+                  <p>Danh sách các nhà vừa được ghi nhận.</p>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tên nhà</th>
+                      <th>Home ID</th>
+                      <th>Chủ nhà</th>
+                      <th>Thành viên</th>
+                      <th>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentHomesBody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel activity-panel">
+              <div class="panel-head">
+                <div>
+                  <h2>Hoạt động mới</h2>
+                  <p>Các thao tác vừa diễn ra trên backend.</p>
+                </div>
+              </div>
+              <div class="log-list" id="recentLogsList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view hidden" id="homesView">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Danh sách nhà</h2>
+                <p>Theo dõi owner, số thành viên và trạng thái từng nhà.</p>
+              </div>
+              <div class="panel-actions">
+                <button class="primary-btn" id="createOwnerHomeBtn" type="button">Tạo chủ nhà</button>
+                <button class="refresh-btn" data-refresh="homes" type="button">Làm mới</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tên nhà</th>
+                    <th>Home ID</th>
+                    <th>Owner</th>
+                    <th>Username</th>
+                    <th>Thành viên</th>
+                    <th>Ngày tạo</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="homesBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view hidden" id="usersView">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Danh sách tài khoản</h2>
+                <p>Kiểm tra vai trò, số điện thoại và lần hoạt động cuối.</p>
+              </div>
+              <button class="refresh-btn" data-refresh="users" type="button">Làm mới</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tên</th>
+                    <th>Username</th>
+                    <th>Home ID</th>
+                    <th>SĐT</th>
+                    <th>Role</th>
+                    <th>Hoạt động cuối</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="usersBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view hidden" id="homeDetailView">
+          <section class="panel">
+            <div class="panel-head detail-head">
+              <div>
+                <button class="back-link" id="backToHomesBtn" type="button">← Danh sách nhà</button>
+                <h2 id="detailHomeName">Chi tiết nhà</h2>
+                <div class="detail-id" id="detailHomeId"></div>
+              </div>
+              <div class="panel-actions">
+                <button class="refresh-btn" id="refreshHomeDetailBtn" type="button">Làm mới chi tiết</button>
+              </div>
+            </div>
+            <div class="detail-body">
+              <div class="detail-summary" id="homeDetailSummary"></div>
+
+              <div class="detail-tabs" role="tablist" aria-label="Chi tiết nhà">
+                <button class="detail-tab active" data-home-tab="overview" type="button">Tổng quan</button>
+                <button class="detail-tab" data-home-tab="devices" type="button">Thiết bị</button>
+                <button class="detail-tab" data-home-tab="members" type="button">Thành viên</button>
+                <button class="detail-tab" data-home-tab="logs" type="button">Nhật ký</button>
+              </div>
+
+              <section class="detail-tab-panel" data-home-tab-panel="overview">
+                <div class="detail-grid" id="homeOverviewGrid"></div>
+              </section>
+
+              <section class="detail-tab-panel hidden" data-home-tab-panel="devices">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Thiết bị</th>
+                        <th>Phòng</th>
+                        <th>Công suất định mức</th>
+                        <th>Trạng thái</th>
+                        <th>Nguồn</th>
+                      </tr>
+                    </thead>
+                    <tbody id="homeDevicesBody"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="detail-tab-panel hidden" data-home-tab-panel="members">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Tên</th>
+                        <th>Username</th>
+                        <th>Quyền trong nhà</th>
+                        <th>Điều khiển</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody id="homeMembersBody"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="detail-tab-panel hidden" data-home-tab-panel="logs">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Thời gian</th>
+                        <th>Người thực hiện</th>
+                        <th>Hành động</th>
+                        <th>Đối tượng</th>
+                        <th>IP</th>
+                      </tr>
+                    </thead>
+                    <tbody id="homeLogsBody"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section class="view hidden" id="logsView">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Lịch sử hoạt động</h2>
+                <p>Audit log giúp truy vết ai đã làm gì và khi nào.</p>
+              </div>
+              <button class="refresh-btn" data-refresh="logs" type="button">Làm mới</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Thời gian</th>
+                    <th>Người thực hiện</th>
+                    <th>Role</th>
+                    <th>Hành động</th>
+                    <th>Đối tượng</th>
+                    <th>IP</th>
+                  </tr>
+                </thead>
+                <tbody id="logsBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+    </section>
+  </main>
+  <div class="modal-backdrop hidden" id="ownerModal" role="dialog" aria-modal="true" aria-labelledby="ownerModalTitle">
+    <form class="modal" id="ownerForm">
+      <div class="modal-head">
+        <div>
+          <h2 id="ownerModalTitle">Tạo chủ nhà mới</h2>
+          <p>Tạo tài khoản cha và nhà tương ứng trong một bước.</p>
+        </div>
+        <button class="icon-btn" id="closeOwnerModalBtn" type="button" aria-label="Đóng">×</button>
+      </div>
+      <div class="form-grid">
+        <label>
+          Tên chủ nhà
+          <input id="ownerNameInput" name="ownerName" required placeholder="Ví dụ: Nguyễn Văn A">
+        </label>
+        <label>
+          Username
+          <input id="ownerUsernameInput" name="username" required placeholder="vd: nguyenvana">
+        </label>
+        <label>
+          SĐT
+          <input id="ownerPhoneInput" name="phone" placeholder="vd: 0900000000">
+        </label>
+        <label>
+          Mật khẩu tạm
+          <input id="ownerPasswordInput" name="password" required minlength="6" placeholder="Ít nhất 6 ký tự">
+        </label>
+        <label class="wide">
+          Tên nhà
+          <input id="homeNameInput" name="homeName" required placeholder="Ví dụ: Nhà anh A">
+        </label>
+      </div>
+      <p class="form-message" id="ownerFormMessage"></p>
+      <div class="modal-actions">
+        <button class="ghost-btn" id="cancelOwnerModalBtn" type="button">Hủy</button>
+        <button class="primary-btn" type="submit">Tạo tài khoản</button>
+      </div>
+    </form>
+  </div>
+  <script src="./app.js?v=20260609-admin-redesign"></script>
+</body>
+</html>
+

@@ -1,4 +1,4 @@
-# TEST PLAN LUAN VAN - Smart Home AI
+﻿# TEST PLAN LUAN VAN - Smart Home AI
 
 Tai lieu nay dung de test he thong, thu thap so lieu thuc nghiem va gom bang chung dua vao luan van Smart Home AI.
 
@@ -375,4 +375,5 @@ Uu tien sau:
 - [ ] Co phan han che va huong phat trien.
 - [ ] GitHub da push commit moi nhat.
 - [ ] Website deploy public da cap nhat.
+
 
