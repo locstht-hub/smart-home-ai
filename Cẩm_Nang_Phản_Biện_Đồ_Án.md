@@ -478,3 +478,20 @@ Ly do cach nay hop ly:
 1. **Bảo đảm thông tin truyền suốt:** Thông báo đẩy (push notification) trên ứng dụng phụ thuộc vào kết nối mạng internet 3G/4G/Wi-Fi của điện thoại. Trong trường hợp điện thoại chủ nhà mất mạng nhưng vẫn có sóng viễn thông, tin nhắn SMS là kênh dự phòng khẩn cấp tối ưu để họ nhận được cảnh báo vượt quota điện năng tháng.
 2. **Cảnh báo khẩn cấp có chọn lọc:** SMS chỉ được gửi khi điện năng sử dụng đạt các ngưỡng quan trọng (90%, 100%) và tích hợp giải thuật giới hạn tần suất (rate-limiting) chỉ gửi một lần duy nhất cho mỗi ngưỡng để tránh gây phiền hà và tốn kém chi phí cho chủ hộ.
 3. **An toàn bảo mật (OT Security):** SMS trong hệ thống này **thuần túy là kênh cảnh báo một chiều (notification-only)**, không hỗ trợ bất kỳ cú pháp tin nhắn nào để điều khiển đóng/cắt thiết bị điện từ xa hay tác động trực tiếp xuống PLC S7-1200. Điều này loại bỏ hoàn toàn nguy cơ kẻ tấn công giả mạo tin nhắn SMS để can thiệp trái phép vào hệ thống điện gia đình, đảm bảo an toàn vận hành ở biên.
+
+---
+
+### Câu hỏi 24: Hệ thống HEMS có tự động ngắt tải ngay lập tức khi lượng điện năng tiêu thụ vượt quota tháng (kWh) hay không? Cơ chế an toàn ở đây là gì?
+
+**Trả lời:** Hệ thống **không tự động ngắt tải ngay lập tức** khi vượt quota điện năng tháng (kWh). Logic xử lý được phân tầng rõ ràng để đảm bảo an toàn sinh hoạt:
+1. **Cảnh báo và Đề xuất (Chính):** Khi điện năng tháng (kWh) chạm các ngưỡng 80%, 90%, và 100% hạn mức, hệ thống chỉ gửi thông báo đẩy (push notification) lên ứng dụng di động và gửi SMS cảnh báo đến chủ nhà, kèm theo đề xuất giải pháp tiết kiệm để chủ nhà tự điều chỉnh thiết bị.
+2. **Sa thải phụ tải có điều kiện (Nâng cao):** Việc tự động ngắt tải chỉ áp dụng cho các thiết bị phi thiết yếu (như bình nóng lạnh, điều hòa phòng khách) và chỉ kích hoạt khi chủ nhà chủ động thiết lập bật 'Chế độ tự động sa thải tải' trên ứng dụng di động. Các tải thiết yếu (chiếu sáng phòng ngủ, thiết bị y tế, tủ lạnh) hoàn toàn không bị ảnh hưởng, đảm bảo an toàn tuyệt đối cho người sử dụng.
+3. **Ngưỡng công suất tức thời ($P_{limit}$):** Hệ thống phân biệt rõ quota điện năng tháng (kWh) và ngưỡng công suất tức thời $P_{limit}$ (kW). Việc ngắt tải để bảo vệ an toàn điện chỉ xảy ra khi công suất tức thời vượt quá giới hạn an toàn của đường dây (kW) để tránh chập cháy, và cũng tuân thủ feedback phản hồi khép kín từ PLC.
+
+---
+
+### Câu hỏi 25: Mô hình AI dự báo phụ tải có trực tiếp tham gia vào việc ra lệnh đóng cắt thiết bị hay không?
+
+**Trả lời:** Trong phiên bản thiết kế hiện tại, mô hình AI **không trực tiếp tham gia vào việc ra lệnh đóng cắt thiết bị**:
+1. **Vai trò dự báo sớm:** AI dự báo phụ tải chuỗi thời gian (24 giờ tiếp theo) đóng vai trò cung cấp thông tin tham khảo sớm về xu hướng tiêu thụ điện cho chủ nhà và hỗ trợ Backend tính toán đề xuất phương án tiết kiệm năng lượng tối ưu.
+2. **Đảm bảo an toàn bằng logic cứng:** Lệnh đóng cắt thiết bị khi quá tải đường dây hoặc khi sa thải phụ tải có điều kiện được thực thi bởi các thuật toán logic cứng (rule-based) cài đặt trực tiếp trên PLC S7-1200 và Flask Backend. Điều này đảm bảo tính ổn định, phản hồi thời gian thực và tránh các sai sót không mong muốn của mô hình dự báo AI (như sai số dự báo hoặc mất kết nối mạng Cloud).
