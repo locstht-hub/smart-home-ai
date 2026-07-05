@@ -469,3 +469,12 @@ Ly do cach nay hop ly:
 1. **Bảo vệ thiết bị vật lý:** PLC điều khiển trực tiếp các tải động lực (contactor, relay). Nếu không phân quyền, bất kỳ ai cũng có thể gửi lệnh điều khiển. Việc gửi lệnh bật/tắt liên tục hoặc xung đột sẽ làm hỏng tiếp điểm contactor, cháy cuộn dây relay hoặc hỏng động cơ.
 2. **An toàn lao động khi bảo trì (Lockout/Tagout):** Khi thiết bị đang được bảo trì tại hiện trường, tài khoản `owner` có quyền khóa thiết bị trên phần mềm để tài khoản `member` không thể vô tình bật thiết bị từ xa qua điện thoại di động, tránh gây tai nạn giật điện.
 3. **Nhật ký sự cố điện (Audit logs):** Bảng nhật ký `audit_logs` đóng vai trò là nhật ký vận hành trạm. Khi có sự cố quá tải hoặc thiết bị bị ngắt, kỹ sư điện có thể tra cứu lịch sử để phân tích xem đây là do thuật toán tự động sa thải tải (Auto-shedding) hay do con người điều khiển sai để khắc phục.
+
+---
+
+### Câu hỏi 23: Tại sao hệ thống lại tích hợp thêm tính năng cảnh báo qua SMS? Chức năng này có vai trò điều khiển đóng cắt thiết bị hay không?
+
+**Trả lời:** Hệ thống tích hợp SMS như một kênh cảnh báo mở rộng bên cạnh thông báo đẩy trên ứng dụng di động để đảm bảo độ tin cậy thông tin:
+1. **Bảo đảm thông tin truyền suốt:** Thông báo đẩy (push notification) trên ứng dụng phụ thuộc vào kết nối mạng internet 3G/4G/Wi-Fi của điện thoại. Trong trường hợp điện thoại chủ nhà mất mạng nhưng vẫn có sóng viễn thông, tin nhắn SMS là kênh dự phòng khẩn cấp tối ưu để họ nhận được cảnh báo vượt quota điện năng tháng.
+2. **Cảnh báo khẩn cấp có chọn lọc:** SMS chỉ được gửi khi điện năng sử dụng đạt các ngưỡng quan trọng (90%, 100%) và tích hợp giải thuật giới hạn tần suất (rate-limiting) chỉ gửi một lần duy nhất cho mỗi ngưỡng để tránh gây phiền hà và tốn kém chi phí cho chủ hộ.
+3. **An toàn bảo mật (OT Security):** SMS trong hệ thống này **thuần túy là kênh cảnh báo một chiều (notification-only)**, không hỗ trợ bất kỳ cú pháp tin nhắn nào để điều khiển đóng/cắt thiết bị điện từ xa hay tác động trực tiếp xuống PLC S7-1200. Điều này loại bỏ hoàn toàn nguy cơ kẻ tấn công giả mạo tin nhắn SMS để can thiệp trái phép vào hệ thống điện gia đình, đảm bảo an toàn vận hành ở biên.
