@@ -114,12 +114,16 @@ export class SmartHomeApiClient {
         return this.request(this.withHomeId('/api/power/current'));
     }
 
-    async getPowerHistory(limit = 288): Promise<PowerReading[]> {
+    async getPowerHistory(limit = 288, resolution?: 'hourly'): Promise<PowerReading[]> {
         const separator = this.config.homeId?.trim() ? '&' : '?';
-        const path = `${this.withHomeId('/api/power/history')}${separator}limit=${encodeURIComponent(String(limit))}`;
+        let path = `${this.withHomeId('/api/power/history')}${separator}limit=${encodeURIComponent(String(limit))}`;
+        if (resolution) {
+            path += `&resolution=${encodeURIComponent(resolution)}`;
+        }
         const response = await this.request<PowerHistoryResponse>(path);
         return response.readings;
     }
+
 
     async recordPowerReading(reading: Partial<PowerReading>): Promise<PowerReading> {
         const response = await this.request<{ ok: boolean; reading: PowerReading }>('/api/power/readings', {

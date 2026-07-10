@@ -1,15 +1,14 @@
-import { AnomalyAlert, ForecastProvider, Insight, ModelInfo, PredictionPoint } from '../../types/forecast';
+import { AnomalyAlert, ForecastBundle, ForecastProvider, Insight, ModelInfo, PredictionPoint } from '../../types/forecast';
+import { PowerReading } from '../../types/smartHomeServer';
 
-interface PredictionResponse {
-    predictions: PredictionPoint[];
-}
-
-interface InsightsResponse {
-    insights: Insight[];
-}
-
-interface AnomaliesResponse {
-    anomalies: AnomalyAlert[];
+export function checkHistorySufficiency(history?: PowerReading[]): boolean {
+    if (!history || history.length === 0) return false;
+    const validHours = history.filter(r => {
+        if (!r.timestamp || r.power_kw === null || r.power_kw === undefined) return false;
+        const t = new Date(r.timestamp).getTime();
+        return !isNaN(t);
+    });
+    return validHours.length >= 337;
 }
 
 interface BackendModelInfo extends ModelInfo {
@@ -33,29 +32,63 @@ export class FlaskForecastProvider implements ForecastProvider {
         this.timeout = timeout;
     }
 
-    async getPredictions(): Promise<PredictionPoint[]> {
-        const response = await this.request<PredictionResponse>(`/forecast/predictions?model=${this.model}`, {
-            method: 'POST',
-            body: JSON.stringify({ allow_sample: true }),
-        });
-        return response.predictions;
+    private buildRequestBody(history?: PowerReading[]): any {
+        const hasEnoughData = checkHistorySufficiency(history);
+        if (hasEnoughData && history) {
+            return {
+                history: history.map((r) => ({
+                    timestamp: r.timestamp,
+                    power_kw: typeof r.power_kw === 'number' ? r.power_kw : 0,
+                    reactive_power_kw: 0,
+                    voltage: typeof r.voltage === 'number' ? r.voltage : 0,
+                    current_a: typeof r.current === 'number' ? r.current : 0,
+                    sub_metering_1: 0,
+                    sub_metering_2: 0,
+                    sub_metering_3: 0,
+                })),
+                allow_sample: false,
+            };
+        }
+        return {
+            allow_sample: true,
+        };
     }
 
-    async getAnomalies(): Promise<AnomalyAlert[]> {
-        const response = await this.request<AnomaliesResponse>(`/forecast/anomalies?model=${this.model}`, {
+    async getForecastBundle(history?: PowerReading[]): Promise<ForecastBundle> {
+        const response = await this.request<{
+            predictions: PredictionPoint[];
+            anomalies: AnomalyAlert[];
+            insights: Insight[];
+            dataMode: 'real_history' | 'sample' | 'mock_fallback';
+            historyHourlyRows: number;
+        }>(`/forecast/bundle?model=${this.model}`, {
             method: 'POST',
-            body: JSON.stringify({ allow_sample: true }),
+            body: JSON.stringify(this.buildRequestBody(history)),
         });
-        return response.anomalies;
+        return {
+            predictions: response.predictions,
+            anomalies: response.anomalies,
+            insights: response.insights,
+            dataMode: response.dataMode,
+            historyHourlyRows: response.historyHourlyRows,
+        };
     }
 
-    async getInsights(): Promise<Insight[]> {
-        const response = await this.request<InsightsResponse>(`/forecast/insights?model=${this.model}`, {
-            method: 'POST',
-            body: JSON.stringify({ allow_sample: true }),
-        });
-        return response.insights;
+    async getPredictions(history?: PowerReading[]): Promise<PredictionPoint[]> {
+        const bundle = await this.getForecastBundle(history);
+        return bundle.predictions;
     }
+
+    async getAnomalies(history?: PowerReading[]): Promise<AnomalyAlert[]> {
+        const bundle = await this.getForecastBundle(history);
+        return bundle.anomalies;
+    }
+
+    async getInsights(history?: PowerReading[]): Promise<Insight[]> {
+        const bundle = await this.getForecastBundle(history);
+        return bundle.insights;
+    }
+
 
     async getModelInfo(): Promise<ModelInfo> {
         const info = await this.request<BackendModelInfo>(`/forecast/model-info?model=${this.model}`);

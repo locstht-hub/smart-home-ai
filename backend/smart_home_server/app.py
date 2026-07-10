@@ -1895,16 +1895,25 @@ def create_app() -> Flask:
             return jsonify({"ok": False, "error": "homeId is required"}), 400
 
         try:
-            limit = int(request.args.get("limit", "288"))
-            readings = auth_store.list_power_readings(
-                home_id=home_id,
-                limit=limit,
-                start=request.args.get("start"),
-                end=request.args.get("end"),
-            )
+            resolution = request.args.get("resolution", "").strip().lower()
+            if resolution == "hourly":
+                limit = int(request.args.get("limit", "1000"))
+                readings = auth_store.list_power_readings_hourly(
+                    home_id=home_id,
+                    limit=limit
+                )
+            else:
+                limit = int(request.args.get("limit", "288"))
+                readings = auth_store.list_power_readings(
+                    home_id=home_id,
+                    limit=limit,
+                    start=request.args.get("start"),
+                    end=request.args.get("end"),
+                )
             return jsonify({"ok": True, "homeId": home_id, "readings": readings})
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc)}), 500
+
 
     @app.get("/api/devices")
     def get_devices() -> Any:

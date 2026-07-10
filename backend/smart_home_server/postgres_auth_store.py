@@ -835,6 +835,48 @@ class PostgresAuthStore:
             )
         return readings
 
+    def list_power_readings_hourly(
+        self,
+        *,
+        home_id: str,
+        limit: int = 1000,
+    ) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT 
+                    to_char(date_trunc('hour', timestamp), 'YYYY-MM-DD"T"HH24:00:00') as hourly_time,
+                    AVG(voltage) as avg_voltage,
+                    AVG(current) as avg_current,
+                    AVG(power_kw) as avg_power_kw,
+                    AVG(energy_kwh) as avg_energy_kwh
+                FROM public.power_readings
+                WHERE home_id = %s
+                GROUP BY date_trunc('hour', timestamp)
+                ORDER BY hourly_time DESC
+                LIMIT %s
+                """,
+                [home_id, limit]
+            ).fetchall()
+        
+        readings = []
+        for row in reversed(rows):
+            if not row["hourly_time"]:
+                continue
+            readings.append({
+                "id": f"hourly-{row['hourly_time']}",
+                "homeId": home_id,
+                "timestamp": row["hourly_time"],
+                "voltage": row["avg_voltage"],
+                "current": row["avg_current"],
+                "power_kw": row["avg_power_kw"],
+                "energy_kwh": row["avg_energy_kwh"],
+                "source": "server_hourly_agg",
+                "createdAt": row["hourly_time"],
+            })
+        return readings
+
+
     @staticmethod
     def public_room(row: dict[str, Any]) -> dict[str, Any]:
         return {

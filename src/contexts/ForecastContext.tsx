@@ -4,6 +4,8 @@ import { AnomalyAlert, Insight, ModelInfo, PredictionPoint } from '../types/fore
 import { FlaskForecastProvider } from '../services/forecast/flaskForecastProvider';
 import { mockAnomalies, mockInsights, mockModelInfo, mockPredictions } from '../services/forecast/mockFallback';
 
+import { PowerReading } from '../types/smartHomeServer';
+
 interface ForecastContextType {
     predictions: PredictionPoint[];
     anomalies: AnomalyAlert[];
@@ -11,6 +13,8 @@ interface ForecastContextType {
     modelInfo: ModelInfo;
     isLoading: boolean;
     error: string | null;
+    forecastSource: 'real_history' | 'sample' | 'mock_fallback';
+    historyHourlyRows: number;
     refresh: () => Promise<void>;
     triggerRetrain: () => Promise<boolean>;
 }
@@ -21,11 +25,13 @@ const FORECAST_REFRESH_MS = 5 * 60 * 1000;
 export const useForecast = () => useContext(ForecastContext);
 
 export const ForecastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { config } = useSmartHomeServer();
+    const { config, client } = useSmartHomeServer();
     const [predictions, setPredictions] = useState<PredictionPoint[]>(mockPredictions);
     const [anomalies, setAnomalies] = useState<AnomalyAlert[]>(mockAnomalies);
     const [insights, setInsights] = useState<Insight[]>(mockInsights);
     const [modelInfo, setModelInfo] = useState<ModelInfo>(mockModelInfo);
+    const [forecastSource, setForecastSource] = useState<'real_history' | 'sample' | 'mock_fallback'>('mock_fallback');
+    const [historyHourlyRows, setHistoryHourlyRows] = useState<number>(0);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -42,20 +48,8 @@ export const ForecastProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             ...mockModelInfo,
             lastUpdated: new Date().toISOString(),
         });
-    }, []);
-
-    const applyProvider = useCallback(async (provider: Pick<FlaskForecastProvider, 'getPredictions' | 'getAnomalies' | 'getInsights' | 'getModelInfo'>) => {
-        const [nextPredictions, nextAnomalies, nextInsights, nextModelInfo] = await Promise.all([
-            provider.getPredictions(),
-            provider.getAnomalies(),
-            provider.getInsights(),
-            provider.getModelInfo(),
-        ]);
-
-        setPredictions(nextPredictions);
-        setAnomalies(nextAnomalies);
-        setInsights(nextInsights);
-        setModelInfo(nextModelInfo);
+        setForecastSource('mock_fallback');
+        setHistoryHourlyRows(0);
     }, []);
 
     const refresh = useCallback(async () => {
@@ -63,8 +57,29 @@ export const ForecastProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setError(null);
 
         try {
+            let history: PowerReading[] | undefined;
+            if (client && client.isReady()) {
+                try {
+                    history = await client.getPowerHistory(1000, 'hourly');
+                } catch (historyErr) {
+                    console.warn('Failed to fetch hourly power history:', historyErr);
+                }
+            }
+
             if (flaskProvider) {
-                await applyProvider(flaskProvider);
+                const bundle = await flaskProvider.getForecastBundle(history);
+                setPredictions(bundle.predictions);
+                setAnomalies(bundle.anomalies);
+                setInsights(bundle.insights);
+                setForecastSource(bundle.dataMode);
+                setHistoryHourlyRows(bundle.historyHourlyRows);
+
+                try {
+                    const info = await flaskProvider.getModelInfo();
+                    setModelInfo(info);
+                } catch (infoErr) {
+                    console.warn('Failed to fetch model info:', infoErr);
+                }
                 return;
             }
 
@@ -76,7 +91,7 @@ export const ForecastProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         } finally {
             setIsLoading(false);
         }
-    }, [applyMockFallback, applyProvider, flaskProvider]);
+    }, [applyMockFallback, client, flaskProvider]);
 
     useEffect(() => {
         refresh().catch(() => undefined);
@@ -95,7 +110,7 @@ export const ForecastProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, [flaskProvider]);
 
     return (
-        <ForecastContext.Provider value={{ predictions, anomalies, insights, modelInfo, isLoading, error, refresh, triggerRetrain }}>
+        <ForecastContext.Provider value={{ predictions, anomalies, insights, modelInfo, isLoading, error, forecastSource, historyHourlyRows, refresh, triggerRetrain }}>
             {children}
         </ForecastContext.Provider>
     );

@@ -421,6 +421,52 @@ def sample_forecast():
     )
 
 
+@app.post("/forecast/bundle")
+def forecast_bundle():
+    payload = request.get_json(silent=True) or {}
+    model_type = get_requested_model()
+    
+    history = payload.get("history") or []
+    allow_sample = bool(payload.get("allow_sample"))
+    
+    is_sufficient = False
+    history_hourly_rows = 0
+    
+    if history:
+        try:
+            normalized = normalize_history(history)
+            hourly = resample_to_hourly(normalized)
+            history_hourly_rows = len(hourly)
+            if history_hourly_rows > MAX_REQUIRED_LAG:
+                is_sufficient = True
+        except Exception:
+            pass
+            
+    if is_sufficient:
+        data_mode = "real_history"
+    else:
+        data_mode = "sample"
+        if not allow_sample:
+            return jsonify({"error": f"Need at least {MAX_REQUIRED_LAG + 1} hourly rows after resampling; received {history_hourly_rows}"}), 400
+        payload["history"] = []
+
+            
+    try:
+        predictions = dispatch_predictions(payload, model_type)
+        insights = build_insights(predictions)
+        anomalies = build_anomalies(predictions)
+        
+        return jsonify({
+            "predictions": predictions,
+            "insights": insights,
+            "anomalies": anomalies,
+            "dataMode": data_mode,
+            "historyHourlyRows": history_hourly_rows if data_mode == "real_history" else 0
+        })
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+
 @app.post("/forecast/predictions")
 def forecast_predictions():
     payload = request.get_json(silent=True) or {}

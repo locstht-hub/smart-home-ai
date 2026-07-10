@@ -123,6 +123,36 @@ const server = http.createServer((req, res) => {
     return json(res, 200, sample);
   }
 
+  if (req.method === 'POST' && req.url.startsWith('/forecast/bundle')) {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      let allowSample = true;
+      let history = [];
+      try {
+        const payload = JSON.parse(body || '{}');
+        allowSample = payload.allow_sample !== false;
+        history = payload.history || [];
+      } catch (err) {}
+
+      const isSufficient = history && history.length >= 337;
+      const dataMode = isSufficient ? 'real_history' : 'sample';
+
+      if (!isSufficient && !allowSample) {
+        return json(res, 400, { error: 'Need at least 337 hourly rows; received ' + history.length });
+      }
+
+      return json(res, 200, {
+        predictions: mapPredictions(),
+        insights: buildInsights(),
+        anomalies: buildAnomalies(),
+        dataMode: dataMode,
+        historyHourlyRows: isSufficient ? history.length : 0
+      });
+    });
+    return;
+  }
+
   if (req.method === 'POST' && req.url === '/forecast/predictions') {
     return json(res, 200, { predictions: mapPredictions() });
   }

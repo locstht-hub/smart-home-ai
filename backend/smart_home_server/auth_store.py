@@ -999,6 +999,48 @@ class AuthStore:
             )
         return readings
 
+    def list_power_readings_hourly(
+        self,
+        *,
+        home_id: str,
+        limit: int = 1000,
+    ) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT 
+                    strftime('%Y-%m-%dT%H:00:00', replace(timestamp, 'T', ' ')) as hourly_time,
+                    AVG(voltage) as avg_voltage,
+                    AVG(current) as avg_current,
+                    AVG(power_kw) as avg_power_kw,
+                    AVG(energy_kwh) as avg_energy_kwh
+                FROM power_readings
+                WHERE home_id = ?
+                GROUP BY hourly_time
+                ORDER BY hourly_time DESC
+                LIMIT ?
+                """,
+                [home_id, limit]
+            ).fetchall()
+        
+        readings = []
+        for row in reversed(rows):
+            if not row["hourly_time"]:
+                continue
+            readings.append({
+                "id": f"hourly-{row['hourly_time']}",
+                "homeId": home_id,
+                "timestamp": row["hourly_time"],
+                "voltage": row["avg_voltage"],
+                "current": row["avg_current"],
+                "power_kw": row["avg_power_kw"],
+                "energy_kwh": row["avg_energy_kwh"],
+                "source": "server_hourly_agg",
+                "createdAt": row["hourly_time"],
+            })
+        return readings
+
+
     @staticmethod
     def _json_obj(value: str | None) -> dict[str, Any]:
         try:

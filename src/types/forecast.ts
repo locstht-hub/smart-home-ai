@@ -1,4 +1,6 @@
-export type ForecastSource = 'server_rule' | 'flask_model' | 'mock_fallback';
+import { PowerReading } from './smartHomeServer';
+
+export type ForecastSource = 'server_rule' | 'flask_model' | 'mock_fallback' | 'real_history' | 'sample';
 
 export interface PredictionPoint {
     time: string;
@@ -35,10 +37,20 @@ export interface ModelInfo {
     mode: 'demo_rule' | 'real_model';
 }
 
+export interface ForecastBundle {
+    predictions: PredictionPoint[];
+    anomalies: AnomalyAlert[];
+    insights: Insight[];
+    dataMode: 'real_history' | 'sample' | 'mock_fallback';
+    historyHourlyRows: number;
+}
+
 export interface ForecastProvider {
-    getPredictions(): Promise<PredictionPoint[]>;
-    getAnomalies(): Promise<AnomalyAlert[]>;
-    getInsights(): Promise<Insight[]>;
+    getPredictions(history?: PowerReading[]): Promise<PredictionPoint[]>;
+    getAnomalies(history?: PowerReading[]): Promise<AnomalyAlert[]>;
+    getInsights(history?: PowerReading[]): Promise<Insight[]>;
+    getForecastBundle(history?: PowerReading[]): Promise<ForecastBundle>;
     getModelInfo(): Promise<ModelInfo>;
     triggerRetrain?(): Promise<boolean>;
 }
+

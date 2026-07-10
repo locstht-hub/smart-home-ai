@@ -33,6 +33,7 @@ const generateReportHTML = (
     anomalies: AnomalyAlert[],
     predictions: Array<{ time: string; predictedKw: number; confidence: number }>,
     modelName: string,
+    sourceLabel: string,
 ) => {
     const now = new Date();
     const totalKwh = predictions.reduce((sum, item) => sum + item.predictedKw, 0);
@@ -65,7 +66,7 @@ const generateReportHTML = (
     </style></head>
     <body>
         <h1>Báo cáo phụ tải điện demo</h1>
-        <p><strong>Ngày xuất:</strong> ${now.toLocaleDateString('vi-VN')} &nbsp;&nbsp; <strong>Nguồn:</strong> ${modelName}</p>
+        <p><strong>Ngày xuất:</strong> ${now.toLocaleDateString('vi-VN')} &nbsp;&nbsp; <strong>Nguồn:</strong> ${modelName} (${sourceLabel})</p>
 
         <div class="summary-box">
             <div class="summary-item">
@@ -119,8 +120,14 @@ const generateReportHTML = (
     </html>`;
 };
 
+const getSourceLabel = (source: string) => {
+    if (source === 'real_history') return 'Mô hình AI – sử dụng dữ liệu đo thực tế';
+    if (source === 'sample') return 'Dữ liệu dự báo mẫu – chưa đủ dữ liệu thực tế';
+    return 'Dữ liệu mô phỏng – Forecast API không khả dụng';
+};
+
 export default function AnalysisScreen() {
-    const { predictions, anomalies, insights, modelInfo, isLoading, error, refresh, triggerRetrain } = useForecast();
+    const { predictions, anomalies, insights, modelInfo, isLoading, error, forecastSource, historyHourlyRows, refresh, triggerRetrain } = useForecast();
     const { rooms, getTotalPower, getActiveDeviceCount } = useData();
     const { client, isConfigured } = useSmartHomeServer();
     const [showAnomalyDetail, setShowAnomalyDetail] = useState<AnomalyAlert | null>(null);
@@ -231,6 +238,7 @@ export default function AnalysisScreen() {
                 anomalies,
                 predictions,
                 modelInfo.name,
+                getSourceLabel(forecastSource),
             );
             const { uri } = await Print.printToFileAsync({ html, base64: false });
             await Sharing.shareAsync(uri, {
@@ -287,7 +295,7 @@ export default function AnalysisScreen() {
         <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <Text style={styles.pageTitle}>Phân tích & Dự báo</Text>
             <Text style={styles.pageSubtitle}>
-                {isLoading ? 'Đang cập nhật từ server riêng...' : `Nguồn: ${modelInfo.name}`}
+                {isLoading ? 'Đang cập nhật từ server riêng...' : getSourceLabel(forecastSource)}
             </Text>
 
             {error && (
@@ -512,7 +520,9 @@ export default function AnalysisScreen() {
             <View style={styles.chartCard}>
                 <View style={styles.predHeader}>
                     <Text style={styles.chartTitle}>Dự báo sắp tới</Text>
-                    <Text style={styles.predUpdate}>{modelInfo.mode === 'demo_rule' ? 'Demo rule' : 'Model thật'}</Text>
+                    <Text style={styles.predUpdate}>
+                        {forecastSource === 'real_history' ? 'Mô hình AI' : forecastSource === 'sample' ? 'Dữ liệu mẫu' : 'Mô phỏng'}
+                    </Text>
                 </View>
                 {predictions.map((pred, index) => (
                     <View key={`${pred.time}-${index}`} style={styles.predItem}>
@@ -552,10 +562,25 @@ export default function AnalysisScreen() {
             <View style={styles.modelCard}>
                 <Text style={styles.modelTitle}>Thông tin mô hình dự báo</Text>
                 <View style={styles.modelGrid}>
-                    <View style={styles.modelItem}><Text style={styles.modelLabel}>Nguồn</Text><Text style={styles.modelValue2}>{modelInfo.name}</Text></View>
-                    <View style={styles.modelItem}><Text style={styles.modelLabel}>Chế độ</Text><Text style={styles.modelValue2}>{modelInfo.mode}</Text></View>
+                    <View style={styles.modelItem}>
+                        <Text style={styles.modelLabel}>Nguồn</Text>
+                        <Text style={styles.modelValue2}>
+                            {forecastSource === 'real_history' ? 'Dữ liệu đo thực tế' : forecastSource === 'sample' ? 'Dữ liệu dự báo mẫu' : 'Dữ liệu mô phỏng'}
+                        </Text>
+                    </View>
+                    <View style={styles.modelItem}>
+                        <Text style={styles.modelLabel}>Chế độ</Text>
+                        <Text style={styles.modelValue2}>
+                            {forecastSource === 'real_history' ? 'Mô hình AI – sử dụng dữ liệu đo thực tế' : forecastSource === 'sample' ? 'Dữ liệu mẫu' : 'Mô phỏng'}
+                        </Text>
+                    </View>
                     <View style={styles.modelItem}><Text style={styles.modelLabel}>Lần cập nhật cuối</Text><Text style={styles.modelValue2}>{new Date(modelInfo.lastUpdated).toLocaleString('vi-VN')}</Text></View>
-                    <View style={styles.modelItem}><Text style={styles.modelLabel}>Mẫu huấn luyện</Text><Text style={styles.modelValue2}>{modelInfo.trainingSamples ?? 'Chưa có'}</Text></View>
+                    <View style={styles.modelItem}>
+                        <Text style={styles.modelLabel}>{forecastSource === 'real_history' ? 'Số giờ thực tế' : 'Mẫu huấn luyện'}</Text>
+                        <Text style={styles.modelValue2}>
+                            {forecastSource === 'real_history' ? `${historyHourlyRows} giờ` : (modelInfo.trainingSamples ?? 'Chưa có')}
+                        </Text>
+                    </View>
                 </View>
                 <TouchableOpacity
                     style={[styles.retrainBtn, isRetraining && { opacity: 0.7 }]}
@@ -565,7 +590,7 @@ export default function AnalysisScreen() {
                     <Text style={styles.retrainBtnIcon}>🔄</Text>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.retrainBtnText}>{isRetraining ? 'Đang gửi tín hiệu...' : 'Tái huấn luyện (Retrain)'}</Text>
-                        <Text style={styles.retrainBtnSub}>Kích hoạt luồng học tăng cường (Online Learning)</Text>
+                        <Text style={styles.retrainBtnSub}>Mô phỏng quy trình tái huấn luyện</Text>
                     </View>
                 </TouchableOpacity>
             </View>
