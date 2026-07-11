@@ -903,12 +903,49 @@ tbody tr:hover {
   }
 
   .sidebar {
-    position: static;
+    position: sticky;
+    z-index: 20;
     height: auto;
+    min-width: 0;
+    max-width: 100%;
+    gap: 12px;
+    padding: 12px 18px;
+    overflow: hidden;
   }
 
   .nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-item {
+    flex: 0 0 auto;
+    min-width: 132px;
+  }
+
+  .session-box {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    margin-top: 0;
+    padding: 10px 12px;
+  }
+
+  .session-box span {
+    display: none;
+  }
+
+  .session-box button {
+    min-height: 36px;
+    padding: 0 12px;
   }
 
   .metrics,
@@ -925,6 +962,22 @@ tbody tr:hover {
 }
 
 @media (max-width: 680px) {
+  .sidebar {
+    position: static;
+  }
+
+  .brand {
+    min-height: 44px;
+  }
+
+  .nav-item {
+    min-width: 118px;
+  }
+
+  .session-box {
+    grid-template-columns: 1fr;
+  }
+
   .content {
     padding: 18px;
   }

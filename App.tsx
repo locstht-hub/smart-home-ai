@@ -11,15 +11,15 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      <AuthProvider>
-        <SmartHomeServerProvider>
+      <SmartHomeServerProvider>
+        <AuthProvider>
           <DataProvider>
             <ForecastProvider>
               <AppNavigator />
             </ForecastProvider>
           </DataProvider>
-        </SmartHomeServerProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </SmartHomeServerProvider>
     </View>
   );
 }

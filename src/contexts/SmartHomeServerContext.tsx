@@ -118,9 +118,14 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
     }, [client, isConfigured]);
 
     useEffect(() => {
-        if (!isConfigured) return;
+        if (!isConfigured || !config.apiToken) {
+            setStatus('idle');
+            setError(null);
+            setSystemStatus(null);
+            return;
+        }
         refreshSystemStatus().catch(() => undefined);
-    }, [isConfigured, refreshSystemStatus]);
+    }, [config.apiToken, isConfigured, refreshSystemStatus]);
 
     const saveConfig = useCallback(async (nextConfig: SmartHomeServerConfig) => {
         const normalized = normalizeConfig(nextConfig);

@@ -30,7 +30,7 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
         'Quản lý': '🔧',
     };
     return (
-        <View style={{ alignItems: 'center', gap: 2 }}>
+        <View style={{ alignItems: 'center', gap: 2 }} accessible={false} importantForAccessibility="no-hide-descendants">
             {label === 'Tổng quan' ? (
                 <Image source={APP_LOGO} style={{ width: 22, height: 22, borderRadius: 6 }} />
             ) : (
@@ -66,34 +66,34 @@ function MainTabs() {
             <Tab.Screen
                 name="Dashboard"
                 component={DashboardScreen}
-                options={{ tabBarIcon: ({ focused }) => <TabIcon label="Tổng quan" focused={focused} /> }}
+                options={{ tabBarAccessibilityLabel: 'Tổng quan', tabBarIcon: ({ focused }) => <TabIcon label="Tổng quan" focused={focused} /> }}
             />
             <Tab.Screen
                 name="RoomList"
                 component={RoomsScreen}
-                options={{ tabBarIcon: ({ focused }) => <TabIcon label="Phòng" focused={focused} /> }}
+                options={{ tabBarAccessibilityLabel: 'Danh sách phòng', tabBarIcon: ({ focused }) => <TabIcon label="Phòng" focused={focused} /> }}
             />
             <Tab.Screen
                 name="Analysis"
                 component={AnalysisScreen}
-                options={{ tabBarIcon: ({ focused }) => <TabIcon label="Phân tích" focused={focused} /> }}
+                options={{ tabBarAccessibilityLabel: 'Phân tích điện năng', tabBarIcon: ({ focused }) => <TabIcon label="Phân tích" focused={focused} /> }}
             />
             <Tab.Screen
                 name="Chat"
                 component={ChatScreen}
-                options={{ tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} /> }}
+                options={{ tabBarAccessibilityLabel: 'Trợ lý hội thoại', tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} /> }}
             />
             {user?.role === 'admin' && (
                 <Tab.Screen
                     name="Admin"
                     component={AdminScreen}
-                    options={{ tabBarIcon: ({ focused }) => <TabIcon label="Quản lý" focused={focused} /> }}
+                    options={{ tabBarAccessibilityLabel: 'Quản lý hệ thống', tabBarIcon: ({ focused }) => <TabIcon label="Quản lý" focused={focused} /> }}
                 />
             )}
             <Tab.Screen
                 name="Settings"
                 component={SettingsScreen}
-                options={{ tabBarIcon: ({ focused }) => <TabIcon label="Cài đặt" focused={focused} /> }}
+                options={{ tabBarAccessibilityLabel: 'Cài đặt', tabBarIcon: ({ focused }) => <TabIcon label="Cài đặt" focused={focused} /> }}
             />
         </Tab.Navigator>
     );
@@ -104,7 +104,12 @@ export default function AppNavigator() {
 
     if (isLoading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+            <View
+                style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}
+                accessible
+                accessibilityRole="progressbar"
+                accessibilityLabel="Đang tải ứng dụng Smart Home"
+            >
                 <Image source={APP_LOGO} style={{ width: 40, height: 40, borderRadius: 10 }} />
                 <Text style={{ marginTop: 10, color: Colors.slate[500] }}>Đang tải...</Text>
             </View>

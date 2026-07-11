@@ -272,6 +272,11 @@ class S7Client:
         self.rack = int(plc.get("rack", 0))
         self.slot = int(plc.get("slot", 1))
         self.command_pulse_ms = max(50, int(plc.get("commandPulseMs", 200)))
+        self.feedback_timeout_ms = max(250, int(plc.get("feedbackTimeoutMs", 2500)))
+        self.feedback_poll_ms = max(25, int(plc.get("feedbackPollMs", 100)))
+        # A PLC bit write is a read-modify-write operation. Serializing all S7 I/O
+        # prevents concurrent commands from clobbering neighboring bits.
+        self._io_lock = threading.RLock()
 
     def _client(self) -> Any:
         if snap7 is None:
@@ -337,11 +342,12 @@ class S7Client:
         start = min(addresses)
         end = max(address + 4 for address in addresses)
 
-        client = self._client()
-        try:
-            data = client.mb_read(start, end - start)
-        finally:
-            client.disconnect()
+        with self._io_lock:
+            client = self._client()
+            try:
+                data = client.mb_read(start, end - start)
+            finally:
+                client.disconnect()
 
         values: dict[str, Any] = {}
         warnings: list[str] = []
@@ -374,31 +380,49 @@ class S7Client:
         return values
 
     def read_device_states(self, devices: list[dict[str, Any]]) -> dict[str, bool]:
-        client = self._client()
         states: dict[str, bool] = {}
-
-        try:
-            for item in devices:
-                states[str(item["id"])] = self.read_plc_bit(client, str(item["statusTag"]))
-        finally:
-            client.disconnect()
+        with self._io_lock:
+            client = self._client()
+            try:
+                for item in devices:
+                    states[str(item["id"])] = self.read_plc_bit(client, str(item["statusTag"]))
+            finally:
+                client.disconnect()
 
         return states
 
-    def write_device_command(self, device: dict[str, Any], is_on: bool) -> None:
+    def write_device_command(self, device: dict[str, Any], is_on: bool) -> dict[str, Any]:
         command_tag = device.get("onCommandTag" if is_on else "offCommandTag")
-        client = self._client()
+        status_tag = str(device.get("statusTag") or "").strip()
+        if not status_tag:
+            raise RuntimeError(f"Device {device.get('id')} has no independent statusTag for feedback verification")
 
-        try:
-            if command_tag:
-                self.write_plc_bit(client, str(command_tag), True)
-                time.sleep(self.command_pulse_ms / 1000.0)
-                self.write_plc_bit(client, str(command_tag), False)
-                return
+        started = time.perf_counter()
+        with self._io_lock:
+            client = self._client()
+            try:
+                if command_tag:
+                    self.write_plc_bit(client, str(command_tag), True)
+                    time.sleep(self.command_pulse_ms / 1000.0)
+                    self.write_plc_bit(client, str(command_tag), False)
+                else:
+                    self.write_plc_bit(client, str(device["commandTag"]), is_on)
 
-            self.write_plc_bit(client, str(device["commandTag"]), is_on)
-        finally:
-            client.disconnect()
+                deadline = time.perf_counter() + (self.feedback_timeout_ms / 1000.0)
+                actual_state = self.read_plc_bit(client, status_tag)
+                while actual_state != is_on and time.perf_counter() < deadline:
+                    time.sleep(self.feedback_poll_ms / 1000.0)
+                    actual_state = self.read_plc_bit(client, status_tag)
+
+                elapsed_ms = round((time.perf_counter() - started) * 1000.0, 2)
+                if actual_state != is_on:
+                    raise RuntimeError(
+                        f"PLC feedback timeout for {device.get('id')}: expected {is_on}, got {actual_state} "
+                        f"after {elapsed_ms} ms"
+                    )
+                return {"verified": True, "actualState": actual_state, "latencyMs": elapsed_ms}
+            finally:
+                client.disconnect()
 
 
 def create_app() -> Flask:
@@ -412,6 +436,23 @@ def create_app() -> Flask:
     collector_interval = max(5, int(collector_config.get("intervalSeconds", 60)))
     collector_enabled = bool(collector_config.get("enabled", False))
     collector_home_ids = [str(item).strip() for item in collector_config.get("homeIds", []) if str(item).strip()]
+    safety_config = dict(config.get("safety", {}))
+    auto_shedding_env = os.environ.get("SMART_HOME_AUTO_LOAD_SHEDDING_ENABLED")
+    auto_load_shedding_enabled = (
+        auto_shedding_env.strip().lower() in {"1", "true", "yes", "on"}
+        if auto_shedding_env is not None
+        else bool(safety_config.get("autoLoadSheddingEnabled", False))
+    )
+    telemetry_config = dict(config.get("telemetry", {}))
+    telemetry_service_token = str(
+        os.environ.get("SMART_HOME_TELEMETRY_TOKEN")
+        or telemetry_config.get("serviceToken", "")
+    ).strip()
+    telemetry_allowed_home_ids = {
+        str(item).strip()
+        for item in telemetry_config.get("allowedHomeIds", collector_home_ids)
+        if str(item).strip()
+    }
     mock_energy_kwh = float(collector_config.get("initialEnergyKwh", 12.3))
     last_mock_energy_update = datetime.now(timezone.utc)
     energy_lock = threading.Lock()
@@ -450,7 +491,7 @@ def create_app() -> Flask:
     @app.after_request
     def add_cors_headers(response: Any) -> Any:
         response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Token"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Token, X-Telemetry-Token"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
         return response
 
@@ -466,12 +507,20 @@ def create_app() -> Flask:
             return {"id": "api-token", "role": "system_admin", "name": "API Token"}
         return auth_store.get_user_by_session(token)
 
+    def telemetry_service_authenticated() -> bool:
+        supplied = request.headers.get("X-Telemetry-Token", "").strip()
+        return bool(telemetry_service_token and supplied and compare_digest(supplied, telemetry_service_token))
+
     @app.before_request
     def require_api_token() -> Any:
         if request.method == "OPTIONS" or not request.path.startswith("/api/") or request.path == "/api/auth/login":
             return None
 
-        if not api_token and get_current_user() is None:
+        if request.path == "/api/power/readings" and request.method == "POST":
+            if not telemetry_service_token:
+                return jsonify({"ok": False, "error": "Telemetry ingestion is disabled until SMART_HOME_TELEMETRY_TOKEN is configured"}), 503
+            if not telemetry_service_authenticated():
+                return jsonify({"ok": False, "error": "Telemetry service authentication required"}), 401
             return None
 
         if get_current_user() is None:
@@ -500,7 +549,7 @@ def create_app() -> Flask:
             return jsonify({"ok": False, "error": "Home access not found"}), 403
         if home["status"] != "active":
             return jsonify({"ok": False, "error": "Home is suspended"}), 403
-        if manage_devices and not home["canManageDevices"]:
+        if manage_devices and (home.get("roleInHome") == "viewer" or not home["canManageDevices"]):
             return jsonify({"ok": False, "error": "Device permission denied"}), 403
 
         return {"user": current_user, "home": home}
@@ -934,6 +983,8 @@ def create_app() -> Flask:
         return saved
 
     def check_and_execute_load_shedding(home_id: str) -> None:
+        if not auto_load_shedding_enabled:
+            return
         try:
             quota = auth_store.get_home_quota_status(home_id)
             limit = float(quota.get("energyLimitKwh") or 0)
@@ -1545,10 +1596,13 @@ def create_app() -> Flask:
         password = str(payload.get("password") or "")
         role_in_home = str(payload.get("roleInHome") or "member").strip()
         can_manage_members = bool(payload.get("canManageMembers", False))
-        can_manage_devices = bool(payload.get("canManageDevices", True))
+        can_manage_devices = bool(payload.get("canManageDevices", role_in_home == "member"))
 
         if role_in_home not in {"member", "viewer"}:
             return jsonify({"ok": False, "error": "roleInHome must be member or viewer"}), 400
+        if role_in_home == "viewer":
+            can_manage_members = False
+            can_manage_devices = False
         if not name or not username or not password:
             return jsonify({"ok": False, "error": "name, username and password are required"}), 400
         if len(password) < 6:
@@ -1842,21 +1896,21 @@ def create_app() -> Flask:
 
         try:
             reading = read_power_measurement()
-            saved = record_power_snapshot(access, reading)
-            return jsonify({**reading, "recorded": bool(saved), "readingId": saved["id"] if saved else None})
+            # GET must remain read-only. The background collector owns persistence.
+            return jsonify({**reading, "recorded": False, "readingId": None})
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc)}), 500
 
     @app.post("/api/power/readings")
     def create_power_reading() -> Any:
-        access = require_active_home_access()
-        if not isinstance(access, dict):
-            return access
-
         payload = request_payload()
-        home_id = access_home_id(access)
+        home_id = str(payload.get("homeId") or "").strip()
         if not home_id:
             return jsonify({"ok": False, "error": "homeId is required"}), 400
+        if telemetry_allowed_home_ids and home_id not in telemetry_allowed_home_ids:
+            return jsonify({"ok": False, "error": "Telemetry service is not authorized for this home"}), 403
+        if not auth_store.list_collector_homes([home_id]):
+            return jsonify({"ok": False, "error": "Active home not found"}), 404
 
         try:
             timestamp = str(payload.get("timestamp") or datetime.now(timezone.utc).isoformat())
@@ -1872,7 +1926,7 @@ def create_app() -> Flask:
             )
             audit(
                 "power.reading_created",
-                actor=access.get("user"),
+                actor={"id": "telemetry-service", "username": "telemetry-service", "role": "service"},
                 target_type="power_reading",
                 target_id=saved["id"],
                 home_id=home_id,
@@ -1978,8 +2032,9 @@ def create_app() -> Flask:
             return {**quota_block, "device_id": device_id, "isOn": is_on}
 
         try:
+            feedback: dict[str, Any] | None = None
             if plc_should_be_used():
-                s7.write_device_command(device, is_on)
+                feedback = s7.write_device_command(device, is_on)
 
             state_store.set_state(device_id, is_on)
             audit(
@@ -1989,9 +2044,9 @@ def create_app() -> Flask:
                 target_id=device_id,
                 target_name=str(device.get("name", device_id)),
                 home_id=access["home"]["id"] if access.get("home") else None,
-                metadata={"roomId": device.get("roomId"), "mode": mode, "isOn": is_on},
+                metadata={"roomId": device.get("roomId"), "mode": mode, "isOn": is_on, "feedback": feedback},
             )
-            return {"ok": True, "device_id": device_id, "isOn": is_on}
+            return {"ok": True, "device_id": device_id, "isOn": is_on, "feedback": feedback}
         except Exception as exc:
             return {"ok": False, "error": str(exc), "device_id": device_id, "isOn": is_on, "mode": mode}
 

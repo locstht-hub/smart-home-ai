@@ -35,6 +35,9 @@ Links you shared that are more useful later:
   - `RandomForest` baseline
   - `XGBoost` main model
 - compares metrics on validation and test splits
+- compares every trained model against a 24-hour persistence baseline
+- records MAE, RMSE, MAPE, R² and measured inference time per sample
+- stores chronological split ranges and a SHA-256 fingerprint for local CSV data
 - exports: trained model, metrics JSON, sample forecast JSON, feature columns JSON
 
 ### Colab quick start (XGBoost)
@@ -43,7 +46,22 @@ Links you shared that are more useful later:
 !pip install -r /content/forecast-24h-colab/requirements.txt
 !python /content/forecast-24h-colab/train_24h_forecast.py \
   --data-source uci \
+  --uci-data-path /content/individual_household_electric_power_consumption.zip \
   --artifacts-dir /content/artifacts_24h
+```
+
+For reproducible runs, download the ZIP once from the official UCI dataset page and pass `--uci-data-path`. The exported metrics include the file's SHA-256 fingerprint.
+
+Use local MFM384/PLC data after enough real history has been collected:
+
+```python
+!python /content/forecast-24h-colab/train_24h_forecast.py \
+  --data-source local_csv \
+  --csv-path /content/plc_house.csv \
+  --dataset-label "MFM384 Can Tho home v1" \
+  --timestamp-col timestamp \
+  --power-col power_kw \
+  --artifacts-dir /content/artifacts_24h_local
 ```
 
 ### Expected output files (XGBoost)

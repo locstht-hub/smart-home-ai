@@ -83,6 +83,11 @@ export default function SettingsScreen() {
     };
 
     const handleLogout = () => {
+        if (Platform.OS === 'web') {
+            void logout();
+            return;
+        }
+
         Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
             { text: 'Hủy', style: 'cancel' },
             { text: 'Đăng xuất', style: 'destructive', onPress: logout },
@@ -248,7 +253,12 @@ export default function SettingsScreen() {
             </View>
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-            <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+            <TouchableOpacity
+                style={styles.logoutBtn}
+                onPress={handleLogout}
+                accessibilityRole="button"
+                accessibilityLabel="Đăng xuất khỏi ứng dụng"
+            >
                 <Text style={styles.logoutText}>Đăng xuất</Text>
             </TouchableOpacity>
 

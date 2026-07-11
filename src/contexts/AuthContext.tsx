@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, defaultAdmin, defaultApprovedUser } from '../constants/data';
 import { SmartHomeApiClient } from '../services/smartHome/client';
-import { SmartHomeServerConfig } from '../types/smartHomeServer';
+import { useSmartHomeServer } from './SmartHomeServerContext';
 
 interface AuthContextType {
     user: User | null;
@@ -20,16 +20,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 const USERS_KEY = 'users';
 const USERS_BACKUP_KEY = 'users_backup';
-const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
-const SERVER_API_URL = 'https://api.smarthomeai.id.vn';
-const LOCAL_API_URL = 'http://172.16.50.47:5001';
-const FORECAST_API_URL = 'http://172.16.50.47:5000';
+const ALLOW_LOCAL_DEMO_AUTH = __DEV__ && process.env.EXPO_PUBLIC_ALLOW_LOCAL_DEMO_AUTH === 'true';
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { config: serverConfig, saveConfig } = useSmartHomeServer();
     const [user, setUser] = useState<User | null>(null);
-    const [users, setUsers] = useState<User[]>([defaultAdmin, defaultApprovedUser]);
+    const demoUsers = ALLOW_LOCAL_DEMO_AUTH ? [defaultAdmin, defaultApprovedUser] : [];
+    const [users, setUsers] = useState<User[]>(demoUsers);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -48,6 +47,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         const merged = Array.from(byKey.values());
+        if (!ALLOW_LOCAL_DEMO_AUTH) {
+            return merged.filter((candidate) => Boolean(candidate.serverRole || candidate.serverToken));
+        }
         const adminIndex = merged.findIndex((u) => u.role === 'admin');
         const withAdmin = adminIndex >= 0
             ? merged.map((u, index) => (index === adminIndex ? { ...defaultAdmin, ...u, role: 'admin' as const } : u))
@@ -66,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const savedUsers = await AsyncStorage.getItem(USERS_KEY);
         const savedBackup = await AsyncStorage.getItem(USERS_BACKUP_KEY);
         const source = savedUsers || savedBackup;
-        const parsedUsers: User[] = source ? JSON.parse(source) : [defaultAdmin, defaultApprovedUser];
+        const parsedUsers: User[] = source ? JSON.parse(source) : demoUsers;
 
         if (!savedUsers && savedBackup) {
             await AsyncStorage.setItem(USERS_KEY, savedBackup);
@@ -85,7 +87,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (savedCurrentUser) {
                 const parsedCurrent = JSON.parse(savedCurrentUser) as User;
-                const latestCurrent = normalized.find((item) => item.id === parsedCurrent.id) || null;
+                const latestCurrent = parsedCurrent.serverRole || parsedCurrent.serverToken
+                    ? parsedCurrent
+                    : normalized.find((item) => item.id === parsedCurrent.id) || null;
                 setUser(latestCurrent);
                 if (!latestCurrent) {
                     await AsyncStorage.removeItem('currentUser');
@@ -109,34 +113,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const saveServerSession = async (token: string, homeId?: string) => {
-        const saved = await AsyncStorage.getItem(SERVER_CONFIG_KEY);
-        const previous: SmartHomeServerConfig = saved
-            ? JSON.parse(saved)
-            : { apiBaseUrl: SERVER_API_URL, localApiBaseUrl: LOCAL_API_URL, preferLocalApi: true, apiToken: '', forecastApiUrl: FORECAST_API_URL, forecastModel: 'xgboost', timeout: 8000 };
-        await AsyncStorage.setItem(SERVER_CONFIG_KEY, JSON.stringify({
-            ...previous,
-            apiBaseUrl: SERVER_API_URL,
-            localApiBaseUrl: LOCAL_API_URL,
-            preferLocalApi: true,
+        await saveConfig({
+            ...serverConfig,
             apiToken: token,
             homeId: homeId || '',
-            forecastApiUrl: previous.forecastApiUrl || FORECAST_API_URL,
-            forecastModel: previous.forecastModel || 'xgboost',
-            timeout: previous.timeout || 8000,
-        }));
+        });
     };
 
     const loginWithServer = async (usernameOrPhone: string, password: string): Promise<{ success: boolean; message: string }> => {
-        const saved = await AsyncStorage.getItem(SERVER_CONFIG_KEY);
-        const savedConfig: SmartHomeServerConfig | null = saved ? JSON.parse(saved) : null;
         const client = new SmartHomeApiClient({
-            apiBaseUrl: SERVER_API_URL,
-            localApiBaseUrl: LOCAL_API_URL,
-            preferLocalApi: true,
+            ...serverConfig,
             apiToken: '',
-            forecastApiUrl: savedConfig?.forecastApiUrl || FORECAST_API_URL,
-            forecastModel: 'xgboost',
-            timeout: 8000,
         });
         const session = await client.login(usernameOrPhone, password);
         const primaryHome = session.homes[0];
@@ -159,9 +146,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             canManageDevices: primaryHome?.canManageDevices,
         };
 
+        await saveServerSession(session.token, primaryHome?.id);
         setUser(mappedUser);
         await AsyncStorage.setItem('currentUser', JSON.stringify(mappedUser));
-        await saveServerSession(session.token, primaryHome?.id);
         return { success: true, message: 'Đăng nhập server thành công' };
     };
 
@@ -169,7 +156,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             return await loginWithServer(phone, password);
         } catch (serverError) {
-            console.log('Server login fallback:', serverError);
+            const message = serverError instanceof Error ? serverError.message : 'Không thể đăng nhập server';
+            if (!ALLOW_LOCAL_DEMO_AUTH) {
+                return { success: false, message };
+            }
+            console.warn('Explicit development demo-auth fallback:', message);
         }
 
         const allUsers = await readUsersFromStorage();
@@ -196,6 +187,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const register = async (name: string, phone: string, password: string): Promise<{ success: boolean; message: string }> => {
+        if (!ALLOW_LOCAL_DEMO_AUTH) {
+            return { success: false, message: 'Đăng ký local đã tắt. Chủ hộ cần tạo thành viên trên server.' };
+        }
         const allUsers = await readUsersFromStorage();
 
         const exists = allUsers.find(u => u.phone === phone);
@@ -222,11 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = async () => {
         setUser(null);
         await AsyncStorage.removeItem('currentUser');
-        const saved = await AsyncStorage.getItem(SERVER_CONFIG_KEY);
-        if (saved) {
-            const previous: SmartHomeServerConfig = JSON.parse(saved);
-            await AsyncStorage.setItem(SERVER_CONFIG_KEY, JSON.stringify({ ...previous, apiToken: '', homeId: '' }));
-        }
+        await saveConfig({ ...serverConfig, apiToken: '', homeId: '' });
     };
 
     const approveUser = async (userId: string) => {
@@ -270,17 +260,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!user) return { success: false, message: 'Chưa đăng nhập' };
         if (user.serverToken || user.serverRole) {
             if (newPw.length < 6) return { success: false, message: 'Mật khẩu mới phải có ít nhất 6 ký tự' };
-            const saved = await AsyncStorage.getItem(SERVER_CONFIG_KEY);
-            const savedConfig: SmartHomeServerConfig | null = saved ? JSON.parse(saved) : null;
-            const client = new SmartHomeApiClient(savedConfig || {
-                apiBaseUrl: SERVER_API_URL,
-                localApiBaseUrl: LOCAL_API_URL,
-                preferLocalApi: true,
+            const client = new SmartHomeApiClient({
+                ...serverConfig,
                 apiToken: user.serverToken || '',
                 homeId: user.homeId || '',
-                forecastApiUrl: FORECAST_API_URL,
-                forecastModel: 'xgboost',
-                timeout: 8000,
             });
             try {
                 await client.changeOwnPassword(currentPw, newPw);

@@ -72,6 +72,12 @@ backend/**/*.sqlite3
 *.keras
 ml-training/**/model_artifacts.zip
 
+# Research raw/derived outputs are generated locally. Keep only directory markers.
+research/data/raw/*
+!research/data/raw/.gitkeep
+research/data/processed/*
+!research/data/processed/.gitkeep
+
 # Generated build outputs
 android/
 ios/

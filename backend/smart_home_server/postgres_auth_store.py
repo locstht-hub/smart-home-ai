@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -54,12 +55,23 @@ class PostgresAuthStore:
             row = conn.execute("SELECT COUNT(*) AS count FROM public.users").fetchone()
             if row and int(row["count"]):
                 return
+            if os.environ.get("SMART_HOME_SEED_DEMO_USERS", "").strip().lower() not in {"1", "true", "yes", "on"}:
+                return
+
+            admin_password = os.environ.get("SMART_HOME_BOOTSTRAP_ADMIN_PASSWORD", "").strip()
+            owner_password = os.environ.get("SMART_HOME_BOOTSTRAP_OWNER_PASSWORD", "").strip()
+            member_password = os.environ.get("SMART_HOME_BOOTSTRAP_MEMBER_PASSWORD", "").strip()
+            if not all((admin_password, owner_password, member_password)):
+                raise RuntimeError(
+                    "Demo seeding requires SMART_HOME_BOOTSTRAP_ADMIN_PASSWORD, "
+                    "SMART_HOME_BOOTSTRAP_OWNER_PASSWORD and SMART_HOME_BOOTSTRAP_MEMBER_PASSWORD"
+                )
 
             now = utc_now()
             users = [
-                ("system-admin-001", "admin", "0123456789", "System Admin", "admin123", "system_admin"),
-                ("owner-demo-001", "owner", "0900000001", "Chu nha mau", "owner123", "owner"),
-                ("member-demo-001", "member", "0900000002", "Thanh vien mau", "member123", "member"),
+                ("system-admin-001", "admin", "0123456789", "System Admin", admin_password, "system_admin"),
+                ("owner-demo-001", "owner", "0900000001", "Chủ nhà mẫu", owner_password, "owner"),
+                ("member-demo-001", "member", "0900000002", "Thành viên mẫu", member_password, "member"),
             ]
 
             for user_id, username, phone, name, password, role in users:
@@ -97,7 +109,7 @@ class PostgresAuthStore:
                     id, home_id, user_id, role_in_home,
                     can_manage_members, can_manage_devices, created_at
                 )
-                VALUES ('member-link-member-001', 'home-demo-001', 'member-demo-001', 'member', false, false, %s)
+                VALUES ('member-link-member-001', 'home-demo-001', 'member-demo-001', 'member', false, true, %s)
                 ON CONFLICT (home_id, user_id) DO NOTHING
                 """,
                 (now,),

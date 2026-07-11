@@ -8,6 +8,13 @@
   "security": {
     "apiToken": "change-this-long-random-token"
   },
+  "safety": {
+    "autoLoadSheddingEnabled": false
+  },
+  "telemetry": {
+    "serviceToken": "",
+    "allowedHomeIds": ["home-demo-001"]
+  },
   "database": {
     "path": "smart_home_auth.db"
   },
@@ -24,7 +31,9 @@
     "host": "192.168.0.1",
     "rack": 0,
     "slot": 1,
-    "commandPulseMs": 200
+    "commandPulseMs": 200,
+    "feedbackTimeoutMs": 2500,
+    "feedbackPollMs": 100
   },
   "powerTags": {
     "voltage": { "name": "V1N", "address": 200, "type": "Real", "scale": 1.0, "min": 0, "max": 300 },

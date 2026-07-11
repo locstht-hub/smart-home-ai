@@ -370,7 +370,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return false;
             }
             if (isConfigured && isServerControlled) {
-                await Promise.all(targetDevices.map(device => client.setDeviceState(device.id, nextState)));
+                // Keep PLC commands ordered. The backend also serializes S7 writes,
+                // but avoiding a client-side burst makes feedback failures explicit.
+                for (const device of targetDevices) {
+                    await client.setDeviceState(device.id, nextState);
+                }
                 await refresh();
             } else {
                 updateLocalHouse(house => {

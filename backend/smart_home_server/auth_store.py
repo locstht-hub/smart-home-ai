@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import secrets
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 
 SESSION_DAYS = 30
@@ -41,11 +43,19 @@ class AuthStore:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.init_db()
 
-    def connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def connect(self) -> Iterator[sqlite3.Connection]:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
-        return conn
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def init_db(self) -> None:
         with self.connect() as conn:
@@ -189,12 +199,23 @@ class AuthStore:
         count = conn.execute("SELECT COUNT(*) AS count FROM users").fetchone()["count"]
         if count:
             return
+        if os.environ.get("SMART_HOME_SEED_DEMO_USERS", "").strip().lower() not in {"1", "true", "yes", "on"}:
+            return
+
+        admin_password = os.environ.get("SMART_HOME_BOOTSTRAP_ADMIN_PASSWORD", "").strip()
+        owner_password = os.environ.get("SMART_HOME_BOOTSTRAP_OWNER_PASSWORD", "").strip()
+        member_password = os.environ.get("SMART_HOME_BOOTSTRAP_MEMBER_PASSWORD", "").strip()
+        if not all((admin_password, owner_password, member_password)):
+            raise RuntimeError(
+                "Demo seeding requires SMART_HOME_BOOTSTRAP_ADMIN_PASSWORD, "
+                "SMART_HOME_BOOTSTRAP_OWNER_PASSWORD and SMART_HOME_BOOTSTRAP_MEMBER_PASSWORD"
+            )
 
         now = utc_now()
         users = [
-            ("system-admin-001", "admin", "0123456789", "System Admin", "admin123", "system_admin"),
-            ("owner-demo-001", "owner", "0900000001", "Chủ nhà mẫu", "owner123", "owner"),
-            ("member-demo-001", "member", "0900000002", "Thành viên mẫu", "member123", "member"),
+            ("system-admin-001", "admin", "0123456789", "System Admin", admin_password, "system_admin"),
+            ("owner-demo-001", "owner", "0900000001", "Chủ nhà mẫu", owner_password, "owner"),
+            ("member-demo-001", "member", "0900000002", "Thành viên mẫu", member_password, "member"),
         ]
 
         for user_id, username, phone, name, password, role in users:
@@ -223,7 +244,7 @@ class AuthStore:
         conn.execute(
             """
             INSERT INTO home_members (id, home_id, user_id, role_in_home, can_manage_members, can_manage_devices, created_at)
-            VALUES ('member-link-member-001', 'home-demo-001', 'member-demo-001', 'member', 0, 0, ?)
+            VALUES ('member-link-member-001', 'home-demo-001', 'member-demo-001', 'member', 0, 1, ?)
             """,
             (now,),
         )

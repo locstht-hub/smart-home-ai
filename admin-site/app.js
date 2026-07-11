@@ -237,6 +237,8 @@ function setAuthenticated(isAuthenticated) {
   els.workspace.classList.toggle('hidden', !isAuthenticated);
   els.refreshAllBtn.classList.toggle('hidden', !isAuthenticated);
   els.createOwnerTopBtn.classList.toggle('hidden', !isAuthenticated);
+  els.logoutBtn.disabled = !isAuthenticated;
+  els.logoutBtn.setAttribute('aria-disabled', String(!isAuthenticated));
   els.sessionName.textContent = state.user
     ? `${displayUserName(state.user)} (${roleLabels[state.user.role] || state.user.role})`
     : 'Chưa đăng nhập';
@@ -642,8 +644,7 @@ function renderSparklineChart() {
   const rotatedFactors = [];
   for (let i = 0; i < 24; i++) {
     const hr = (currentHour - 23 + i + 24) % 24;
-    const noise = (Math.random() - 0.5) * 0.06;
-    rotatedFactors.push(Math.max(0.05, Math.min(1.0, hourlyLoadFactors[hr] + noise)));
+    rotatedFactors.push(hourlyLoadFactors[hr]);
   }
 
   const width = 1000;
@@ -665,8 +666,8 @@ function renderSparklineChart() {
 
   const currentLoadKw = (totalCapacityKw * rotatedFactors[23]).toFixed(2);
   if (statusEl) {
-    statusEl.textContent = `Tổng tải: ${currentLoadKw} kW / ${totalCapacityKw.toFixed(1)} kW (Định mức)`;
-    statusEl.className = 'badge quota-ok';
+    statusEl.textContent = `Minh họa: ${currentLoadKw} kW / ${totalCapacityKw.toFixed(1)} kW định mức`;
+    statusEl.className = 'badge quota-warn';
   }
 }
 

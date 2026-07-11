@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUtc": "2026-07-11T08:04:05.333937+00:00",
+  "forecast": {
+    "source": {
+      "path": "ml-training/modeltrainingdone/metrics.json",
+      "sha256": "50e42efa78838c57e698e38db0e71ed6e5c6b0717330b8f8ee3438eeb1a19001"
+    },
+    "dataset": {
+      "dataset_name": "UCI Individual Household Electric Power Consumption",
+      "raw_rows": 1705949,
+      "hourly_rows": 28801,
+      "supervised_rows": 28441,
+      "max_history_days": 1200
+    },
+    "bestModel": "xgboost",
+    "models": [
+      {
+        "model": "random_forest",
+        "split": "validation",
+        "mae_kw": 0.5062155220621641,
+        "rmse_kw": 0.6930520413260809,
+        "mape_percent": 55.690373644409775,
+        "r2": null,
+        "inference_ms_per_sample": null
+      },
+      {
+        "model": "random_forest",
+        "split": "test",
+        "mae_kw": 0.4096988406067874,
+        "rmse_kw": 0.5636062260833368,
+        "mape_percent": 57.9386214454387,
+        "r2": null,
+        "inference_ms_per_sample": null
+      },
+      {
+        "model": "xgboost",
+        "split": "validation",
+        "mae_kw": 0.49237802401347625,
+        "rmse_kw": 0.6810527217761696,
+        "mape_percent": 53.477897604978885,
+        "r2": null,
+        "inference_ms_per_sample": null
+      },
+      {
+        "model": "xgboost",
+        "split": "test",
+        "mae_kw": 0.4010042656218205,
+        "rmse_kw": 0.5589435250621108,
+        "mape_percent": 55.81322751125612,
+        "r2": null,
+        "inference_ms_per_sample": null
+      }
+    ]
+  },
+  "hardware": {
+    "status": "pending_real_trials",
+    "source": null,
+    "latencyGroups": []
+  },
+  "evidenceStatus": {
+    "publicDatasetBenchmark": false,
+    "localMfm384Benchmark": false,
+    "realHardwareLatency": false,
+    "automaticLoadShedding": false
+  },
+  "claimPolicy": {
+    "allowPublicDatasetForecastClaims": false,
+    "allowLocalAccuracyClaims": false,
+    "allowMeasuredLatencyClaims": false,
+    "allowAutomaticLoadSheddingClaims": false,
+    "note": "Claims marked false must remain future work or implementation status, not experimental findings."
+  }
+}

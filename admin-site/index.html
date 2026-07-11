@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Quản trị Smart Home AI</title>
-  <link rel="stylesheet" href="./styles.css?v=20260609-admin-redesign">
+  <link rel="stylesheet" href="./styles.css?v=20260711-responsive-a11y-2">
 </head>
 <body>
   <main class="shell">
@@ -51,7 +51,6 @@
           <p class="page-subtitle">Theo dõi nhà, tài khoản cha và lịch sử thao tác trên hệ thống.</p>
         </div>
         <div class="topbar-actions">
-          <div class="version-pill">Bản UI mới 22/05</div>
           <div class="api-status" id="apiStatus">API: chưa kiểm tra</div>
           <button class="primary-btn hidden" id="createOwnerTopBtn" type="button">Tạo chủ nhà</button>
           <button class="ghost-btn" id="refreshAllBtn" type="button">Làm mới</button>
@@ -107,9 +106,9 @@
             <div class="panel-head" style="border: 0; padding: 0; min-height: auto; background: transparent; margin-bottom: 12px;">
               <div>
                 <h2 style="font-size: 16px;">Biểu đồ phụ tải hệ thống (24h qua)</h2>
-                <p style="font-size: 12px; margin: 2px 0 0;">Mô phỏng công suất tiêu thụ tổng của tất cả các hộ gia đình theo thời gian thực.</p>
+                <p style="font-size: 12px; margin: 2px 0 0;">Đường cong minh họa theo công suất định mức; không phải telemetry thời gian thực.</p>
               </div>
-              <div class="badge quota-ok" style="font-size: 11px; margin-left: 0;" id="adminChartStatus">Live Update</div>
+              <div class="badge quota-warn" style="font-size: 11px; margin-left: 0;" id="adminChartStatus">Dữ liệu minh họa</div>
             </div>
             <div style="width: 100%; height: 160px; position: relative;">
               <svg id="adminSparkline" viewBox="0 0 1000 160" preserveAspectRatio="none" style="width: 100%; height: 100%; display: block; overflow: visible;">
@@ -476,6 +475,6 @@
       </div>
     </form>
   </div>
-  <script src="./app.js?v=20260614-admin-vietnamese"></script>
+  <script src="./app.js?v=20260711-evidence-safe"></script>
 </body>
 </html>

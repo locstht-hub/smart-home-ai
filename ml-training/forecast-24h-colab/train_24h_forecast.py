@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -9,24 +11,27 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
-from ucimlrepo import fetch_ucirepo
 
 
 DEFAULT_RANDOM_STATE = 42
 FORECAST_HORIZON_HOURS = 24
 TARGET_COLUMN = "power_kw"
 DEFAULT_MAX_HISTORY_DAYS = 730
+MAPE_DENOMINATOR_FLOOR_KW = 0.2
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a 24-hour ahead household load forecasting model.")
     parser.add_argument("--data-source", choices=["uci", "local_csv"], default="uci")
+    parser.add_argument("--uci-data-path", type=str, default="", help="Optional cached official UCI ZIP/TXT path")
     parser.add_argument("--csv-path", type=str, default="", help="Path to local PLC CSV when using --data-source local_csv")
     parser.add_argument("--artifacts-dir", type=str, default="artifacts_24h")
     parser.add_argument("--timestamp-col", type=str, default="timestamp")
     parser.add_argument("--power-col", type=str, default="power_kw")
+    parser.add_argument("--dataset-label", type=str, default="", help="Human-readable local dataset/version label")
+    parser.add_argument("--min-local-days", type=int, default=30, help="Reject local datasets shorter than this duration")
     parser.add_argument(
         "--max-history-days",
         type=int,
@@ -36,9 +41,22 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_uci_dataset() -> pd.DataFrame:
-    dataset = fetch_ucirepo(id=235)
-    df = dataset.data.features.copy()
+def load_uci_dataset(data_path: str = "") -> pd.DataFrame:
+    print("Loading UCI dataset...", flush=True)
+    if data_path:
+        path = Path(data_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Cached UCI data not found: {path}")
+        df = pd.read_csv(path, sep=";", compression="infer", low_memory=False)
+    else:
+        try:
+            from ucimlrepo import fetch_ucirepo
+        except ImportError as exc:
+            raise RuntimeError(
+                "Install requirements.txt or pass --uci-data-path with the official UCI ZIP/TXT file"
+            ) from exc
+        dataset = fetch_ucirepo(id=235)
+        df = dataset.data.features.copy()
 
     rename_map = {
         "Date": "date",
@@ -73,7 +91,7 @@ def load_local_csv(csv_path: str, timestamp_col: str, power_col: str) -> pd.Data
     if "timestamp" not in df.columns or "power_kw" not in df.columns:
         raise ValueError("Local CSV must contain timestamp and power columns.")
 
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
     return normalize_numeric_columns(df)
 
 
@@ -225,6 +243,8 @@ def build_supervised_dataset(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFra
 
 def chronological_split(X: pd.DataFrame, y: pd.DataFrame, timestamps: pd.Series):
     total_rows = len(X)
+    if total_rows < 200:
+        raise ValueError(f"Need at least 200 supervised hourly rows, found {total_rows}")
     train_end = int(total_rows * 0.70)
     val_end = int(total_rows * 0.85)
 
@@ -277,6 +297,7 @@ def fit_direct_models(
     best_iterations: list[int | None] = []
 
     for step in range(FORECAST_HORIZON_HOURS):
+        print(f"  {model_name}: fitting horizon {step + 1}/{FORECAST_HORIZON_HOURS}", flush=True)
         model = factory()
         target = np.log1p(y_train.iloc[:, step].to_numpy())
         if model_name == "xgboost" and X_val is not None and y_val is not None:
@@ -313,18 +334,19 @@ def predict_direct_models(model_bundle: dict, X: pd.DataFrame) -> np.ndarray:
 
 
 def safe_mape(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    denominator = np.clip(np.abs(y_true), a_min=0.2, a_max=None)
+    denominator = np.clip(np.abs(y_true), a_min=MAPE_DENOMINATOR_FLOOR_KW, a_max=None)
     return float(np.mean(np.abs((y_true - y_pred) / denominator)) * 100.0)
 
 
-def evaluate_model(model_bundle: dict, X: pd.DataFrame, y: pd.DataFrame) -> dict:
-    predictions = predict_direct_models(model_bundle, X)
+def evaluate_predictions(y: pd.DataFrame, predictions: np.ndarray, inference_ms_per_sample: float) -> dict:
     y_true = y.to_numpy()
 
     metrics = {
         "mae": float(mean_absolute_error(y_true, predictions)),
         "rmse": float(np.sqrt(mean_squared_error(y_true, predictions))),
         "mape": safe_mape(y_true, predictions),
+        "r2": float(r2_score(y_true, predictions, multioutput="uniform_average")),
+        "inference_ms_per_sample": float(inference_ms_per_sample),
         "horizon_mae": {},
         "horizon_rmse": {},
     }
@@ -341,15 +363,59 @@ def evaluate_model(model_bundle: dict, X: pd.DataFrame, y: pd.DataFrame) -> dict
     return metrics
 
 
-def fit_and_compare_models(splits):
+def evaluate_model(model_bundle: dict, X: pd.DataFrame, y: pd.DataFrame) -> dict:
+    started = time.perf_counter()
+    predictions = predict_direct_models(model_bundle, X)
+    elapsed_ms = (time.perf_counter() - started) * 1000.0
+    return evaluate_predictions(y, predictions, elapsed_ms / max(1, len(X)))
+
+
+def evaluate_persistence(X: pd.DataFrame, y: pd.DataFrame) -> dict:
+    if TARGET_COLUMN not in X.columns:
+        raise ValueError(f"Persistence baseline requires {TARGET_COLUMN} in feature columns")
+    started = time.perf_counter()
+    current_power = X[TARGET_COLUMN].to_numpy(dtype=float)
+    predictions = np.repeat(current_power[:, np.newaxis], FORECAST_HORIZON_HOURS, axis=1)
+    elapsed_ms = (time.perf_counter() - started) * 1000.0
+    return evaluate_predictions(y, predictions, elapsed_ms / max(1, len(X)))
+
+
+def write_metrics_checkpoint(results: dict, checkpoint_path: Path) -> None:
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_path.write_text(
+        json.dumps(
+            {
+                name: {"validation": payload["val_metrics"], "test": payload["test_metrics"]}
+                for name, payload in results.items()
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def fit_and_compare_models(splits, checkpoint_path: Path | None = None):
     X_train, y_train, _ = splits["train"]
     X_val, y_val, _ = splits["val"]
     X_test, y_test, _ = splits["test"]
 
     results = {}
 
+    persistence_val = evaluate_persistence(X_val, y_val)
+    persistence_test = evaluate_persistence(X_test, y_test)
+    results["persistence"] = {
+        "model_bundle": None,
+        "val_metrics": persistence_val,
+        "test_metrics": persistence_test,
+    }
+    print(f"persistence validation MAE: {persistence_val['mae']:.4f}")
+    print(f"persistence test MAE: {persistence_test['mae']:.4f}")
+    if checkpoint_path:
+        write_metrics_checkpoint(results, checkpoint_path)
+
     for model_name in ["random_forest", "xgboost"]:
-        print(f"Training {model_name}...")
+        print(f"Training {model_name}...", flush=True)
         model_bundle = fit_direct_models(model_name, X_train, y_train, X_val, y_val)
 
         val_metrics = evaluate_model(model_bundle, X_val, y_val)
@@ -363,8 +429,13 @@ def fit_and_compare_models(splits):
 
         print(f"{model_name} validation MAE: {val_metrics['mae']:.4f}")
         print(f"{model_name} test MAE: {test_metrics['mae']:.4f}")
+        if checkpoint_path:
+            write_metrics_checkpoint(results, checkpoint_path)
 
-    best_model_name = min(results.keys(), key=lambda name: results[name]["val_metrics"]["mae"])
+    best_model_name = min(
+        ["random_forest", "xgboost"],
+        key=lambda name: results[name]["val_metrics"]["mae"],
+    )
     return best_model_name, results
 
 
@@ -440,6 +511,8 @@ def save_artifacts(
     joblib.dump(best_payload, artifacts_dir / "best_model.joblib")
 
     for model_name, payload in all_results.items():
+        if payload["model_bundle"] is None:
+            continue
         export_payload = {
             "model_name": model_name,
             "feature_columns": feature_columns,
@@ -479,27 +552,58 @@ def main():
     artifacts_dir = Path(args.artifacts_dir)
 
     if args.data_source == "uci":
-        raw_df = load_uci_dataset()
+        raw_df = load_uci_dataset(args.uci_data_path)
         dataset_name = "UCI Individual Household Electric Power Consumption"
     else:
         raw_df = load_local_csv(args.csv_path, args.timestamp_col, args.power_col)
-        dataset_name = "Local PLC CSV"
+        if raw_df.empty:
+            raise ValueError("Local PLC CSV contains no valid timestamp/power rows")
+        duration_days = (raw_df["timestamp"].max() - raw_df["timestamp"].min()).total_seconds() / 86400.0
+        if duration_days < args.min_local_days:
+            raise ValueError(
+                f"Local PLC data covers only {duration_days:.1f} days; at least {args.min_local_days} days are required"
+            )
+        dataset_name = args.dataset_label.strip() or "Local PLC/MFM384 CSV"
 
     raw_df = trim_recent_history(raw_df, args.max_history_days)
+    print(f"Valid raw rows after trimming: {len(raw_df):,}", flush=True)
     hourly_df = resample_to_hourly(raw_df)
+    print(f"Hourly rows: {len(hourly_df):,}", flush=True)
     X, y, timestamps = build_supervised_dataset(hourly_df)
+    print(f"Supervised rows: {len(X):,}; features: {len(X.columns)}", flush=True)
     splits = chronological_split(X, y, timestamps)
 
-    best_model_name, results = fit_and_compare_models(splits)
+    best_model_name, results = fit_and_compare_models(splits, artifacts_dir / "metrics_checkpoint.json")
+    print(f"Refitting selected model: {best_model_name}", flush=True)
     best_model_bundle = refit_best_model(best_model_name, splits)
     sample_forecast = build_sample_forecast(best_model_bundle, splits)
 
+    split_ranges = {
+        name: {
+            "rows": int(len(split[0])),
+            "start": str(pd.to_datetime(split[2].iloc[0])),
+            "end": str(pd.to_datetime(split[2].iloc[-1])),
+        }
+        for name, split in splits.items()
+    }
+    dataset_sha256 = None
+    fingerprint_path = args.csv_path if args.data_source == "local_csv" else args.uci_data_path
+    if fingerprint_path:
+        dataset_sha256 = hashlib.sha256(Path(fingerprint_path).read_bytes()).hexdigest()
+
     dataset_summary = {
         "dataset_name": dataset_name,
+        "data_source": args.data_source,
+        "source_url": "https://archive.ics.uci.edu/dataset/235/individual+household+electric+power+consumption" if args.data_source == "uci" else None,
+        "dataset_sha256": dataset_sha256,
         "raw_rows": int(len(raw_df)),
         "hourly_rows": int(len(hourly_df)),
         "supervised_rows": int(len(X)),
         "max_history_days": args.max_history_days,
+        "split_strategy": "chronological_70_15_15",
+        "split_ranges": split_ranges,
+        "mape_denominator_floor_kw": MAPE_DENOMINATOR_FLOOR_KW,
+        "random_state": DEFAULT_RANDOM_STATE,
     }
 
     save_artifacts(
