@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./styles.css?v=20260711-responsive-a11y-2">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
   <main class="shell">
     <aside class="sidebar">
       <div class="brand">
@@ -19,19 +20,19 @@
 
       <nav class="nav" aria-label="Điều hướng quản trị">
         <button class="nav-item active" data-view="overview" type="button">
-          <span class="nav-icon">OV</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z" /></svg>
           <span>Tổng quan</span>
         </button>
         <button class="nav-item" data-view="homes" type="button">
-          <span class="nav-icon">HM</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7v9h-6v-6H9v6H3v-9Z" /></svg>
           <span>Nhà</span>
         </button>
         <button class="nav-item" data-view="users" type="button">
-          <span class="nav-icon">US</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87M16 2.13a4 4 0 0 1 0 7.75" /></svg>
           <span>Tài khoản</span>
         </button>
         <button class="nav-item" data-view="logs" type="button">
-          <span class="nav-icon">LG</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5l3 2m6-3a9 9 0 1 1-3-6.7M21 3v6h-6" /></svg>
           <span>Lịch sử</span>
         </button>
       </nav>
@@ -43,7 +44,7 @@
       </div>
     </aside>
 
-    <section class="content">
+    <section class="content" id="main-content" tabindex="-1">
       <header class="topbar">
         <div>
           <p class="eyebrow">Smart Home AI</p>
@@ -96,37 +97,10 @@
               <small>Người quản lý từng nhà</small>
             </article>
             <article class="metric">
-              <span>Log gần đây</span>
+              <span>Cảnh báo cần xem</span>
               <strong id="logCount">0</strong>
-              <small>100 hoạt động mới nhất</small>
+              <small>Trong 24 giờ gần nhất</small>
             </article>
-          </div>
-
-          <div class="panel chart-panel" style="margin-top: 14px; padding: 18px;">
-            <div class="panel-head" style="border: 0; padding: 0; min-height: auto; background: transparent; margin-bottom: 12px;">
-              <div>
-                <h2 style="font-size: 16px;">Biểu đồ phụ tải hệ thống (24h qua)</h2>
-                <p style="font-size: 12px; margin: 2px 0 0;">Đường cong minh họa theo công suất định mức; không phải telemetry thời gian thực.</p>
-              </div>
-              <div class="badge quota-warn" style="font-size: 11px; margin-left: 0;" id="adminChartStatus">Dữ liệu minh họa</div>
-            </div>
-            <div style="width: 100%; height: 160px; position: relative;">
-              <svg id="adminSparkline" viewBox="0 0 1000 160" preserveAspectRatio="none" style="width: 100%; height: 100%; display: block; overflow: visible;">
-                <line x1="0" y1="40" x2="1000" y2="40" stroke="rgba(19, 37, 31, 0.05)" stroke-dasharray="4,4" />
-                <line x1="0" y1="80" x2="1000" y2="80" stroke="rgba(19, 37, 31, 0.05)" stroke-dasharray="4,4" />
-                <line x1="0" y1="120" x2="1000" y2="120" stroke="rgba(19, 37, 31, 0.05)" stroke-dasharray="4,4" />
-                
-                <path id="adminChartArea" fill="url(#adminChartGrad)" stroke="none" d="M 0 160 L 0 160 Z" />
-                <path id="adminChartLine" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M 0 160 Z" />
-                
-                <defs>
-                  <linearGradient id="adminChartGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.22" />
-                    <stop offset="100%" stop-color="var(--primary)" stop-opacity="0.0" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
           </div>
 
           <div class="split">
@@ -157,9 +131,10 @@
             <section class="panel activity-panel">
               <div class="panel-head">
                 <div>
-                  <h2>Hoạt động mới</h2>
-                  <p>Các thao tác vừa diễn ra trên máy chủ.</p>
+                  <h2>Sự kiện cần chú ý</h2>
+                  <p>Tối đa năm thay đổi hoặc lỗi có tín hiệu cao.</p>
                 </div>
+                <button class="ghost-btn" id="viewAllLogsBtn" type="button">Xem toàn bộ nhật ký</button>
               </div>
               <div class="log-list" id="recentLogsList"></div>
             </section>
@@ -389,6 +364,10 @@
               </section>
 
               <section class="detail-tab-panel hidden" data-home-tab-panel="logs">
+                <div class="inline-tools">
+                  <p>Hiển thị tối đa 15 sự kiện liên quan gần nhất của nhà này.</p>
+                  <button class="ghost-btn" id="viewHomeAuditBtn" type="button">Mở nhật ký đã lọc theo nhà</button>
+                </div>
                 <div class="table-wrap">
                   <table>
                     <thead>
@@ -417,21 +396,88 @@
               </div>
               <button class="refresh-btn" data-refresh="logs" type="button">Làm mới</button>
             </div>
+            <form class="audit-filters" id="auditFilters" aria-label="Bộ lọc nhật ký">
+              <label>
+                Thời gian
+                <select id="auditTimeFilter">
+                  <option value="24h">24 giờ</option>
+                  <option value="7d">7 ngày</option>
+                  <option value="30d">30 ngày</option>
+                  <option value="all" selected>Tất cả dữ liệu đã tải</option>
+                </select>
+              </label>
+              <label>
+                Mức độ
+                <select id="auditSeverityFilter">
+                  <option value="all">Tất cả</option>
+                  <option value="error">Lỗi</option>
+                  <option value="warning">Cảnh báo</option>
+                  <option value="notice">Thay đổi quan trọng</option>
+                  <option value="info">Thông tin</option>
+                </select>
+              </label>
+              <label>
+                Nhóm sự kiện
+                <select id="auditCategoryFilter">
+                  <option value="all">Tất cả</option>
+                  <option value="auth">Đăng nhập</option>
+                  <option value="admin">Quản trị</option>
+                  <option value="home">Nhà</option>
+                  <option value="member">Thành viên</option>
+                  <option value="device">Thiết bị</option>
+                  <option value="plc">PLC</option>
+                  <option value="telemetry">Telemetry</option>
+                  <option value="system">Hệ thống</option>
+                </select>
+              </label>
+              <label>
+                Hành động
+                <input id="auditActionFilter" type="search" placeholder="vd: login_failed">
+              </label>
+              <label>
+                Người thực hiện
+                <input id="auditActorFilter" type="search" placeholder="Tên đăng nhập">
+              </label>
+              <label>
+                Mã nhà
+                <input id="auditHomeFilter" type="search" placeholder="home-...">
+              </label>
+              <label>
+                Kết quả
+                <select id="auditStatusFilter">
+                  <option value="all">Tất cả</option>
+                  <option value="failure">Thất bại / từ chối</option>
+                  <option value="success">Thành công / thông tin</option>
+                </select>
+              </label>
+              <label class="audit-search">
+                Từ khóa
+                <input id="auditSearchInput" type="search" placeholder="Hành động, đối tượng hoặc metadata">
+              </label>
+              <button class="ghost-btn" id="clearAuditFiltersBtn" type="button">Xóa bộ lọc</button>
+            </form>
+            <div class="audit-results" aria-live="polite" id="auditResultsSummary"></div>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
                     <th>Thời gian</th>
+                    <th>Mức độ</th>
                     <th>Người thực hiện</th>
-                    <th>Vai trò</th>
                     <th>Hành động</th>
-                    <th>Đối tượng</th>
-                    <th>IP</th>
+                    <th>Nhà / đối tượng</th>
+                    <th>Kết quả</th>
+                    <th>Chi tiết</th>
                   </tr>
                 </thead>
                 <tbody id="logsBody"></tbody>
               </table>
             </div>
+            <nav class="audit-pagination" aria-label="Phân trang nhật ký">
+              <button class="ghost-btn" id="auditPreviousBtn" type="button" aria-label="Trang nhật ký trước">Trước</button>
+              <span id="auditPageStatus">Trang 1 / 1</span>
+              <button class="ghost-btn" id="auditNextBtn" type="button" aria-label="Trang nhật ký sau">Sau</button>
+            </nav>
           </section>
         </section>
       </section>
@@ -461,7 +507,7 @@
         </label>
         <label>
           Mật khẩu tạm
-          <input id="ownerPasswordInput" name="password" required minlength="6" placeholder="Ít nhất 6 ký tự">
+          <input id="ownerPasswordInput" name="password" required minlength="12" placeholder="Ít nhất 12 ký tự">
         </label>
         <label class="wide">
           Tên nhà
@@ -475,6 +521,7 @@
       </div>
     </form>
   </div>
-  <script src="./app.js?v=20260711-evidence-safe"></script>
+  <script src="./audit.js?v=20260713-audit-focus"></script>
+  <script src="./app.js?v=20260713-audit-focus"></script>
 </body>
 </html>

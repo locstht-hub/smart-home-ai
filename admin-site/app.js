@@ -8,6 +8,8 @@ const state = {
   homes: [],
   users: [],
   logs: [],
+  auditPage: 1,
+  expandedAuditIds: new Set(),
   selectedHomeId: '',
   homeDetail: null,
   editingRoomId: '',
@@ -45,6 +47,22 @@ const els = {
   homesBody: document.getElementById('homesBody'),
   usersBody: document.getElementById('usersBody'),
   logsBody: document.getElementById('logsBody'),
+  auditFilters: document.getElementById('auditFilters'),
+  auditTimeFilter: document.getElementById('auditTimeFilter'),
+  auditSeverityFilter: document.getElementById('auditSeverityFilter'),
+  auditCategoryFilter: document.getElementById('auditCategoryFilter'),
+  auditActionFilter: document.getElementById('auditActionFilter'),
+  auditActorFilter: document.getElementById('auditActorFilter'),
+  auditHomeFilter: document.getElementById('auditHomeFilter'),
+  auditStatusFilter: document.getElementById('auditStatusFilter'),
+  auditSearchInput: document.getElementById('auditSearchInput'),
+  clearAuditFiltersBtn: document.getElementById('clearAuditFiltersBtn'),
+  auditResultsSummary: document.getElementById('auditResultsSummary'),
+  auditPreviousBtn: document.getElementById('auditPreviousBtn'),
+  auditNextBtn: document.getElementById('auditNextBtn'),
+  auditPageStatus: document.getElementById('auditPageStatus'),
+  viewAllLogsBtn: document.getElementById('viewAllLogsBtn'),
+  viewHomeAuditBtn: document.getElementById('viewHomeAuditBtn'),
   backToHomesBtn: document.getElementById('backToHomesBtn'),
   refreshHomeDetailBtn: document.getElementById('refreshHomeDetailBtn'),
   detailHomeName: document.getElementById('detailHomeName'),
@@ -142,6 +160,18 @@ const sourceLabels = {
   server: 'Thiết bị PLC',
   mock: 'Mô phỏng',
   'plc-s7-1200': 'PLC S7-1200',
+};
+
+const auditSeverityLabels = {
+  error: 'Lỗi',
+  warning: 'Cảnh báo',
+  notice: 'Thay đổi',
+  info: 'Thông tin',
+};
+
+const auditStatusLabels = {
+  failure: 'Thất bại',
+  success: 'Thành công',
 };
 
 function displayUserName(user) {
@@ -382,30 +412,69 @@ function renderUsers() {
 }
 
 function renderLogs() {
-  els.logsBody.innerHTML = state.logs.map((log) => `
-    <tr>
-      <td>${formatDate(log.createdAt)}</td>
-      <td>${escapeHtml(log.actorUsername || '-')}</td>
-      <td>${escapeHtml(roleLabels[log.actorRole] || log.actorRole || '-')}</td>
-      <td><strong>${escapeHtml(formatAuditAction(log.action))}</strong></td>
-      <td>${escapeHtml(log.targetName || log.targetId || log.targetType || '-')}</td>
-      <td>${escapeHtml(log.ipAddress || '-')}</td>
-    </tr>
-  `).join('') || emptyRow(6, 'Chưa có nhật ký nào.');
+  const filters = {
+    timeRange: els.auditTimeFilter.value,
+    severity: els.auditSeverityFilter.value,
+    category: els.auditCategoryFilter.value,
+    action: els.auditActionFilter.value,
+    actor: els.auditActorFilter.value,
+    home: els.auditHomeFilter.value,
+    status: els.auditStatusFilter.value,
+    query: els.auditSearchInput.value,
+  };
+  const filteredLogs = AdminAudit.filterAuditLogs(state.logs, filters);
+  const page = AdminAudit.paginateAuditLogs(filteredLogs, state.auditPage);
+  state.auditPage = page.page;
 
-  els.recentLogsList.innerHTML = state.logs.slice(0, 8).map((log) => `
-    <div class="log-item">
+  els.logsBody.innerHTML = page.items.map((log) => {
+    const severity = AdminAudit.getEventSeverity(log);
+    const status = AdminAudit.getEventStatus(log);
+    const logId = String(log.id || `${log.action}-${log.createdAt}`);
+    const isExpanded = state.expandedAuditIds.has(logId);
+    const target = log.homeId || log.targetName || log.targetId || log.targetType || '-';
+    return `
+      <tr>
+        <td>${formatDate(log.createdAt)}</td>
+        <td><span class="audit-badge ${severity}">${escapeHtml(auditSeverityLabels[severity])}</span></td>
+        <td><strong>${escapeHtml(log.actorUsername || '-')}</strong><small class="table-secondary">${escapeHtml(roleLabels[log.actorRole] || log.actorRole || '-')}</small></td>
+        <td><strong>${escapeHtml(formatAuditAction(log.action))}</strong><code class="table-secondary">${escapeHtml(log.action || '-')}</code></td>
+        <td>${escapeHtml(target)}</td>
+        <td><span class="audit-status ${status}">${escapeHtml(auditStatusLabels[status])}</span></td>
+        <td><button class="action-btn" data-audit-detail-id="${escapeHtml(logId)}" type="button" aria-expanded="${isExpanded}">${isExpanded ? 'Ẩn' : 'Xem'}</button></td>
+      </tr>
+      ${isExpanded ? `
+        <tr class="audit-detail-row">
+          <td colspan="7">
+            <dl>
+              <div><dt>IP đã che</dt><dd>${escapeHtml(AdminAudit.maskIpAddress(log.ipAddress))}</dd></div>
+              <div><dt>Đối tượng</dt><dd>${escapeHtml(log.targetName || log.targetId || log.targetType || '-')}</dd></div>
+              <div><dt>Metadata</dt><dd><code>${escapeHtml(JSON.stringify(log.metadata || {}))}</code></dd></div>
+            </dl>
+          </td>
+        </tr>
+      ` : ''}
+    `;
+  }).join('') || emptyRow(7, 'Không có sự kiện phù hợp với bộ lọc.');
+
+  els.auditResultsSummary.textContent = `Hiển thị ${page.items.length} / ${page.totalItems} kết quả trong ${state.logs.length} bản ghi mới nhất đã tải.`;
+  els.auditPageStatus.textContent = `Trang ${page.page} / ${page.totalPages}`;
+  els.auditPreviousBtn.disabled = page.page <= 1;
+  els.auditNextBtn.disabled = page.page >= page.totalPages;
+
+  const overviewLogs = AdminAudit.getOverviewEvents(state.logs);
+  els.recentLogsList.innerHTML = overviewLogs.map((log) => `
+    <div class="log-item ${AdminAudit.getEventSeverity(log)}">
       <strong>${escapeHtml(formatAuditAction(log.action))}</strong>
-      <span>${escapeHtml(log.actorUsername || '-')} - ${formatDate(log.createdAt)}</span>
+      <span>${escapeHtml(log.actorUsername || 'Hệ thống')} · ${formatDate(log.createdAt)}</span>
     </div>
-  `).join('') || '<div class="log-item"><strong>Chưa có hoạt động</strong><span>Nhật ký sẽ xuất hiện khi có thao tác mới.</span></div>';
+  `).join('') || '<div class="log-item"><strong>Không có cảnh báo nổi bật</strong><span>Các thao tác thường kỳ vẫn được lưu trong trang nhật ký.</span></div>';
 }
 
 function renderOverview() {
   els.homeCount.textContent = state.homes.length;
   els.userCount.textContent = state.users.length;
   els.ownerCount.textContent = state.users.filter((user) => user.role === 'owner').length;
-  els.logCount.textContent = state.logs.length;
+  els.logCount.textContent = AdminAudit.countWarningsLast24Hours(state.logs);
 }
 
 function detailCard(label, value, hint = '') {
@@ -490,7 +559,8 @@ function inventoryActions(kind, id) {
 function renderHomeDetail(home, detail) {
   const quota = detail.quota || {};
   const members = detail.members || [];
-  const logs = detail.logs || [];
+  const rawLogs = detail.logs || [];
+  const logs = AdminAudit.getHomeEvents(rawLogs, home?.id || state.selectedHomeId);
   const rooms = detail.rooms || [];
   const devices = detail.devices || [];
   const devicesError = detail.devicesError || '';
@@ -565,7 +635,7 @@ function renderHomeDetail(home, detail) {
       <td>${escapeHtml(log.actorUsername || '-')}</td>
       <td><strong>${escapeHtml(formatAuditAction(log.action))}</strong></td>
       <td>${escapeHtml(log.targetName || log.targetId || log.targetType || '-')}</td>
-      <td>${escapeHtml(log.ipAddress || '-')}</td>
+      <td>${escapeHtml(AdminAudit.maskIpAddress(log.ipAddress))}</td>
     </tr>
   `).join('') || emptyRow(5, 'Chưa có nhật ký riêng cho nhà này.');
 }
@@ -624,59 +694,11 @@ async function openHomeDetail(homeId, options = {}) {
   }
 }
 
-function renderSparklineChart() {
-  const svgLine = document.getElementById('adminChartLine');
-  const svgArea = document.getElementById('adminChartArea');
-  const statusEl = document.getElementById('adminChartStatus');
-  if (!svgLine || !svgArea) return;
-
-  const totalCapacityW = state.homes.reduce((sum, h) => sum + (h.totalRatedPowerW || 0), 0) || 3500;
-  const totalCapacityKw = totalCapacityW / 1000;
-
-  const hourlyLoadFactors = [
-    0.15, 0.12, 0.10, 0.09, 0.11, 0.18,
-    0.35, 0.42, 0.45, 0.38, 0.48, 0.55,
-    0.62, 0.58, 0.50, 0.42, 0.52, 0.78,
-    0.92, 0.95, 0.88, 0.70, 0.45, 0.25
-  ];
-
-  const currentHour = new Date().getHours();
-  const rotatedFactors = [];
-  for (let i = 0; i < 24; i++) {
-    const hr = (currentHour - 23 + i + 24) % 24;
-    rotatedFactors.push(hourlyLoadFactors[hr]);
-  }
-
-  const width = 1000;
-  const height = 160;
-  const paddingY = 15;
-  const chartHeight = height - paddingY * 2;
-  
-  const points = rotatedFactors.map((factor, index) => {
-    const x = (index / 23) * width;
-    const y = height - paddingY - (factor * chartHeight);
-    return { x, y };
-  });
-
-  const lineD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-  const areaD = `${lineD} L ${width} ${height} L 0 ${height} Z`;
-
-  svgLine.setAttribute('d', lineD);
-  svgArea.setAttribute('d', areaD);
-
-  const currentLoadKw = (totalCapacityKw * rotatedFactors[23]).toFixed(2);
-  if (statusEl) {
-    statusEl.textContent = `Minh họa: ${currentLoadKw} kW / ${totalCapacityKw.toFixed(1)} kW định mức`;
-    statusEl.className = 'badge quota-warn';
-  }
-}
-
 function renderAll() {
   renderHomes();
   renderUsers();
   renderLogs();
   renderOverview();
-  renderSparklineChart();
 }
 
 async function loadDashboard() {
@@ -684,7 +706,7 @@ async function loadDashboard() {
   const [homes, users, logs] = await Promise.all([
     apiFetch('/api/admin/homes'),
     apiFetch('/api/admin/users'),
-    apiFetch('/api/admin/audit-logs?limit=100'),
+    apiFetch('/api/admin/audit-logs?limit=500'),
   ]);
 
   state.homes = homes.homes || [];
@@ -718,6 +740,8 @@ function logout() {
   state.homes = [];
   state.users = [];
   state.logs = [];
+  state.auditPage = 1;
+  state.expandedAuditIds.clear();
   state.selectedHomeId = '';
   state.homeDetail = null;
   state.editingRoomId = '';
@@ -736,6 +760,30 @@ function switchView(name) {
   els.navItems.forEach((item) => {
     item.classList.toggle('active', item.dataset.view === name);
   });
+  if (name === 'logs') renderLogs();
+}
+
+function resetAuditFilters(homeId = '') {
+  els.auditFilters.reset();
+  els.auditHomeFilter.value = homeId;
+  state.auditPage = 1;
+  state.expandedAuditIds.clear();
+  renderLogs();
+}
+
+function openAuditLog(homeId = '') {
+  resetAuditFilters(homeId);
+  switchView('logs');
+  els.auditHomeFilter.focus();
+}
+
+function handleAuditDetailToggle(event) {
+  const button = event.target.closest('button[data-audit-detail-id]');
+  if (!button) return;
+  const logId = button.dataset.auditDetailId;
+  if (state.expandedAuditIds.has(logId)) state.expandedAuditIds.delete(logId);
+  else state.expandedAuditIds.add(logId);
+  renderLogs();
 }
 
 function refreshDashboard() {
@@ -785,8 +833,8 @@ async function updateUserAction(userId, action) {
   if (action === 'reset-password') {
     const password = window.prompt('Nhập mật khẩu mới cho tài khoản này:');
     if (!password) return;
-    if (password.length < 6) {
-      setApiStatus('API: mật khẩu cần ít nhất 6 ký tự', 'error');
+    if (password.length < 12) {
+      setApiStatus('API: mật khẩu cần ít nhất 12 ký tự', 'error');
       return;
     }
     await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/reset-password`, {
@@ -1035,6 +1083,23 @@ els.refreshHomeDetailBtn.addEventListener('click', () => {
     openHomeDetail(state.selectedHomeId).catch((error) => setApiStatus(`API: ${error.message}`, 'error'));
   }
 });
+els.viewAllLogsBtn.addEventListener('click', () => openAuditLog());
+els.viewHomeAuditBtn.addEventListener('click', () => openAuditLog(state.selectedHomeId));
+els.auditFilters.addEventListener('input', () => {
+  state.auditPage = 1;
+  state.expandedAuditIds.clear();
+  renderLogs();
+});
+els.clearAuditFiltersBtn.addEventListener('click', () => resetAuditFilters());
+els.auditPreviousBtn.addEventListener('click', () => {
+  state.auditPage -= 1;
+  renderLogs();
+});
+els.auditNextBtn.addEventListener('click', () => {
+  state.auditPage += 1;
+  renderLogs();
+});
+els.logsBody.addEventListener('click', handleAuditDetailToggle);
 els.createOwnerTopBtn.addEventListener('click', openOwnerModal);
 els.createOwnerHomeBtn.addEventListener('click', openOwnerModal);
 els.closeOwnerModalBtn.addEventListener('click', closeOwnerModal);

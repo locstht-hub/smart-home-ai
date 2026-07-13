@@ -12,9 +12,10 @@
     <meta property="og:description" content="Giám sát điện năng, điều khiển nhà thông minh và dự báo phụ tải bằng AI." />
     <meta property="og:image" content="assets/screen1.png" />
     <link rel="icon" href="assets/smart-home-logo.png" />
-    <link rel="stylesheet" href="styles.css?v=20260711-responsive-a11y" />
+    <link rel="stylesheet" href="styles.css?v=20260713-evidence-safe" />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
     <header class="topbar">
       <a class="brand" href="#top" aria-label="Smart Home AI">
         <img src="assets/smart-home-logo.png" alt="Smart Home AI logo" />
@@ -30,16 +31,17 @@
       </nav>
     </header>
 
-    <main id="top">
+    <main id="main-content" tabindex="-1">
+      <div id="top"></div>
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-grid" aria-hidden="true"></div>
         <div class="hero-inner">
           <p class="eyebrow">Smart Home Energy Monitoring</p>
           <h1 id="hero-title">Smart Home AI</h1>
-          <p class="hero-subtitle">Giám sát điện năng, điều khiển nhà thông minh và dự báo phụ tải bằng AI.</p>
+          <p class="hero-subtitle">Nền tảng nghiên cứu giám sát năng lượng và điều khiển nhà thông minh.</p>
           <p class="lead">
-            Đồ án kết nối MFM384, PLC Siemens S7-1200 CPU 1215C, backend Flask, app mobile
-            và các mô hình dự báo để theo dõi năng lượng theo thời gian thực.
+            Kiến trúc đồ án gồm MFM384, PLC Siemens S7-1200 CPU 1215C, backend Flask, ứng dụng mobile
+            và mô hình dự báo. Phần mềm đã được triển khai; dữ liệu và phản hồi phần cứng vẫn chờ kiểm chứng thực nghiệm.
           </p>
           <div class="hero-actions">
             <a class="primary-action" href="#architecture">Xem kiến trúc</a>
@@ -52,51 +54,16 @@
             <span>SQLite</span>
             <span>AI Forecast</span>
           </div>
-          <div class="hero-status-panel" aria-label="Chỉ báo hệ thống">
-            <article>
-              <span>Mode</span>
-              <strong>PLC-ready</strong>
-            </article>
-            <article>
-              <span>Voltage</span>
-              <strong>220.4 V</strong>
-            </article>
-            <article>
-              <span>Current</span>
-              <strong>5.62 A</strong>
-            </article>
-            <article>
-              <span>Load</span>
-              <strong>1.05 kW</strong>
-            </article>
-          </div>
         </div>
       </section>
 
-      <section id="overview" class="section overview-section">
-        <div class="status-rail" aria-label="Tổng quan tiến độ">
-          <article>
-            <span class="rail-label done">Đã có</span>
-            <strong>App, backend, database, Forecast API và website</strong>
-          </article>
-          <article>
-            <span class="rail-label active">Đang làm</span>
-            <strong>Kiểm thử PLC, MFM384, relay/contactor và trạng thái vật lý</strong>
-          </article>
-          <article>
-            <span class="rail-label next">Tiếp theo</span>
-            <strong>Thu dữ liệu thật, retrain model và tích hợp assistant fine-tune</strong>
-          </article>
-        </div>
-      </section>
-
-      <section id="metrics" class="section metrics-section">
+      <section id="overview" class="section metrics-section">
         <div class="section-heading centered">
           <p class="eyebrow">Dữ liệu điện năng</p>
           <h2>Các chỉ số chính để app đọc, phân tích và cảnh báo</h2>
           <p>
-            Trang public tóm tắt kiến trúc, luồng dữ liệu và trạng thái vận hành của hệ thống; các thẻ số liệu bên dưới dùng dữ liệu trình bày. Số liệu chính thức sẽ được lấy từ backend
-            khi PLC/MFM384 được kiểm thử với hệ thống thật.
+            Trang public tóm tắt kiến trúc và các đại lượng hệ thống cần thu. <strong>Chờ dữ liệu phần cứng</strong>:
+            các thẻ bên dưới không giả lập telemetry và chỉ hiển thị trạng thái sẵn sàng thu thập.
           </p>
         </div>
         <div class="metric-grid" id="metricGrid"></div>
@@ -107,8 +74,8 @@
           <p class="eyebrow">Kiến trúc hệ thống</p>
           <h2>Luồng dữ liệu rõ ràng, luồng điều khiển có lớp an toàn</h2>
           <p>
-            App không gửi lệnh trực tiếp xuống PLC. Mọi lệnh đi qua backend để kiểm tra, ghi log,
-            rồi PLC mới xử lý relay/contactor và trả trạng thái thật về app.
+            Kiến trúc không cho app gửi lệnh trực tiếp xuống PLC. Backend chịu trách nhiệm kiểm tra quyền,
+            ghi nhật ký và chuyển lệnh; phản hồi vật lý từ PLC vẫn cần được xác minh bằng thí nghiệm phần cứng.
           </p>
         </div>
         <div class="workflow-list" id="workflowList"></div>
@@ -132,21 +99,22 @@
           <p class="eyebrow">AI Forecast</p>
           <h2>Dự báo phụ tải là mô hình số, khác với chatbot hỏi đáp</h2>
           <p>
-            Forecast API dùng dữ liệu lịch sử để ước lượng xu hướng tiêu thụ. Khi có dữ liệu thật
-            từ PLC/MFM384, mô hình cần được retrain để phản ánh đúng hệ thống thực tế.
+            Các mô hình dưới đây đã được đánh giá bằng benchmark offline trên dữ liệu nghiên cứu.
+            Kết quả này chưa phải dữ liệu vận hành thời gian thực; cần đánh giá lại khi có log PLC/MFM384 tại địa phương.
           </p>
         </div>
         <div class="forecast-panel">
-          <div class="model-chip">XGBoost</div>
+          <div class="model-chip">Persistence</div>
+          <div class="model-chip">Seasonal naive 24h</div>
+          <div class="model-chip">Seasonal naive 168h</div>
           <div class="model-chip">Random Forest</div>
-          <div class="model-chip">LSTM</div>
-          <div class="model-chip">CNN-LSTM</div>
+          <div class="model-chip">XGBoost</div>
           
           <div class="forecast-tabs" role="tablist" aria-label="Mô phỏng mốc thời gian">
-            <button class="forecast-tab active" data-scenario="morning" type="button">Sáng sớm (06h - 11h)</button>
-            <button class="forecast-tab" data-scenario="noon" type="button">Giữa trưa (11h - 14h)</button>
-            <button class="forecast-tab" data-scenario="peak" type="button">Giờ cao điểm (17h - 22h)</button>
-            <button class="forecast-tab" data-scenario="night" type="button">Ban đêm (22h - 06h)</button>
+            <button class="forecast-tab active" data-scenario="morning" type="button" role="tab" aria-selected="true">Sáng sớm (06h - 11h)</button>
+            <button class="forecast-tab" data-scenario="noon" type="button" role="tab" aria-selected="false">Giữa trưa (11h - 14h)</button>
+            <button class="forecast-tab" data-scenario="peak" type="button" role="tab" aria-selected="false">Giờ cao điểm (17h - 22h)</button>
+            <button class="forecast-tab" data-scenario="night" type="button" role="tab" aria-selected="false">Ban đêm (22h - 06h)</button>
           </div>
 
           <div class="forecast-chart" aria-label="Biểu đồ minh họa dự báo phụ tải">
@@ -163,7 +131,7 @@
             <span style="height: 74%" class="predicted"></span>
             <span style="height: 64%" class="predicted"></span>
           </div>
-          <small>Dữ liệu minh họa; kết quả thật phụ thuộc vào dữ liệu thu từ hệ thống thực tế.</small>
+          <small>Biểu đồ minh họa kịch bản; danh sách mô hình lấy từ benchmark canonical. Không phải telemetry thời gian thực.</small>
         </div>
       </section>
 
@@ -177,8 +145,8 @@
           <p class="eyebrow">Mobile App</p>
           <h2>Màn hình app tập trung vào dữ liệu cần đọc nhanh</h2>
           <p>
-            App hiển thị phòng, thiết bị, công suất, điện năng, quota, forecast và cảnh báo.
-            Phần điều khiển tải thật nên bật sau khi PLC, relay và cơ chế phản hồi trạng thái đã được kiểm thử.
+            Trong phạm vi phần mềm, app có màn hình phòng, thiết bị, công suất, điện năng, quota, forecast và cảnh báo.
+            Điều khiển tải vật lý chưa được xem là hoàn tất cho đến khi PLC, relay và phản hồi trạng thái vượt qua kiểm thử.
           </p>
           <div class="feature-list">
             <div>
@@ -198,27 +166,15 @@
       </section>
 
       <section id="status" class="section status-section">
-        <div class="section-heading centered">
+        <div class="section-heading">
           <p class="eyebrow">Trạng thái dự án</p>
-          <h2>Nên ưu tiên thực nghiệm phần cứng trước khi mở rộng AI Assistant</h2>
+          <h2>Phạm vi đã xác minh và phần còn chờ thực nghiệm</h2>
         </div>
-        <div class="status-grid">
-          <article class="status-card done">
-            <span>Hoàn thiện nền tảng</span>
-            <strong>App, backend, database, forecast API, website và tài liệu tiến độ</strong>
-            <p>Đủ để trình bày ý tưởng, kiến trúc phần mềm và cách dữ liệu được hiển thị.</p>
-          </article>
-          <article class="status-card active">
-            <span>Ưu tiên hiện tại</span>
-            <strong>Đọc dữ liệu MFM384 và kiểm thử PLC với tải thật hoặc tải giả</strong>
-            <p>Cần xác nhận số liệu thật, lệnh điều khiển thật và phản hồi trạng thái vật lý.</p>
-          </article>
-          <article class="status-card next">
-            <span>Giai đoạn sau</span>
-            <strong>Retrain forecast và nối chatbot fine-tune qua backend inference API</strong>
-            <p>Model Unsloth có thể dùng cho chatbot, nhưng web tĩnh sẽ gọi qua backend/model server.</p>
-          </article>
-        </div>
+        <article class="project-status-summary">
+          <p><strong>Đã triển khai trong phần mềm:</strong> app, backend, database, phân quyền, audit log, Forecast API và website.</p>
+          <p><strong>Đã đánh giá bằng benchmark offline:</strong> persistence, seasonal baselines, Random Forest và XGBoost.</p>
+          <p><strong>Chờ xác minh bằng phần cứng:</strong> telemetry MFM384, PLC write/feedback, relay/contactor và điều khiển tải.</p>
+        </article>
         <a class="summary-link" href="progress.html">Xem bản tóm tắt tiến độ chi tiết</a>
       </section>
 

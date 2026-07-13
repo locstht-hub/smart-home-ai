@@ -9,10 +9,11 @@
       content="Tóm tắt trạng thái triển khai, kiến trúc và các bước kiểm thử tiếp theo của Smart Home AI."
     />
     <link rel="icon" href="assets/smart-home-logo.png" />
-    <link rel="stylesheet" href="styles.css?v=20260612-visual-fix" />
-    <link rel="stylesheet" href="progress.css?v=20260612-visual-fix" />
+    <link rel="stylesheet" href="styles.css?v=20260713-evidence-safe" />
+    <link rel="stylesheet" href="progress.css?v=20260713-evidence-safe" />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
     <header class="topbar">
       <a class="brand" href="index.html" aria-label="Smart Home AI">
         <img src="assets/smart-home-logo.png" alt="Smart Home AI logo" />
@@ -26,7 +27,7 @@
       </nav>
     </header>
 
-    <main>
+    <main id="main-content" tabindex="-1">
       <section class="progress-hero">
         <div class="progress-hero-copy">
           <p class="progress-kicker">Tóm tắt tiến độ</p>
@@ -38,16 +39,16 @@
         </div>
         <div class="status-panel" aria-label="Trạng thái dự án">
           <div>
-            <span>Trạng thái</span>
-            <strong>Pilot-ready</strong>
+            <span>Triển khai phần mềm</span>
+            <strong>Đã có</strong>
           </div>
           <div>
-            <span>Deploy</span>
-            <strong>main / auto</strong>
+            <span>Benchmark offline</span>
+            <strong>Đã chạy</strong>
           </div>
           <div>
-            <span>Ngày cập nhật</span>
-            <strong>11/06/2026</strong>
+            <span>Chưa xác minh phần cứng</span>
+            <strong>PLC / MFM384</strong>
           </div>
         </div>
       </section>
@@ -91,8 +92,8 @@
           </article>
           <article class="progress-item">
             <span>AI</span>
-            <h3>AI dự báo phụ tải</h3>
-            <p>Đã có model artifact như XGBoost, Random Forest và LSTM trong thư mục huấn luyện.</p>
+            <h3>Benchmark dự báo offline</h3>
+            <p>Kết quả canonical hiện gồm persistence, seasonal baselines, Random Forest và XGBoost; chưa dùng dữ liệu phần cứng địa phương.</p>
           </article>
           <article class="progress-item">
             <span>Docs</span>
@@ -101,8 +102,8 @@
           </article>
           <article class="progress-item">
             <span>Git</span>
-            <h3>GitHub</h3>
-            <p>Code chính đã được đẩy lên GitHub ở nhánh main và Cloudflare Pages đang tự deploy khi có commit mới.</p>
+            <h3>Kho mã nguồn</h3>
+            <p>Dự án có cấu trúc mã nguồn cho app, backend, website, benchmark và tài liệu; trạng thái push/deploy cần kiểm tra riêng trên dịch vụ lưu trữ.</p>
           </article>
         </div>
       </section>
@@ -126,16 +127,12 @@
             <p>Cần bố trí PLC, relay trung gian, contactor, terminal, đèn báo, tải giả hoặc tải thật theo hướng an toàn.</p>
           </div>
           <div>
-            <strong>Chưa có auto load shedding hoàn chỉnh</strong>
-            <p>Quota đã có nền tảng, nhưng tự động cắt tải theo ưu tiên và điều kiện an toàn vẫn cần thiết kế/test.</p>
-          </div>
-          <div>
             <strong>Chưa có auto retrain model</strong>
             <p>Model hiện được train offline rồi Forecast API load artifact; chưa có pipeline tự động train lại bằng dữ liệu mới.</p>
           </div>
           <div>
-            <strong>Chưa cần fine-tune Unsloth ngay</strong>
-            <p>Unsloth phù hợp cho trợ lý tiếng Việt sau này, không phải thành phần bắt buộc để chứng minh AI dự báo phụ tải.</p>
+            <strong>Trợ lý website chưa phải mô hình AI vận hành</strong>
+            <p>Website hiện trả lời từ bộ tri thức tĩnh; chức năng này không được tính vào kết quả benchmark dự báo.</p>
           </div>
         </div>
       </section>
@@ -143,7 +140,7 @@
       <section class="progress-section alt-section">
         <div class="section-heading">
           <p class="eyebrow">Workflow AI</p>
-          <h2>Dự báo hiện tại hoạt động theo hướng train offline</h2>
+          <h2>Quy trình benchmark offline hiện tại</h2>
         </div>
         <div class="timeline">
           <div>
@@ -152,15 +149,15 @@
           </div>
           <div>
             <span>2</span>
-            <p>Script trong <code>ml-training</code> train model và sinh artifact.</p>
+            <p><code>research/run_forecast_benchmark.py</code> chạy các baseline và mô hình với nhiều seed, rolling windows.</p>
           </div>
           <div>
             <span>3</span>
-            <p>Forecast API load model <code>.joblib</code> hoặc <code>.keras</code>.</p>
+            <p>Kết quả chuẩn được ghi vào CSV/JSON trong <code>research/results/canonical</code>.</p>
           </div>
           <div>
             <span>4</span>
-            <p>App/backend gọi API để lấy kết quả dự báo và hiển thị.</p>
+            <p>Website và tài liệu chỉ sử dụng tên mô hình, bảng và hình có trong kết quả canonical.</p>
           </div>
         </div>
       </section>
@@ -182,8 +179,8 @@
 
       <section class="summary-band">
         <p>
-          Dự án đã hoàn thành nền tảng phần mềm và mô hình AI dự báo cho hệ thống quản lý năng lượng nhà thông minh;
-          bước tiếp theo là kiểm thử với PLC, đồng hồ điện và tải thực tế để biến bản thử nghiệm thành hệ thống vận hành thực nghiệm hoàn chỉnh.
+          Dự án đã có nền tảng phần mềm và kết quả benchmark dự báo offline. Chỉ sau khi thu log MFM384,
+          kiểm tra PLC write/feedback và lặp thí nghiệm mới có thể đánh giá hệ thống vận hành trên phần cứng thực tế.
         </p>
       </section>
     </main>

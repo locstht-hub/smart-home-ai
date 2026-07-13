@@ -12,16 +12,7 @@ const floatingChatInput = document.querySelector("#floatingChatInput");
 const quickPromptButtons = document.querySelectorAll("[data-question]");
 
 const welcomeMessage =
-  "Xin chào, mình là trợ lý dự án trên website Smart Home AI. Hiện mình trả lời bằng bộ tri thức tĩnh của dự án; bản Gemini hoặc LoRA fine-tune sẽ cần đi qua backend assistant API ở giai đoạn sau.";
-
-// Simulated real-time sensor state for MFM384 / PLC
-const liveData = {
-  voltage: 220.4,
-  current: 5.62,
-  power: 1.05,
-  energy: 142.8435,
-  quota: 72.4,
-};
+  "Xin chào, mình là trợ lý tra cứu trên website Smart Home AI. Mình trả lời từ bộ tri thức tĩnh của dự án và không được tính là mô hình AI đang vận hành.";
 
 function normalizeText(value) {
   return value
@@ -37,116 +28,36 @@ function normalizeText(value) {
 function renderMetrics() {
   metricGrid.innerHTML = `
     <article class="metric-card">
-      <div class="live-pulse"></div>
       <span>Điện áp (V)</span>
-      <strong id="live-voltage">220.4 V</strong>
-      <small>Theo dõi tag V1N trên MFM384</small>
+      <strong>—</strong>
+      <small>Chờ tag V1N từ MFM384/PLC</small>
     </article>
     <article class="metric-card">
-      <div class="live-pulse"></div>
       <span>Dòng điện (I)</span>
-      <strong id="live-current">5.62 A</strong>
-      <small>Theo dõi dòng tải tổng ngõ vào MFM384</small>
+      <strong>—</strong>
+      <small>Chờ dòng tải tổng từ phần cứng</small>
     </article>
     <article class="metric-card">
-      <div class="live-pulse"></div>
       <span>Công suất (P)</span>
-      <strong id="live-power">1.05 kW</strong>
-      <small>Theo dõi công suất tức thời từ PLC</small>
+      <strong>—</strong>
+      <small>Chờ công suất tức thời từ PLC</small>
     </article>
     <article class="metric-card">
-      <div class="live-pulse"></div>
       <span>Điện năng (E)</span>
-      <strong id="live-energy">142.8435 kWh</strong>
-      <small>Theo dõi tổng tích lũy điện năng tiêu thụ</small>
+      <strong>—</strong>
+      <small>Chờ chỉ số điện năng tích lũy</small>
     </article>
     <article class="metric-card">
-      <div class="live-pulse"></div>
       <span>Hạn mức (Quota)</span>
-      <strong id="live-quota">72.4%</strong>
-      <div class="quota-progress-container">
-        <div class="quota-progress-bar" id="live-quota-bar" style="width: 72.4%"></div>
-      </div>
-      <small>Theo dõi cảnh báo vượt hạn mức tiêu thụ</small>
+      <strong>Chưa thiết lập</strong>
+      <small>Hạn mức do chủ nhà cấu hình trên hệ thống</small>
     </article>
     <article class="metric-card">
-      <div class="live-pulse"></div>
       <span>Dự báo (Forecast)</span>
-      <strong id="live-forecast">Ổn định &rarr;</strong>
-      <small>Theo dõi ước lượng từ các mô hình AI</small>
+      <strong>Benchmark offline</strong>
+      <small>Không trình bày như dự báo vận hành thật</small>
     </article>
   `;
-}
-
-function flashElement(el, color = "var(--cyan)") {
-  if (!el) return;
-  el.style.transition = "none";
-  el.style.color = color;
-  el.style.textShadow = `0 0 12px ${color}`;
-  setTimeout(() => {
-    el.style.transition = "color 0.6s ease-out, text-shadow 0.6s ease-out";
-    el.style.color = "";
-    el.style.textShadow = "";
-  }, 50);
-}
-
-function startLiveMetrics() {
-  setInterval(() => {
-    // Voltage fluctuates between 218.2V and 221.8V
-    liveData.voltage = (220.0 + (Math.random() - 0.5) * 3.6).toFixed(1);
-    // Current fluctuates between 4.2A and 7.8A
-    liveData.current = (5.5 + (Math.random() - 0.5) * 2.8).toFixed(2);
-    // Power in kW = V * I * cos(phi) / 1000, cos(phi) = 0.85
-    liveData.power = ((liveData.voltage * liveData.current * 0.85) / 1000).toFixed(2);
-    // Energy accumulates slowly based on power
-    liveData.energy = (parseFloat(liveData.energy) + parseFloat(liveData.power) * 0.00015).toFixed(4);
-    // Quota fluctuates slightly around 72.4%
-    liveData.quota = (72.4 + (Math.random() - 0.5) * 0.6).toFixed(1);
-
-    // Update DOM elements dynamically
-    const vEl = document.querySelector("#live-voltage");
-    const iEl = document.querySelector("#live-current");
-    const pEl = document.querySelector("#live-power");
-    const eEl = document.querySelector("#live-energy");
-    const qEl = document.querySelector("#live-quota");
-    const qBar = document.querySelector("#live-quota-bar");
-    const fEl = document.querySelector("#live-forecast");
-
-    if (vEl) {
-      vEl.textContent = `${liveData.voltage} V`;
-      flashElement(vEl, "var(--cyan)");
-    }
-    if (iEl) {
-      iEl.textContent = `${liveData.current} A`;
-      flashElement(iEl, "var(--cyan)");
-    }
-    if (pEl) {
-      pEl.textContent = `${liveData.power} kW`;
-      flashElement(pEl, "var(--cyan)");
-    }
-    if (eEl) {
-      eEl.textContent = `${liveData.energy} kWh`;
-      flashElement(eEl, "var(--cyan)");
-    }
-    if (qEl) {
-      qEl.textContent = `${liveData.quota}%`;
-      flashElement(qEl, "var(--amber)");
-    }
-    if (qBar) qBar.style.width = `${liveData.quota}%`;
-
-    if (fEl) {
-      if (parseFloat(liveData.power) > 1.25) {
-        fEl.innerHTML = `Tăng nhẹ &nearr;`;
-        fEl.style.color = "#fbbf24";
-      } else if (parseFloat(liveData.power) < 0.9) {
-        fEl.innerHTML = `Giảm nhẹ &searr;`;
-        fEl.style.color = "#34d399";
-      } else {
-        fEl.innerHTML = `Ổn định &rarr;`;
-        fEl.style.color = "#38bdf8";
-      }
-    }
-  }, 2000);
 }
 
 function renderWorkflow() {
@@ -227,7 +138,7 @@ function askQuestion(question) {
   // Show typing indicator
   const typingIndicator = addMessage("bot", "", true);
   
-  // Simulate AI latency
+  // Keep a brief response delay so the static assistant remains readable.
   setTimeout(() => {
     typingIndicator.remove();
     addMessage("bot", findAnswer(cleaned));
@@ -344,8 +255,12 @@ function bindEvents() {
   const forecastTabs = document.querySelectorAll(".forecast-tab");
   forecastTabs.forEach((tab) => {
     tab.addEventListener("click", () => {
-      forecastTabs.forEach((t) => t.classList.remove("active"));
+      forecastTabs.forEach((t) => {
+        t.classList.remove("active");
+        t.setAttribute("aria-selected", "false");
+      });
       tab.classList.add("active");
+      tab.setAttribute("aria-selected", "true");
       const scenario = tab.dataset.scenario;
       applyForecastScenario(scenario);
     });
@@ -354,7 +269,6 @@ function bindEvents() {
 
 // Initial setup
 renderMetrics();
-startLiveMetrics();
 renderWorkflow();
 bindEvents();
 animateForecastChart();
