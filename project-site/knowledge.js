@@ -3,7 +3,7 @@ window.PROJECT_KNOWLEDGE = {
     name: "Smart Home AI",
     subtitle: "Giám sát điện năng và điều khiển nhà thông minh dùng PLC S7-1200",
     summary:
-      "Đồ án xây dựng hệ thống đọc dữ liệu điện năng từ MFM384, đưa về PLC Siemens S7-1200 CPU 1215C, truyền dữ liệu lên Smart Home Server API và hiển thị trên app/web.",
+      "Đồ án xây dựng kiến trúc đọc dữ liệu MFM384 qua PLC Siemens S7-1200 CPU 1215C và Smart Home Server API. Phần mềm đã có; đường dữ liệu phần cứng vẫn chờ kiểm chứng.",
   },
   metrics: [
     { label: "Điện áp (V)", value: "V", note: "Tag đo có thể là V1N trên MFM384/PLC" },
@@ -20,11 +20,11 @@ window.PROJECT_KNOWLEDGE = {
     },
     {
       title: "RS485 / Modbus RTU",
-      text: "MFM384 truyền dữ liệu đo về PLC qua RS485 theo giao thức Modbus RTU.",
+      text: "Kênh dự kiến để MFM384 truyền dữ liệu đo về PLC; chưa có raw log phần cứng xác minh trên website.",
     },
     {
       title: "PLC S7-1200 CPU 1215C",
-      text: "PLC nhận dữ liệu, xử lý logic, lưu tag/Data Block và phản hồi trạng thái thiết bị.",
+      text: "Lớp điều khiển dự kiến xử lý tag/Data Block; chức năng write và phản hồi vật lý vẫn cần thí nghiệm.",
     },
     {
       title: "Smart Home Server API",
@@ -39,7 +39,7 @@ window.PROJECT_KNOWLEDGE = {
     {
       question: "Dự án này làm gì?",
       answer:
-        "Dự án giám sát điện năng và hỗ trợ điều khiển nhà thông minh. Dữ liệu được đo bằng MFM384, đưa về PLC S7-1200, sau đó backend đọc và hiển thị lên app/web.",
+        "Dự án phát triển phần mềm giám sát năng lượng và kiến trúc điều khiển nhà thông minh. Luồng MFM384 - PLC - backend là mục tiêu tích hợp đang chờ bằng chứng phần cứng.",
       keywords: ["du an", "lam gi", "gioi thieu", "muc tieu", "smart home"],
     },
     {
@@ -51,7 +51,7 @@ window.PROJECT_KNOWLEDGE = {
     {
       question: "PLC S7-1200 có vai trò gì?",
       answer:
-        "PLC là lớp điều khiển tại hiện trường. PLC nhận dữ liệu từ MFM384, xử lý logic, lưu tag/Data Block và là nơi đồng bộ trạng thái nút nhấn vật lý hoặc relay về app.",
+        "Trong kiến trúc, PLC là lớp điều khiển tại hiện trường, lưu tag/Data Block và cung cấp phản hồi vật lý. Các chức năng này chưa được website trình bày là đã xác minh.",
       keywords: ["plc", "s7", "1200", "1215", "siemens"],
     },
     {
@@ -63,7 +63,7 @@ window.PROJECT_KNOWLEDGE = {
     {
       question: "Dữ liệu đi từ MFM384 về app như thế nào?",
       answer:
-        "Luồng dữ liệu là MFM384 -> RS485/Modbus RTU -> PLC -> Ethernet -> Smart Home Server API -> app mobile/website.",
+        "Luồng thiết kế là MFM384 -> RS485/Modbus RTU -> PLC -> Ethernet -> Smart Home Server API -> app mobile/website. Cần raw log để xác nhận luồng thực tế.",
       keywords: ["du lieu", "rs485", "modbus", "api", "app", "workflow"],
     },
     {
@@ -81,14 +81,14 @@ window.PROJECT_KNOWLEDGE = {
     {
       question: "Forecast API hoạt động ra sao?",
       answer:
-        "Forecast API dùng dữ liệu lịch sử điện năng để dự báo xu hướng tiêu thụ trong tương lai. Hiện có pipeline cho XGBoost, Random Forest, LSTM và CNN-LSTM; khi có dữ liệu thật từ PLC thì nên retrain lại.",
-      keywords: ["forecast", "ai", "du bao", "phu tai", "xgboost", "lstm"],
+        "Kết quả canonical hiện là benchmark offline gồm persistence, seasonal baselines, Random Forest và XGBoost. Đây chưa phải dự báo vận hành từ dữ liệu PLC địa phương.",
+      keywords: ["forecast", "ai", "du bao", "phu tai", "xgboost", "random forest"],
     },
     {
       question: "Chatbot trên web có phải model fine-tune chưa?",
       answer:
-        "Bản web hiện tại là chatbot tri thức tĩnh để trả lời nhanh trên Cloudflare Pages. Model fine-tune bằng Unsloth có thể thay thế sau, nhưng cần backend inference API hoặc model server để web gọi tới.",
-      keywords: ["chatbot", "fine tune", "unsloth", "model", "assistant"],
+        "Không. Website hiện trả lời từ bộ tri thức tĩnh; không có model inference và chức năng này không thuộc kết quả benchmark dự báo.",
+      keywords: ["chatbot", "fine tune", "model", "assistant"],
     },
     {
       question: "Dự án đã hoàn thiện tới đâu?",
