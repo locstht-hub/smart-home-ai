@@ -113,17 +113,13 @@ button:active {
   min-height: 56px;
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
+.brand-avatar {
+  display: block;
+  flex: 0 0 46px;
   width: 46px;
   height: 46px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
-  background: linear-gradient(135deg, #0f766e, #115e59);
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 900;
+  filter: drop-shadow(0 8px 14px rgba(3, 30, 25, 0.34));
 }
 
 .brand strong,

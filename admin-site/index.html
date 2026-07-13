@@ -4,14 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Quản trị Smart Home AI</title>
-  <link rel="stylesheet" href="./styles.css?v=20260711-responsive-a11y-2">
+  <link rel="stylesheet" href="./styles.css?v=20260713-brand-avatar-1">
 </head>
 <body>
   <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
   <main class="shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">SH</div>
+        <svg class="brand-avatar" viewBox="0 0 48 48" role="img" aria-label="Logo Smart Home AI" focusable="false">
+          <title>Logo Smart Home AI</title>
+          <defs>
+            <linearGradient id="brand-avatar-background" x1="7" y1="5" x2="41" y2="44" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0f766e" />
+              <stop offset="1" stop-color="#12352f" />
+            </linearGradient>
+            <filter id="brand-avatar-glow" x="-25%" y="-25%" width="150%" height="150%">
+              <feGaussianBlur stdDeviation="1.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <rect x="1" y="1" width="46" height="46" rx="14" fill="url(#brand-avatar-background)" stroke="rgba(255,255,255,0.22)" />
+          <path d="m10 24 14-12 14 12v13H28.5v-8h-9v8H10V24Z" fill="none" stroke="#d9fffb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="m26.5 17-8 11h5L21 35l9-12h-5l1.5-6Z" fill="#67e8f9" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round" filter="url(#brand-avatar-glow)" />
+        </svg>
         <div>
           <strong>Smart Home AI</strong>
           <span>Bảng quản trị</span>
