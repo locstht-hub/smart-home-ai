@@ -1,101 +1,142 @@
-# KẾ HOẠCH KIỂM THỬ VÀ THỰC NGHIỆM HỆ THỐNG SMART HOME HEMS
+# KẾ HOẠCH KIỂM THỬ VÀ THỰC NGHIỆM EVIDENCE-SAFE
 
-Tài liệu này trình bày kế hoạch kiểm thử và các kịch bản thực nghiệm hệ thống Quản trị Năng lượng Nhà thông minh (HEMS) tích hợp PLC Siemens S7-1200 và Mô hình AI dự báo phụ tải. Nội dung được thiết kế tập trung, tinh gọn, nhằm thu thập trực tiếp các số liệu khoa học để đưa vào phần **"3. KẾT QUẢ NGHIÊN CỨU/ THẢO LUẬN"** của bài báo khoa học gửi Tạp chí Khoa học và Công nghệ Cần Thơ (CTJST).
+## 1. Mục tiêu và nguyên tắc
 
----
+Kế hoạch này là nguồn chính thức thay thế kế hoạch kiểm thử cũ. Mỗi kết quả công bố phải truy ngược được đến raw data, script phân tích, metadata môi trường, code revision và SHA-256. Mock, sample, fallback và dữ liệu nhập tay không được trình bày như kết quả phần cứng thật.
 
-## 1. MỤC TIÊU VÀ ĐỐI TƯỢNG THỰC NGHIỆM
+Ba mức bằng chứng được tách riêng:
 
-Để đáp ứng tính khoa học và thực tiễn của một bài báo công nghệ, chương trình thử nghiệm được cô đọng vào 3 nội dung cốt lõi:
-1.  **Thử nghiệm liên kết truyền thông và đo độ trễ (Latency & Communication):** Đánh giá thời gian phản hồi (RTT) của tín hiệu điều khiển trong môi trường LAN và WAN (4G qua Cloudflare Tunnel), cũng như độ trễ thu thập dữ liệu Modbus RTU của PLC S7-1200.
-2.  **Đánh giá định lượng mô hình AI dự báo phụ tải (AI Forecast Evaluation):** So sánh hiệu năng của các thuật toán dự báo phụ tải 24h tiếp theo thông qua các chỉ số sai số chuẩn hóa.
-3.  **Kiểm chứng các kịch bản vận hành thực tế HEMS (HEMS Operation Scenarios):** Thực nghiệm thuật toán sa thải phụ tải phi thiết yếu có điều kiện theo thứ tự ưu tiên khi hệ thống tiệm cận hoặc vượt hạn mức điện năng tháng kWh mức giới hạn (Quota) điện năng tháng (kWh).
+1. **Software contract:** unit/integration test chứng minh guard và state transition trong môi trường test.
+2. **Hardware-in-the-loop:** thử với PLC/relay hoặc tải giả trong khu vực kiểm soát.
+3. **Physical validation:** thử PLC, MFM384, contactor và feedback thật có giám sát.
 
----
+Nếu thiếu bằng chứng mức 2 hoặc 3, bài báo chỉ được mô tả chức năng đã hiện thực, không được kết luận hiệu năng vật lý.
 
-## 2. PHẦN 1: THỬ NGHIỆM ĐỘ TRỄ TRUYỀN THÔNG (LATENCY TESTS)
+## 2. Phạm vi kết quả hiện tại
 
-Mục tiêu là đo lường thời gian cần thiết để một lệnh điều khiển được gửi đi từ ứng dụng di động, đi qua API Gateway (Flask), truyền xuống PLC S7-1200 qua giao thức S7, đóng cắt Relay vật lý và nhận lại trạng thái phản hồi khép kín (Closed-loop State Feedback) hiển thị trên màn hình ứng dụng.
+### Được phép báo cáo
 
-### 2.1. Cấu hình môi trường đo độ trễ
-*   **Môi trường mạng LAN:** Điện thoại di động và Flask API Server kết nối cùng một mạng Wi-Fi cục bộ (Access Point TP-Link), kết nối Ethernet trực tiếp tới PLC S7-1200.
-*   **Môi trường mạng WAN/4G:** Điện thoại di động sử dụng kết nối 4G LTE mạng Viettel/VinaPhone, kết nối tới Flask API Server thông qua giao dịch HTTPS bảo mật được xuất bản qua Cloudflare Tunnel.
+- Kiểm thử xác thực, logout/revoke session, rate limiting và RBAC theo nhà.
+- Telemetry chỉ được ghi bằng service credential và fail-closed khi thiếu token.
+- PLC command được tuần tự hóa; feedback không đạt thì không cập nhật trạng thái thành công.
+- Auto-load-shedding tắt mặc định.
+- Kết quả forecast chỉ khi được sinh từ benchmark hiện hành và canonical evidence gate cho phép.
 
-### 2.2. Kịch bản và bảng ghi thông số độ trễ điều khiển
+### Không nằm trong phạm vi kết quả hiện tại
 
-| Mã Test | Kịch bản kiểm thử | Phương thức thực hiện | Kết quả mong đợi | Chỉ số đo lường (ms) |
-|---|---|---|---|---|
-| **LAT-01** | Độ trễ lệnh bật/tắt thiết bị qua LAN | Bấm nút ON/OFF trên Mobile App (cùng Wi-Fi LAN) | Relay vật lý tác động tức thời. Trạng thái phản hồi trên App cập nhật khép kín. | Mục tiêu: $< 200 \text{ ms}$ |
-| **LAT-02** | Độ trễ lệnh bật/tắt thiết bị qua mạng di động (WAN/4G) | Bấm nút ON/OFF trên Mobile App (sử dụng mạng 4G) | Lệnh truyền qua Cloudflare Tunnel, PLC nhận lệnh và điều khiển relay thành công. | Mục tiêu: $< 1500 \text{ ms}$ |
-| **LAT-03** | Chu kỳ đọc dữ liệu điện năng qua Modbus RTU | PLC S7-1200 thực hiện vòng quét đọc dữ liệu từ MFM384 | 4 thông số ($V$, $I$, $kW$, $kWh$) được ghi vào Data Block (`DB1`) liên tục mà không lỗi quét. | Vòng quét Modbus: $1 \text{ giây/vòng}$ |
-| **LAT-04** | Đồng bộ nút nhấn cơ lý hiện trường | Nhấn nút nhấn vật lý đấu nối vào cổng ngõ vào Digital Input của PLC | Tiếp điểm phụ của contactor thay đổi trạng thái, Mobile App cập nhật hiển thị đồng thời. | Mục tiêu: $< 300 \text{ ms}$ |
+- SMS gateway, độ trễ SMS và chống spam SMS.
+- LSTM/CNN-LSTM nếu chưa chạy trong cùng pipeline, split và dữ liệu.
+- Tự động sa thải tải thật, tiết kiệm điện hoặc peak reduction.
+- Độ trễ PLC/LAN/WAN khi chưa có raw trial được collector xác nhận `source=plc-s7-1200` và `effectiveMode=plc-real`.
+- Độ chính xác trên dữ liệu Cần Thơ khi chưa có tối thiểu 30 ngày dữ liệu MFM384 hợp lệ.
 
----
+## 3. Ma trận câu hỏi nghiên cứu
 
-## 3. PHẦN 2: ĐÁNH GIÁ HIỆU NĂNG MÔ HÌNH AI DỰ BÁO (AI FORECAST EVALUATION)
+| Mã | Câu hỏi | Bằng chứng | Tiêu chí mở claim |
+|---|---|---|---|
+| RQ1 | Kiến trúc có ngăn tài khoản ứng dụng ghi telemetry và vượt quyền không? | Automated security tests, audit log | Toàn bộ test bắt buộc đạt |
+| RQ2 | Cơ chế command lock và feedback có tránh trạng thái ảo không? | Unit/integration test và HIL log | Không có state-success khi feedback timeout |
+| RQ3 | Mô hình học máy có vượt baseline đơn giản không? | Rolling-origin benchmark, nhiều seed | Cùng dataset/split; báo mean ± sample SD |
+| RQ4 | Độ trễ end-to-end trên PLC thật là bao nhiêu? | Raw CSV và metadata | Tối thiểu 30 accepted trial mỗi điều kiện |
 
-Đánh giá hiệu năng dự báo phụ tải ngắn hạn trước 24 giờ của các mô hình học máy (Machine Learning) và học sâu (Deep Learning) chạy trên Forecast Server. Mô hình được huấn luyện trên tập dữ liệu phụ tải chuẩn để so sánh định lượng.
+## 4. Kiểm thử phần mềm và bảo mật
 
-### 3.1. Các chỉ số đánh giá cốt lõi
-*   **MAE (Mean Absolute Error):** Sai số tuyệt đối trung bình (đo lường độ lệch trung bình bằng đơn vị kW).
-*   **RMSE (Root Mean Squared Error):** Sai số căn trung bình bình phương (phạt nặng các sai số dự báo lớn).
-*   **MAPE (Mean Absolute Percentage Error):** Sai số phần trăm tuyệt đối trung bình (chỉ số quan trọng nhất để báo cáo khoa học).
-*   **$R^2$ Score (Coefficient of Determination):** Hệ số xác định, thể hiện mức độ giải thích được biến thiên dữ liệu phụ tải của mô hình (Mục tiêu: $R^2 \ge 0.92$).
-*   **Inference Time:** Thời gian thực thi suy luận của mô hình trên 1 bước dự báo (Mục tiêu: $< 100 \text{ ms}$).
+| ID | Kịch bản | Kết quả mong đợi | Bằng chứng |
+|---|---|---|---|
+| AUTH-01 | Đăng nhập sai lặp lại | 429 sau ngưỡng cấu hình | Automated test |
+| AUTH-02 | Logout rồi dùng lại token | 401 | Automated test |
+| RBAC-01 | Viewer điều khiển thiết bị | 403 | Automated test |
+| RBAC-02 | User nhà A điều khiển thiết bị nhà B | 403 | Automated test |
+| TEL-01 | Bearer user gọi POST telemetry | 401/403 | Automated test |
+| TEL-02 | Thiếu service token | 503, không ghi DB | Automated test |
+| PLC-01 | Feedback đã ở target | Không phát command pulse thừa | Automated test |
+| PLC-02 | Scene lỗi một thiết bị | Trả partial failure theo thiết bị | Automated test |
+| SAFE-01 | Vượt quota khi auto-shedding tắt | Không gửi lệnh ngắt tải | Automated test |
 
-### 3.2. Bảng so sánh hiệu năng các mô hình thực nghiệm
+## 5. Protocol thu độ trễ phần cứng
 
-| Mô hình thuật toán | MAE (kW) | RMSE (kW) | MAPE (%) | Hệ số $R^2$ | Thời gian suy luận (ms) | Nhận xét tính khả thi |
-|---|---|---|---|---|---|---|
-| **Random Forest** | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | Độ chính xác khá, tài nguyên nhẹ |
-| **XGBoost (Đề xuất)** | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | Độ chính xác cao, thời gian xử lý nhanh |
-| **LSTM** | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | Nắm bắt tốt chuỗi thời gian, nặng hơn |
-| **CNN-LSTM (Lai)** | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | *Chờ cập nhật* | Tối ưu hóa tốt đặc trưng không gian-thời gian |
+### 5.1 Điều kiện bắt buộc
 
----
+- Auto-load-shedding giữ `false`.
+- Chỉ dùng endpoint đọc cho thử latency collector hiện tại.
+- Token và home ID được cấp qua environment, không ghi vào raw log.
+- Warm-up tối thiểu 5 request; trial chính thức tối thiểu 30 cho mỗi điều kiện.
+- Collector chỉ accepted khi HTTP 200, `source=plc-s7-1200` và `effectiveMode=plc-real`.
 
-## 4. PHẦN 3: THỰC NGHIỆM CÁC KỊCH BẢN VẬN HÀNH HEMS & SA THẢI PHỤ TẢI
+### 5.2 Nhóm thử nghiệm
 
-Thực nghiệm đánh giá khả năng vận hành thông minh của hệ thống quản lý năng lượng HEMS trong việc bảo vệ lưới điện gia đình và tiết kiệm chi phí năng lượng qua 3 kịch bản thực tế chính:
+| ID | Điều kiện | Thao tác | Chỉ số |
+|---|---|---|---|
+| HW-READ-LAN | LAN có dây/Wi-Fi đã mô tả | GET current power | success rate, mean, median, SD, p95, max |
+| HW-READ-WAN | WAN/4G qua endpoint HTTPS | GET current power | success rate, mean, median, SD, p95, max |
+| HIL-FB-ON | Tải giả, người giám sát | Command ON và chờ statusTag | end-to-end feedback latency, timeout rate |
+| HIL-FB-OFF | Tải giả, người giám sát | Command OFF và chờ statusTag | end-to-end feedback latency, timeout rate |
+| HIL-FAIL | Mất mạng/feedback đứng yên | Gửi command có kiểm soát | fail-closed, không cập nhật state ảo |
 
-### 4.1. Định nghĩa mức ưu tiên thiết bị (Priority Levels)
-Hệ thống thiết lập thứ tự ưu tiên của 3 phòng tải giả định để thực hiện thuật toán sa thải phụ tải phi thiết yếu có điều kiện:
-1.  **Tải ưu tiên 1 (Thiết yếu - Priority 1):** Hệ thống chiếu sáng và cổng kết nối thông tin (Phòng ngủ) - *Ngắt cuối cùng*.
-2.  **Tải ưu tiên 2 (Bán thiết yếu - Priority 2):** Hệ thống làm mát và quạt (Phòng khách) - *Ngắt thứ hai khi quá tải trung bình*.
-3.  **Tải ưu tiên 3 (Không thiết yếu - Priority 3):** Bình nóng lạnh, lò nướng, thiết bị bếp (Phòng bếp) - *Ngắt đầu tiên khi tiệm cận hạn mức*.
+Ngưỡng 200/300/1500 ms, nếu sử dụng, chỉ là engineering acceptance criterion. Nó không được trình bày như kết quả và phải có lý do lựa chọn.
 
-### 4.2. Các kịch bản thực nghiệm vận hành HEMS
+### 5.3 Thống kê
+
+Giữ cả mẫu accepted và rejected. Báo cáo `n`, `rejected_n`, mean, median, sample SD, min, p95 và max. Khi đủ dữ liệu, bổ sung bootstrap 95% CI cho median/p95. Không loại outlier chỉ để làm kết quả đẹp; mọi quy tắc loại mẫu phải được định nghĩa trước khi xem kết quả.
+
+## 6. Protocol benchmark forecast
+
+### 6.1 Dữ liệu và chống leakage
+
+- Resample theo giờ và chia theo thời gian; không random split.
+- Feature rolling luôn shift ít nhất một bước trước khi tính.
+- Ghi dataset SHA-256, khoảng thời gian, số dòng, timezone, bước xử lý missing và code revision.
+- UCI dùng kiểm tra khả năng tái lập; dữ liệu MFM384 địa phương dùng đánh giá cùng miền.
+
+### 6.2 Baseline và mô hình
+
+| Nhóm | Thành phần |
+|---|---|
+| Baseline bắt buộc | Persistence, seasonal-naive 24 giờ, seasonal-naive 168 giờ |
+| Mô hình học máy | Random Forest, XGBoost |
+| Ngoài phạm vi cho đến khi chạy được | LSTM, CNN-LSTM |
+
+Mô hình được chọn bằng validation MAE. Test không dùng để chọn mô hình.
+
+### 6.3 Lặp và đánh giá
+
+- Tối thiểu 2 rolling-origin folds; mục tiêu 3-5 folds khi tài nguyên cho phép.
+- Tối thiểu 2 random seeds cho mô hình ngẫu nhiên; báo mean ± sample SD.
+- Metric chính: MAE. Metric phụ: RMSE, R², MAPE có floor 0,2 kW và inference ms/sample.
+- Báo riêng h+1, h+6, h+12 và h+24.
+- Không đặt trước mục tiêu R² hoặc gọi XGBoost là mô hình đề xuất trước khi validation hoàn tất.
+
+## 7. Load-shedding an toàn
+
+Load-shedding không nằm trong kết quả thực nghiệm hiện tại. Lộ trình mở lại gồm:
+
+1. Offline policy simulation, không gửi lệnh.
+2. Dry-run trên backend, chỉ log quyết định.
+3. HIL với tải giả, interlock, essential-load exclusion và manual override.
+4. Hazard analysis và phê duyệt quy trình.
+5. Physical supervised trial.
+
+Cho đến khi hoàn tất cả năm bước, `allowAutomaticLoadSheddingClaims` phải luôn là `false`.
+
+## 8. Canonical evidence pipeline
 
 ```text
-Kịch bản SC-01 (Vắng nhà): Tự động tối thiểu hóa phụ tải nền (Ngắt tải Priority 2 & 3).
-Kịch bản SC-02 (Sinh hoạt): Lập lịch tự động dựa theo thời gian và biểu đồ dự báo của AI.
-Kịch bản SC-03 (Quá tải Quota): Kích hoạt thuật toán sa thải phụ tải chủ động theo Priority.
+raw data + metadata
+        -> analyzer/benchmark script
+        -> metrics JSON + fingerprints
+        -> canonical_results.json
+        -> Excel + CSV + figures + paper + thesis
 ```
 
-| Mã Kịch Bản | Tên Kịch Bản | Điều kiện kích hoạt | Logic xử lý của HEMS | Chỉ số thu thập |
-|---|---|---|---|---|
-| **SC-01** | Chế độ vắng nhà (Away Mode) | Người dùng kích hoạt Scene "Vắng nhà" từ xa qua App | PLC nhận lệnh ngắt tức thời các tải Priority 2 (Phòng khách) và Priority 3 (Phòng bếp). Chỉ giữ lại tải nền thiết yếu. | Công suất nền thực tế ($kW$), Trạng thái phản hồi thiết bị. |
-| **SC-02** | Sinh hoạt bình thường (Normal Mode) | Hệ thống vận hành theo lịch sinh hoạt mặc định | Thiết bị hoạt động bình thường, mô hình AI chạy nền liên tục dự báo phụ tải cho 24 giờ tiếp theo để cảnh báo sớm. | Biểu đồ công suất thực tế so với biểu đồ dự báo AI. |
-| **SC-03** | Sa thải phụ tải chủ động (Active Load-shedding) | Điện năng tháng vượt ngưỡng cảnh báo hạn mức (kWh) và công suất tức thời vượt $P_{limit}$ (kW) | **Bước 1:** Gửi cảnh báo đỏ (Alert) lên Mobile App.<br>**Bước 2:** PLC đề xuất hoặc tự động ngắt tải phi thiết yếu (Priority 3) nếu chủ nhà bật chế độ tự động.<br>**Bước 3:** Nếu vẫn vượt ngưỡng, ngắt tiếp tải phi thiết yếu Priority 2 (Phòng khách). | Ngưỡng công suất quota ($kW$), Thời gian PLC kích hoạt lệnh ngắt bảo vệ ($ms$). |
+Không chỉnh tay số trong Excel, hình, bài báo hoặc luận văn. Nếu evidence gate là false, artifact phải hiển thị “Chờ bằng chứng”, không hiển thị 0 hoặc số minh họa.
 
----
+## 9. Checklist trước khi công bố
 
-## 5. PHẦN 4: THỰC NGHIỆM GỬI CẢNH BÁO SMS VÀ TRÁNH SPAM TIN NHẮN (SMS ALERTS)
-
-Kiểm thử chức năng gửi cảnh báo SMS thông qua SMS Gateway/API khi tiệm cận hoặc vượt hạn mức điện năng tháng, và kiểm tra tính hiệu quả của cơ chế chống spam (rate-limiting).
-
-### 5.1. Kịch bản thực nghiệm cảnh báo SMS
-
-| Mã Test | Kịch bản kiểm thử | Phương thức thực hiện | Kết quả mong đợi | Chỉ số đo lường |
-|---|---|---|---|---|
-| **SMS-01** | Kiểm thử cảnh báo khi đạt ngưỡng 80%, 90%, 100% quota tháng (kWh) | Giả lập điện năng tiêu thụ lũy kế tháng đạt các ngưỡng tương ứng | Ngưỡng 80% chỉ gửi thông báo App; Ngưỡng 90% và 100% gửi cả thông báo App và gọi API SMS Gateway gửi tin nhắn. | App notification + SMS trigger thành công |
-| **SMS-02** | Kiểm thử cơ chế rate-limiting chống gửi lặp SMS | Duy trì liên tục phụ tải ở mức 92% quota trong nhiều chu kỳ đo | Chỉ gửi đúng 1 tin nhắn SMS duy nhất cho ngưỡng 90%, không gửi tin nhắn thứ hai gây spam. | Số lượng SMS gửi đi: $1 \text{ tin}$ |
-| **SMS-03** | Đo độ trễ phản hồi gửi SMS | Đo khoảng thời gian từ lúc Backend phát hiện vượt ngưỡng đến lúc SMS được gửi qua Mock API Gateway | Tin nhắn gửi đi nhanh chóng để thông báo tức thời cho chủ nhà. | Độ trễ phản hồi: $< 5 \text{ giây}$ |
-
-## 6. CÁC BIỂU ĐỒ VÀ BẰNG CHỨNG THỰC NGHIỆM CẦN CÓ CHO BÀI BÁO
-
-Để đưa vào mục Kết quả nghiên cứu và thảo luận của bài báo, các hình ảnh và biểu đồ sau cần được xuất ra từ thực nghiệm:
-1.  **Biểu đồ dự báo phụ tải chuỗi thời gian (Load Forecasting Curve):** Biểu diễn đường công suất thực tế ($P_{actual}$) chạy đè lên đường dự báo của AI ($P_{forecast}$) trong 24 giờ để thể hiện trực quan độ sai lệch.
-2.  **Sơ đồ đấu nối và lắp đặt tủ điện thực tế:** Ảnh chụp tủ điện demo bao gồm PLC S7-1200 CPU 1215C, đồng hồ MFM384, hàng relay kiếng trung gian và các contactor động lực đóng cắt tải.
-3.  **Biểu đồ phân tích độ trễ phản hồi (Response Latency Chart):** Biểu đồ cột so sánh độ trễ trung bình của các lệnh điều khiển điều phối qua LAN và WAN/4G.
-4.  **Đồ thị minh họa quá trình sa thải phụ tải chủ động:** Biểu đồ thể hiện công suất tăng vọt vượt quota tại thời điểm $t_1$, sau đó giảm bậc thang về dưới mức quota tại thời điểm $t_2$ và $t_3$ sau khi HEMS gửi lệnh ngắt các tải ưu tiên thấp.
+- [ ] Raw source tồn tại và có SHA-256.
+- [ ] Script chạy lại thành công từ môi trường sạch.
+- [ ] Baseline và mô hình dùng cùng split.
+- [ ] Báo mean ± SD cho thí nghiệm lặp.
+- [ ] Hardware row xác nhận nguồn PLC thật.
+- [ ] Không có SMS, LSTM, load-shedding hoặc local-accuracy claim chưa triển khai.
+- [ ] Bảng, hình, bài báo và luận văn được sinh từ cùng canonical source.
+- [ ] Tài liệu tham khảo có DOI hoặc trang nhà xuất bản chính thức.

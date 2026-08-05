@@ -71,12 +71,14 @@ backend/**/*.sqlite3
 *.joblib
 *.keras
 ml-training/**/model_artifacts.zip
+!ml-training/modeltrainingdone/best_model.joblib
 
 # Research raw/derived outputs are generated locally. Keep only directory markers.
 research/data/raw/*
 !research/data/raw/.gitkeep
 research/data/processed/*
 !research/data/processed/.gitkeep
+research/data/cache/
 
 # Generated build outputs
 android/

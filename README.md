@@ -7,7 +7,7 @@ Smart Home AI là đồ án giám sát điện năng và điều khiển nhà th
 Trước khi làm tiếp dự án bằng IDE khác, đọc file:
 
 ```text
-PROJECT_HANDOFF_CURRENT_STATUS.md
+PROJECT_STATUS_CURRENT.md
 ```
 
 Mốc mới nhất đã có:
@@ -101,4 +101,4 @@ Repo đã ignore các file nặng/tạm:
 - model artifact như `.joblib`, `.keras`, `model_artifacts.zip`
 - config runtime như `backend/**/config.json`
 
-Nếu cần chia sẻ model ML, nên đưa qua GitHub Releases, Google Drive hoặc Hugging Face thay vì commit trực tiếp.
+Artifact forecast production `ml-training/modeltrainingdone/best_model.joblib` là ngoại lệ có chủ đích: file khoảng 7,61 MiB được lưu trực tiếp trong Git và kiểm tra bằng SHA-256 trong `artifact_manifest.json`. Cách này giúp clean clone chạy được mà không phụ thuộc liên kết tải ngoài. Các artifact thử nghiệm `.joblib`, `.keras` và ZIP khác tiếp tục bị loại khỏi Git.

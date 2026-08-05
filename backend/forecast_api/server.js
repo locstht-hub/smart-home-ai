@@ -9,6 +9,7 @@ const SAMPLE_PATH = path.join(ARTIFACT_DIR, 'sample_forecast.json');
 
 const PORT = Number(process.env.PORT || 5000);
 const HOST = process.env.HOST || '0.0.0.0';
+const MAX_BODY_BYTES = Number(process.env.FORECAST_MAX_BODY_BYTES || 1024 * 1024);
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -36,7 +37,7 @@ function mapPredictions() {
     time: point.timestamp,
     predictedKw: Number(point.predicted_kw.toFixed(3)),
     confidence: Math.max(60, 88 - index),
-    source: 'flask_model',
+    source: 'sample_forecast',
   }));
 }
 
@@ -125,29 +126,34 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'POST' && req.url.startsWith('/forecast/bundle')) {
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    let tooLarge = false;
+    req.on('data', chunk => {
+      if (tooLarge) return;
+      body += chunk;
+      if (Buffer.byteLength(body, 'utf8') > MAX_BODY_BYTES) {
+        tooLarge = true;
+        body = '';
+      }
+    });
     req.on('end', () => {
-      let allowSample = true;
-      let history = [];
+      if (tooLarge) {
+        return json(res, 413, { error: 'Forecast request body is too large' });
+      }
+
       try {
-        const payload = JSON.parse(body || '{}');
-        allowSample = payload.allow_sample !== false;
-        history = payload.history || [];
-      } catch (err) {}
-
-      const isSufficient = history && history.length >= 337;
-      const dataMode = isSufficient ? 'real_history' : 'sample';
-
-      if (!isSufficient && !allowSample) {
-        return json(res, 400, { error: 'Need at least 337 hourly rows; received ' + history.length });
+        JSON.parse(body || '{}');
+      } catch (err) {
+        return json(res, 400, { error: 'Request body must be valid JSON' });
       }
 
       return json(res, 200, {
         predictions: mapPredictions(),
         insights: buildInsights(),
         anomalies: buildAnomalies(),
-        dataMode: dataMode,
-        historyHourlyRows: isSufficient ? history.length : 0
+        dataMode: 'sample',
+        historyHourlyRows: 0,
+        sampleOnly: true,
+        warning: 'The Node forecast service is sample-only and never processes real history.'
       });
     });
     return;
@@ -163,6 +169,10 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'POST' && req.url === '/forecast/anomalies') {
     return json(res, 200, { anomalies: buildAnomalies() });
+  }
+
+  if (req.method === 'POST' && req.url.startsWith('/forecast/trigger-retrain')) {
+    return json(res, 501, { error: 'Retraining is not implemented by the sample-only Node service.' });
   }
 
   return notFound(res);

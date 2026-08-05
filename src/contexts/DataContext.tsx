@@ -9,13 +9,23 @@ import { ManualDevice } from '../types/smartHomeServer';
 interface ComputedRoom {
     id: string;
     name: string;
+    type?: string;
     devices: number;
     active: number;
     power: number;
     source?: 'default' | 'manual';
 }
 
-type RoomDefinition = { id: string; name: string; source: 'default' | 'manual' };
+type RoomDefinition = { id: string; name: string; type?: string; source: 'default' | 'manual' };
+
+export interface DeviceControlResult {
+    success: boolean;
+    error?: string;
+    message: string;
+    source: 'plc-feedback' | 'server-acknowledged' | 'local-demo';
+    actualState?: boolean;
+    latencyMs?: number;
+}
 
 interface DataContextType {
     rooms: ComputedRoom[];
@@ -28,7 +38,7 @@ interface DataContextType {
     isManualInventory: boolean;
     refresh: () => Promise<void>;
     addRoom: (name: string) => Promise<{ success: boolean; error?: string }>;
-    toggleDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<{ success: boolean; error?: string }>;
+    toggleDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<DeviceControlResult>;
     addDevice: (roomId: string, device: Omit<Device, 'id' | 'ownerId'>, targetUserId?: string) => Promise<{ success: boolean; error?: string }>;
     deleteDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<{ success: boolean; error?: string }>;
     turnAllOff: (targetUserId?: string) => Promise<boolean>;
@@ -50,6 +60,15 @@ const SERVER_DEVICES_REFRESH_MS = 30000;
 
 export const useData = () => useContext(DataContext);
 
+const describeControlFailure = (message: string): string => {
+    if (/quota|hạn mức|han muc/i.test(message)) return 'Bị chặn do Quota.';
+    if (/permission|forbidden|không có quyền|khong co quyen|device scope/i.test(message)) return 'Bị từ chối do quyền truy cập.';
+    if (/timeout|timed out|abort/i.test(message)) return 'Quá thời gian chờ phản hồi.';
+    if (/plc/i.test(message)) return 'Không thể kết nối PLC.';
+    if (/network|server api|không thể kết nối|khong the ket noi|fetch/i.test(message)) return 'Không thể kết nối API.';
+    return message || 'Không thể điều khiển thiết bị.';
+};
+
 const getRoomsForHouse = (house: HouseDevices, roomDefs: RoomDefinition[] = defaultRooms.map(room => ({ id: room.id, name: room.name, source: 'default' as const }))): ComputedRoom[] => {
     return roomDefs.map(baseRoom => {
         const roomDevices = house[baseRoom.id] || [];
@@ -57,6 +76,7 @@ const getRoomsForHouse = (house: HouseDevices, roomDefs: RoomDefinition[] = defa
         return {
             id: baseRoom.id,
             name: baseRoom.name,
+            type: baseRoom.type,
             devices: roomDevices.length,
             active: activeDevices.length,
             power: activeDevices.reduce((sum, device) => sum + device.power, 0),
@@ -147,7 +167,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const log: ActivityLog = {
             id: `log-${Date.now()}`,
             userId: user?.id || 'guest',
-            userName: user?.name || 'Há»‡ thá»‘ng',
+            userName: user?.name || 'Hệ thống',
             action,
             device: deviceName,
             room: roomName,
@@ -172,16 +192,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 ]);
 
                 if (manualRooms.length || manualDevices.length) {
-                    const nextRoomDefs = manualRooms.map(room => ({
+                    const nextRoomDefs: RoomDefinition[] = manualRooms.map(room => ({
                         id: room.id,
                         name: room.name,
+                        type: room.type,
                         source: 'manual' as const,
                     }));
                     const roomIds = new Set(nextRoomDefs.map(room => room.id));
                     manualDevices.forEach(device => {
                         const roomId = device.roomId || 'unassigned';
                         if (!roomIds.has(roomId)) {
-                            nextRoomDefs.push({ id: roomId, name: roomId === 'unassigned' ? 'ChÆ°a phÃ¢n phÃ²ng' : 'PhÃ²ng khÃ¡c', source: 'manual' });
+                            nextRoomDefs.push({ id: roomId, name: roomId === 'unassigned' ? 'Chưa phân phòng' : 'Phòng khác', source: 'manual' });
                             roomIds.add(roomId);
                         }
                     });
@@ -204,7 +225,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
             console.error('Error refreshing Smart Home server devices:', error);
             setIsServerControlled(true);
-            setServerError(error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u server');
+            setServerError(error instanceof Error ? error.message : 'Không thể tải dữ liệu server');
         }
     }, [client, isConfigured, user?.homeId]);
 
@@ -231,7 +252,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const addRoom = useCallback(async (name: string): Promise<{ success: boolean; error?: string }> => {
         const cleanName = name.trim();
-        if (!cleanName) return { success: false, error: 'Vui lÃ²ng nháº­p tÃªn phÃ²ng' };
+        if (!cleanName) return { success: false, error: 'Vui lòng nhập tên phòng' };
 
         try {
             if (isConfigured && user?.homeId) {
@@ -246,29 +267,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setRoomDefinitions(prev => [...prev, { id: roomId, name: cleanName, source: 'manual' }]);
                 updateLocalHouse(house => ({ ...house, [roomId]: [] }));
             }
-            addLog('ThÃªm phÃ²ng má»›i', undefined, cleanName);
+            addLog('Thêm phòng mới', undefined, cleanName);
             return { success: true };
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ thÃªm phÃ²ng';
+            const message = error instanceof Error ? error.message : 'Không thể thêm phòng';
             setServerError(message);
             return { success: false, error: message };
         }
     }, [addLog, client, isConfigured, refresh, rooms.length, updateLocalHouse, user?.homeId]);
 
-    const toggleDevice = useCallback(async (roomId: string, deviceId: string): Promise<{ success: boolean; error?: string }> => {
+    const toggleDevice = useCallback(async (roomId: string, deviceId: string): Promise<DeviceControlResult> => {
         const currentDevice = (devices[roomId] || []).find(device => device.id === deviceId);
-        if (!currentDevice) return { success: false, error: 'KhÃ´ng tÃ¬m tháº¥y thiáº¿t bá»‹' };
+        if (!currentDevice) {
+            return {
+                success: false,
+                error: 'Không tìm thấy thiết bị',
+                message: 'Không tìm thấy thiết bị.',
+                source: 'local-demo',
+            };
+        }
 
         if (currentDevice.source === 'manual') {
-            return { success: false, error: 'Thiáº¿t bá»‹ nÃ y Ä‘ang lÃ  khai bÃ¡o thá»§ cÃ´ng, chÆ°a gáº¯n lá»‡nh Ä‘iá»u khiá»ƒn PLC.' };
+            return {
+                success: false,
+                error: 'Thiết bị này đang là khai báo thủ công, chưa gắn lệnh điều khiển PLC.',
+                message: 'Thiết bị khai báo thủ công chưa có lệnh điều khiển.',
+                source: 'local-demo',
+            };
         }
 
         const nextState = !currentDevice.isOn;
 
         try {
             if (isConfigured && isServerControlled) {
-                await client.setDeviceState(currentDevice.id, nextState);
+                const response = await client.setDeviceState(currentDevice.id, nextState);
+                const feedback = response.feedback;
+                const actualState = typeof feedback?.actualState === 'boolean' ? feedback.actualState : response.isOn;
+
+                if (feedback?.verified && actualState !== nextState) {
+                    throw new Error(`PLC feedback mismatch: expected ${nextState}, got ${actualState}`);
+                }
+
                 await refresh();
+                addLog(currentDevice.isOn ? 'Tắt thiết bị' : 'Bật thiết bị', currentDevice.name, getRoomName(roomId));
+                return {
+                    success: true,
+                    message: feedback?.verified
+                        ? `PLC đã xác nhận ${actualState ? 'bật' : 'tắt'}${typeof feedback.latencyMs === 'number' ? ` sau ${feedback.latencyMs.toFixed(0)} ms` : ''}.`
+                        : `Server đã xác nhận ${actualState ? 'bật' : 'tắt'}; chưa có phản hồi PLC độc lập.`,
+                    source: feedback?.verified ? 'plc-feedback' : 'server-acknowledged',
+                    actualState,
+                    latencyMs: feedback?.verified && typeof feedback.latencyMs === 'number' ? feedback.latencyMs : undefined,
+                };
             } else {
                 updateLocalHouse(house => ({
                     ...house,
@@ -276,16 +326,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         device.id === deviceId ? { ...device, isOn: nextState } : device,
                     ),
                 }));
+                addLog(currentDevice.isOn ? 'Tắt thiết bị cục bộ' : 'Bật thiết bị cục bộ', currentDevice.name, getRoomName(roomId));
+                return {
+                    success: true,
+                    message: `Đã cập nhật dữ liệu cục bộ: ${nextState ? 'bật' : 'tắt'}. Không phải phản hồi PLC.`,
+                    source: 'local-demo',
+                    actualState: nextState,
+                };
             }
-
-            addLog(currentDevice.isOn ? 'Táº¯t thiáº¿t bá»‹' : 'Báº­t thiáº¿t bá»‹', currentDevice.name, getRoomName(roomId));
-            return { success: true };
         } catch (error) {
             console.error('Error toggling device:', error);
-            const message = error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ Ä‘iá»u khiá»ƒn thiáº¿t bá»‹';
+            const message = error instanceof Error ? error.message : 'Không thể điều khiển thiết bị';
+            const userMessage = describeControlFailure(message);
             setServerError(message);
-            addLog('Lá»—i Ä‘iá»u khiá»ƒn thiáº¿t bá»‹', currentDevice.name, getRoomName(roomId));
-            return { success: false, error: message };
+            addLog('Lỗi điều khiển thiết bị', currentDevice.name, getRoomName(roomId));
+            return {
+                success: false,
+                error: message,
+                message: userMessage,
+                source: isConfigured && isServerControlled ? 'server-acknowledged' : 'local-demo',
+            };
         }
     }, [addLog, client, devices, getRoomName, isConfigured, isServerControlled, refresh, updateLocalHouse]);
 
@@ -301,18 +361,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     isControllable: false,
                 });
                 await refresh();
-                addLog('ThÃªm thiáº¿t bá»‹ thá»§ cÃ´ng', device.name, getRoomName(roomId));
+                addLog('Thêm thiết bị thủ công', device.name, getRoomName(roomId));
                 return { success: true };
             } catch (error) {
-                const message = error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ thÃªm thiáº¿t bá»‹';
+                const message = error instanceof Error ? error.message : 'Không thể thêm thiết bị';
                 setServerError(message);
                 return { success: false, error: message };
             }
         }
 
         if (isServerControlled) {
-            addLog('YÃªu cáº§u thÃªm thiáº¿t bá»‹ trÃªn server', device.name, getRoomName(roomId));
-            return { success: false, error: 'Thiet bi server can duoc them qua inventory thu cong.' };
+            addLog('Yêu cầu thêm thiết bị trên server', device.name, getRoomName(roomId));
+            return { success: false, error: 'Thiết bị server cần được thêm qua danh mục thủ công.' };
         }
 
         const newDevice: Device = {
@@ -327,30 +387,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             [roomId]: [...(house[roomId] || []), newDevice],
         }));
 
-        addLog('ThÃªm thiáº¿t bá»‹ má»›i', newDevice.name, getRoomName(roomId));
+        addLog('Thêm thiết bị mới', newDevice.name, getRoomName(roomId));
         return { success: true };
     }, [addLog, client, getRoomName, isConfigured, isManualInventory, isServerControlled, refresh, updateLocalHouse, user?.homeId]);
 
     const deleteDevice = useCallback(async (roomId: string, deviceId: string): Promise<{ success: boolean; error?: string }> => {
         const currentDevice = (devices[roomId] || []).find(device => device.id === deviceId);
-        if (!currentDevice) return { success: false, error: 'Khong tim thay thiet bi' };
+        if (!currentDevice) return { success: false, error: 'Không tìm thấy thiết bị' };
 
         if (isConfigured && user?.homeId && currentDevice.source === 'manual') {
             try {
                 await client.deleteManualDevice(user.homeId, currentDevice.id);
                 await refresh();
-                addLog('Xoa thiet bi thu cong', currentDevice.name, getRoomName(roomId));
+                addLog('Xóa thiết bị thủ công', currentDevice.name, getRoomName(roomId));
                 return { success: true };
             } catch (error) {
-                const message = error instanceof Error ? error.message : 'Khong the xoa thiet bi';
+                const message = error instanceof Error ? error.message : 'Không thể xóa thiết bị';
                 setServerError(message);
                 return { success: false, error: message };
             }
         }
 
         if (isServerControlled && currentDevice.source === 'server') {
-            addLog('YÃªu cáº§u xÃ³a thiáº¿t bá»‹ trÃªn server', currentDevice.name, getRoomName(roomId));
-            return { success: false, error: 'Thiet bi PLC phai duoc quan ly tren server/PLC.' };
+            addLog('Yêu cầu xóa thiết bị trên server', currentDevice.name, getRoomName(roomId));
+            return { success: false, error: 'Thiết bị PLC phải được quản lý trên server/PLC.' };
         }
 
         updateLocalHouse(house => ({
@@ -358,7 +418,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             [roomId]: house[roomId].filter(device => device.id !== deviceId),
         }));
 
-        addLog('XÃ³a thiáº¿t bá»‹', currentDevice.name, getRoomName(roomId));
+        addLog('Xóa thiết bị', currentDevice.name, getRoomName(roomId));
         return { success: true };
     }, [addLog, client, devices, getRoomName, isConfigured, isServerControlled, refresh, updateLocalHouse, user?.homeId]);
 
@@ -395,26 +455,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return true;
         } catch (error) {
             console.error('Error setting all devices state:', error);
-            setServerError(error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ Ä‘iá»u khiá»ƒn thiáº¿t bá»‹');
+            setServerError(error instanceof Error ? error.message : 'Không thể điều khiển thiết bị');
             return false;
         }
     }, [client, devices, isConfigured, isManualInventory, isServerControlled, refresh, updateLocalHouse]);
 
     const turnAllOff = useCallback(async () => {
         const success = await setAllDevicesState(null, false);
-        addLog(success ? 'Táº¯t táº¥t cáº£ thiáº¿t bá»‹' : 'Lá»—i táº¯t táº¥t cáº£ thiáº¿t bá»‹');
+        addLog(success ? 'Tắt tất cả thiết bị' : 'Lỗi tắt tất cả thiết bị');
         return success;
     }, [addLog, setAllDevicesState]);
 
     const turnAllOn = useCallback(async (roomId: string) => {
         const success = await setAllDevicesState(roomId, true);
-        addLog(success ? 'Báº­t táº¥t cáº£ thiáº¿t bá»‹' : 'Lá»—i báº­t táº¥t cáº£ thiáº¿t bá»‹', undefined, getRoomName(roomId));
+        addLog(success ? 'Bật tất cả thiết bị' : 'Lỗi bật tất cả thiết bị', undefined, getRoomName(roomId));
         return success;
     }, [addLog, getRoomName, setAllDevicesState]);
 
     const turnAllOffRoom = useCallback(async (roomId: string) => {
         const success = await setAllDevicesState(roomId, false);
-        addLog(success ? 'Táº¯t táº¥t cáº£ thiáº¿t bá»‹' : 'Lá»—i táº¯t táº¥t cáº£ thiáº¿t bá»‹', undefined, getRoomName(roomId));
+        addLog(success ? 'Tắt tất cả thiết bị' : 'Lỗi tắt tất cả thiết bị', undefined, getRoomName(roomId));
         return success;
     }, [addLog, getRoomName, setAllDevicesState]);
 
@@ -449,16 +509,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         } catch (error) {
             console.error('Error applying scene:', error);
-            setServerError(error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ kÃ­ch hoáº¡t cáº£nh');
+            setServerError(error instanceof Error ? error.message : 'Không thể kích hoạt cảnh');
         }
 
         const sceneNames: Record<'morning' | 'work' | 'weekend' | 'sleep', string> = {
-            morning: 'Buá»•i sÃ¡ng',
-            work: 'Äi lÃ m',
-            weekend: 'Cuá»‘i tuáº§n',
-            sleep: 'Cháº¿ Ä‘á»™ ngá»§',
+            morning: 'Buổi sáng',
+            work: 'Đi làm',
+            weekend: 'Cuối tuần',
+            sleep: 'Chế độ ngủ',
         };
-        addLog(`${success ? 'KÃ­ch hoáº¡t cáº£nh' : 'Lá»—i kÃ­ch hoáº¡t cáº£nh'}: ${sceneNames[scene]}`);
+        addLog(`${success ? 'Kích hoạt cảnh' : 'Lỗi kích hoạt cảnh'}: ${sceneNames[scene]}`);
         return success;
     }, [addLog, client, isConfigured, isServerControlled, refresh, setAllDevicesState, updateLocalHouse]);
 
@@ -493,7 +553,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             activityLogs,
             isServerControlled,
             serverError,
-            isHomeSuspended: serverError === 'NhÃ  Ä‘ang bá»‹ táº¡m khÃ³a' || serverError === 'Nha dang bi tam khoa',
+            isHomeSuspended: serverError === 'Nhà đang bị tạm khóa',
             canManageInventory,
             isManualInventory,
             refresh,

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "smart-home-app",
+    "name": "Smart Home AI",
     "slug": "smart-home-app",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,6 +15,14 @@
       "supportsTablet": true
     },
     "android": {
+      "versionCode": 3,
+      "allowBackup": false,
+      "softwareKeyboardLayoutMode": "resize",
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#05122A",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -39,7 +47,8 @@
           "microphonePermission": "Allow Smart Home App to use the microphone for voice commands."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ]
   }
 }

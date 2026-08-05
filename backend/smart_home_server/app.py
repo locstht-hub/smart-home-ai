@@ -6,6 +6,7 @@ import os
 import re
 import threading
 import time
+from collections import defaultdict, deque
 from hmac import compare_digest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +33,11 @@ BASE_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = BASE_DIR / "config.json"
 STATE_PATH = BASE_DIR / "device_state.json"
 AUTH_DB_PATH = BASE_DIR / "smart_home_auth.db"
+COLLECTOR_MAX_BACKOFF_SECONDS = 300
+# Safety gate: the legacy monthly-kWh routine is not a valid instantaneous
+# demand-shedding algorithm. Keep automatic shedding unreachable until a
+# reviewed kW threshold, hysteresis, critical-load and recovery design exists.
+AUTO_LOAD_SHEDDING_KW_SAFETY_READY = False
 
 load_dotenv(BASE_DIR / ".env")
 
@@ -39,6 +45,27 @@ load_dotenv(BASE_DIR / ".env")
 def load_config() -> dict[str, Any]:
     with CONFIG_PATH.open("r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def collector_retry_state(
+    interval_seconds: int,
+    consecutive_failures: int,
+    *,
+    failed: bool,
+) -> tuple[int, int]:
+    """Return the next failure count and an interruptible retry delay.
+
+    The delay never drops below the configured collection interval. Repeated
+    failures back off exponentially and are capped so recovery remains timely.
+    """
+    base_delay = max(1, int(interval_seconds))
+    if not failed:
+        return 0, base_delay
+
+    next_failures = max(0, int(consecutive_failures)) + 1
+    exponent = min(next_failures - 1, 8)
+    delay = min(base_delay * (2**exponent), max(base_delay, COLLECTOR_MAX_BACKOFF_SECONDS))
+    return next_failures, delay
 
 
 def group_devices(devices: list[dict[str, Any]], states: dict[str, bool]) -> dict[str, list[dict[str, Any]]]:
@@ -401,6 +428,14 @@ class S7Client:
         with self._io_lock:
             client = self._client()
             try:
+                current_state = self.read_plc_bit(client, status_tag)
+                if current_state == is_on:
+                    return {
+                        "verified": True,
+                        "actualState": current_state,
+                        "latencyMs": round((time.perf_counter() - started) * 1000.0, 2),
+                        "idempotent": True,
+                    }
                 if command_tag:
                     self.write_plc_bit(client, str(command_tag), True)
                     time.sleep(self.command_pulse_ms / 1000.0)
@@ -432,16 +467,25 @@ def create_app() -> Flask:
     mode = str(config.get("mode", "mock")).strip().lower()
     if mode not in {"mock", "plc-real", "auto"}:
         mode = "mock"
+    configured_workers = max(1, int(os.environ.get("WEB_CONCURRENCY", "1")))
+    if mode in {"plc-real", "auto"} and configured_workers != 1:
+        raise RuntimeError(
+            "PLC access requires exactly one smart-home-server worker. "
+            "Use a dedicated PLC gateway before enabling multiple API workers."
+        )
     collector_config = dict(config.get("powerCollector", {}))
     collector_interval = max(5, int(collector_config.get("intervalSeconds", 60)))
     collector_enabled = bool(collector_config.get("enabled", False))
     collector_home_ids = [str(item).strip() for item in collector_config.get("homeIds", []) if str(item).strip()]
     safety_config = dict(config.get("safety", {}))
     auto_shedding_env = os.environ.get("SMART_HOME_AUTO_LOAD_SHEDDING_ENABLED")
-    auto_load_shedding_enabled = (
+    auto_load_shedding_requested = (
         auto_shedding_env.strip().lower() in {"1", "true", "yes", "on"}
         if auto_shedding_env is not None
         else bool(safety_config.get("autoLoadSheddingEnabled", False))
+    )
+    auto_load_shedding_enabled = bool(
+        AUTO_LOAD_SHEDDING_KW_SAFETY_READY and auto_load_shedding_requested
     )
     telemetry_config = dict(config.get("telemetry", {}))
     telemetry_service_token = str(
@@ -487,10 +531,30 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.json.ensure_ascii = False
     api_token = str(os.environ.get("SMART_HOME_API_TOKEN") or config.get("security", {}).get("apiToken", "")).strip()
+    minimum_password_length = max(12, int(os.environ.get("SMART_HOME_MIN_PASSWORD_LENGTH", "12")))
+    login_attempt_limit = max(1, int(os.environ.get("SMART_HOME_LOGIN_ATTEMPT_LIMIT", "5")))
+    login_window_seconds = max(10, int(os.environ.get("SMART_HOME_LOGIN_WINDOW_SECONDS", "300")))
+    login_lock_seconds = max(10, int(os.environ.get("SMART_HOME_LOGIN_LOCK_SECONDS", "300")))
+    login_attempts: dict[str, deque[float]] = defaultdict(deque)
+    login_locked_until: dict[str, float] = {}
+    login_rate_lock = threading.Lock()
+    configured_origins = os.environ.get("SMART_HOME_CORS_ALLOWED_ORIGINS", "")
+    cors_allowed_origins = {
+        item.strip()
+        for item in (
+            configured_origins.split(",")
+            if configured_origins
+            else config.get("security", {}).get("allowedOrigins", [])
+        )
+        if item.strip()
+    }
 
     @app.after_request
     def add_cors_headers(response: Any) -> Any:
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        origin = request.headers.get("Origin", "").strip()
+        if origin and origin in cors_allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Vary"] = "Origin"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Token, X-Telemetry-Token"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
         return response
@@ -510,6 +574,40 @@ def create_app() -> Flask:
     def telemetry_service_authenticated() -> bool:
         supplied = request.headers.get("X-Telemetry-Token", "").strip()
         return bool(telemetry_service_token and supplied and compare_digest(supplied, telemetry_service_token))
+
+    def login_rate_key(username: str) -> str:
+        remote_address = request.remote_addr or "unknown"
+        return f"{remote_address}:{username.casefold()}"
+
+    def login_retry_after(key: str) -> int:
+        now = time.monotonic()
+        with login_rate_lock:
+            locked_until = login_locked_until.get(key, 0.0)
+            if locked_until > now:
+                return max(1, math.ceil(locked_until - now))
+            login_locked_until.pop(key, None)
+            attempts = login_attempts[key]
+            cutoff = now - login_window_seconds
+            while attempts and attempts[0] <= cutoff:
+                attempts.popleft()
+            if not attempts:
+                login_attempts.pop(key, None)
+            return 0
+
+    def record_login_result(key: str, *, success: bool) -> None:
+        now = time.monotonic()
+        with login_rate_lock:
+            if success:
+                login_attempts.pop(key, None)
+                login_locked_until.pop(key, None)
+                return
+            attempts = login_attempts[key]
+            cutoff = now - login_window_seconds
+            while attempts and attempts[0] <= cutoff:
+                attempts.popleft()
+            attempts.append(now)
+            if len(attempts) >= login_attempt_limit:
+                login_locked_until[key] = now + login_lock_seconds
 
     @app.before_request
     def require_api_token() -> Any:
@@ -791,26 +889,35 @@ def create_app() -> Flask:
 
     def power_collector_loop() -> None:
         update_collector_status(running=True, lastError=None)
+        consecutive_failures = 0
         while not collector_stop_event.is_set():
             now_iso = datetime.now(timezone.utc).isoformat()
             update_collector_status(lastRunAt=now_iso)
+            iteration_failed = False
             try:
                 result = run_power_collector_once()
                 readings_count = int(result.get("readings", 0))
                 if result.get("warning"):
+                    iteration_failed = True
                     update_collector_status(lastError=str(result["warning"]), lastReadingCount=readings_count)
                     app.logger.warning("Power collector using fallback: %s", result["warning"])
-                    continue
-                with collector_status_lock:
-                    collector_status["lastSuccessAt"] = datetime.now(timezone.utc).isoformat()
-                    collector_status["lastError"] = None
-                    collector_status["lastReadingCount"] = readings_count
-                    collector_status["totalReadings"] = int(collector_status.get("totalReadings", 0)) + readings_count
+                else:
+                    with collector_status_lock:
+                        collector_status["lastSuccessAt"] = datetime.now(timezone.utc).isoformat()
+                        collector_status["lastError"] = None
+                        collector_status["lastReadingCount"] = readings_count
+                        collector_status["totalReadings"] = int(collector_status.get("totalReadings", 0)) + readings_count
             except Exception as exc:
+                iteration_failed = True
                 update_collector_status(lastError=str(exc))
                 app.logger.warning("Power collector failed: %s", exc)
 
-            if collector_stop_event.wait(collector_interval):
+            consecutive_failures, retry_delay = collector_retry_state(
+                collector_interval,
+                consecutive_failures,
+                failed=iteration_failed,
+            )
+            if collector_stop_event.wait(retry_delay):
                 break
 
         update_collector_status(running=False)
@@ -834,6 +941,19 @@ def create_app() -> Flask:
         if isinstance(home, dict) and home.get("id"):
             return str(home["id"])
         return requested_home_id()
+
+    def physical_device_home_id(device: dict[str, Any]) -> str | None:
+        explicit_home_id = str(device.get("homeId") or "").strip()
+        if explicit_home_id:
+            return explicit_home_id
+        if len(collector_home_ids) == 1:
+            return collector_home_ids[0]
+        return None
+
+    def physical_device_access_allowed(access: dict[str, Any], device: dict[str, Any]) -> bool:
+        requested = access_home_id(access)
+        configured = physical_device_home_id(device)
+        return bool(requested and configured and requested == configured)
 
     def optional_float(value: Any) -> float | None:
         if value is None or value == "":
@@ -1105,37 +1225,50 @@ def create_app() -> Flask:
         plc = config.get("plc", {})
         assistant = assistant_config(config)
 
-        return jsonify(
-            {
-                "ok": True,
-                "service": "smart-home-server",
-                "mode": mode,
-                "effectiveMode": effective_mode,
-                "powerSource": power_source,
-                "plcConfigured": plc_should_be_used(),
-                "plcHost": plc.get("host"),
-                "plcRack": plc.get("rack", 0),
-                "plcSlot": plc.get("slot", 1),
-                "database": {
-                    "kind": database_kind,
-                    "label": database_label,
-                },
-                "databasePath": database_label,
-                "statePath": str(STATE_PATH.resolve()),
-                "serverTime": datetime.now(timezone.utc).isoformat(),
-                "authUser": current_user,
-                "powerCollector": collector_snapshot,
-                "assistant": {
-                    "provider": assistant["provider"],
-                    "model": assistant["model"],
-                    "sendHomeContext": assistant["sendHomeContext"],
-                    "localLoraUrl": assistant["localLoraUrl"] if assistant["provider"] == "local_lora" else None,
-                },
-            }
-        )
+        response = {
+            "ok": True,
+            "service": "smart-home-server",
+            "mode": mode,
+            "effectiveMode": effective_mode,
+            "powerSource": power_source,
+            "plcConfigured": plc_should_be_used(),
+            "serverTime": datetime.now(timezone.utc).isoformat(),
+            "authUser": current_user,
+            "powerCollector": {
+                "enabled": collector_snapshot.get("enabled"),
+                "running": collector_snapshot.get("running"),
+                "lastSuccessAt": collector_snapshot.get("lastSuccessAt"),
+                "lastReadingCount": collector_snapshot.get("lastReadingCount"),
+            },
+            "assistant": {
+                "provider": assistant["provider"],
+                "model": assistant["model"],
+            },
+        }
+        if current_user and current_user.get("role") == "system_admin":
+            response.update(
+                {
+                    "plcHost": plc.get("host"),
+                    "plcRack": plc.get("rack", 0),
+                    "plcSlot": plc.get("slot", 1),
+                    "database": {"kind": database_kind, "label": database_label},
+                    "databasePath": database_label,
+                    "statePath": str(STATE_PATH.resolve()),
+                    "powerCollector": collector_snapshot,
+                    "assistant": {
+                        "provider": assistant["provider"],
+                        "model": assistant["model"],
+                        "sendHomeContext": assistant["sendHomeContext"],
+                    },
+                }
+            )
+        return jsonify(response)
 
     @app.get("/api/power/collector/status")
     def power_collector_status() -> Any:
+        admin = require_system_admin()
+        if not isinstance(admin, dict):
+            return admin
         return jsonify({"ok": True, "collector": current_collector_status()})
 
     @app.post("/api/power/collector/run-once")
@@ -1173,8 +1306,16 @@ def create_app() -> Flask:
         if not username or not password:
             return jsonify({"ok": False, "error": "Username/phone and password are required"}), 400
 
+        rate_key = login_rate_key(username)
+        retry_after = login_retry_after(rate_key)
+        if retry_after:
+            response = jsonify({"ok": False, "error": "Too many login attempts. Try again later."})
+            response.headers["Retry-After"] = str(retry_after)
+            return response, 429
+
         session = auth_store.login(username, password)
         if not session:
+            record_login_result(rate_key, success=False)
             audit(
                 "auth.login_failed",
                 actor={"id": None, "username": username, "role": "anonymous"},
@@ -1183,6 +1324,8 @@ def create_app() -> Flask:
                 metadata={"reason": "invalid_credentials"},
             )
             return jsonify({"ok": False, "error": "Sai tài khoản hoặc mật khẩu"}), 401
+
+        record_login_result(rate_key, success=True)
 
         audit(
             "auth.login_success",
@@ -1194,6 +1337,24 @@ def create_app() -> Flask:
             metadata={"homeIds": [home["id"] for home in session.get("homes", [])]},
         )
         return jsonify({"ok": True, **session})
+
+    @app.post("/api/auth/logout")
+    def logout() -> Any:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        token = extract_token()
+        if current_user.get("id") == "api-token":
+            return jsonify({"ok": False, "error": "Static API token cannot be revoked here"}), 400
+        revoked = auth_store.revoke_session(token)
+        audit(
+            "auth.logout",
+            actor=current_user,
+            target_type="session",
+            target_id=None,
+            metadata={"revoked": revoked},
+        )
+        return jsonify({"ok": True, "revoked": revoked})
 
     @app.get("/api/me")
     def me() -> Any:
@@ -1221,8 +1382,8 @@ def create_app() -> Flask:
         new_password = str(payload.get("newPassword") or payload.get("password") or "")
         if not current_password or not new_password:
             return jsonify({"ok": False, "error": "currentPassword and newPassword are required"}), 400
-        if len(new_password) < 6:
-            return jsonify({"ok": False, "error": "Password must be at least 6 characters"}), 400
+        if len(new_password) < minimum_password_length:
+            return jsonify({"ok": False, "error": f"Password must be at least {minimum_password_length} characters"}), 400
 
         try:
             user = auth_store.change_user_password(
@@ -1605,8 +1766,8 @@ def create_app() -> Flask:
             can_manage_devices = False
         if not name or not username or not password:
             return jsonify({"ok": False, "error": "name, username and password are required"}), 400
-        if len(password) < 6:
-            return jsonify({"ok": False, "error": "Password must be at least 6 characters"}), 400
+        if len(password) < minimum_password_length:
+            return jsonify({"ok": False, "error": f"Password must be at least {minimum_password_length} characters"}), 400
 
         try:
             member = auth_store.create_home_member(
@@ -1655,8 +1816,8 @@ def create_app() -> Flask:
 
         payload = request.get_json(silent=True) or {}
         new_password = str(payload.get("password") or "")
-        if len(new_password) < 6:
-            return jsonify({"ok": False, "error": "Password must be at least 6 characters"}), 400
+        if len(new_password) < minimum_password_length:
+            return jsonify({"ok": False, "error": f"Password must be at least {minimum_password_length} characters"}), 400
 
         member = next((item for item in auth_store.list_home_members(home_id) if str(item["id"]) == user_id), None)
         if member is None:
@@ -1773,8 +1934,8 @@ def create_app() -> Flask:
 
         if not owner_name or not username or not password or not home_name:
             return jsonify({"ok": False, "error": "ownerName, username, password and homeName are required"}), 400
-        if len(password) < 6:
-            return jsonify({"ok": False, "error": "Password must be at least 6 characters"}), 400
+        if len(password) < minimum_password_length:
+            return jsonify({"ok": False, "error": f"Password must be at least {minimum_password_length} characters"}), 400
 
         try:
             result = auth_store.create_owner_with_home(
@@ -1840,8 +2001,8 @@ def create_app() -> Flask:
 
         payload = request.get_json(silent=True) or {}
         new_password = str(payload.get("password") or "")
-        if len(new_password) < 6:
-            return jsonify({"ok": False, "error": "Password must be at least 6 characters"}), 400
+        if len(new_password) < minimum_password_length:
+            return jsonify({"ok": False, "error": f"Password must be at least {minimum_password_length} characters"}), 400
 
         try:
             user = auth_store.reset_user_password(user_id, new_password)
@@ -2008,12 +2169,29 @@ def create_app() -> Flask:
 
         result = execute_device_command(access, device, is_on)
         if not result["ok"]:
-            status = 403 if result.get("reason") == "quota_exceeded" else 500
+            status = 403 if result.get("reason") in {"quota_exceeded", "device_scope_denied"} else 500
             return jsonify(result), status
         return jsonify(result)
 
     def execute_device_command(access: dict[str, Any], device: dict[str, Any], is_on: bool) -> dict[str, Any]:
         device_id = str(device["id"])
+        if not physical_device_access_allowed(access, device):
+            audit(
+                "device.control_blocked_scope",
+                actor=access.get("user"),
+                target_type="device",
+                target_id=device_id,
+                target_name=str(device.get("name", device_id)),
+                home_id=access_home_id(access),
+                metadata={"configuredHomeId": physical_device_home_id(device)},
+            )
+            return {
+                "ok": False,
+                "error": "Physical device is not assigned to this home",
+                "reason": "device_scope_denied",
+                "device_id": device_id,
+                "isOn": is_on,
+            }
         quota_block = quota_control_guard(access)
         if quota_block:
             audit(
@@ -2060,8 +2238,10 @@ def create_app() -> Flask:
         if not result["ok"]:
             if result.get("reason") == "unknown_scene":
                 status = 400
-            elif result.get("reason") == "quota_exceeded":
+            elif result.get("reason") in {"quota_exceeded", "device_scope_denied"}:
                 status = 403
+            elif result.get("reason") == "partial_failure":
+                status = 409
             else:
                 status = 500
             return jsonify(result), status
@@ -2082,8 +2262,6 @@ def create_app() -> Flask:
             )
             return {**quota_block, "scene": scene}
 
-        states = state_store.load()
-
         if scene == "sleep":
             target = {str(item["id"]): False for item in devices if item["type"] in {"light", "fan"}}
         elif scene == "work":
@@ -2093,26 +2271,51 @@ def create_app() -> Flask:
         else:
             return {"ok": False, "error": f"Unknown scene: {scene}", "reason": "unknown_scene", "scene": scene}
 
-        try:
-            for device_id, is_on in target.items():
-                device = next(item for item in devices if str(item["id"]) == device_id)
-                if plc_should_be_used():
-                    s7.write_device_command(device, is_on)
-                states[device_id] = is_on
-
-            state_store.save(states)
+        results: list[dict[str, Any]] = []
+        for device_id, is_on in target.items():
+            device = next(item for item in devices if str(item["id"]) == device_id)
+            command_result = execute_device_command(access, device, is_on)
+            results.append(command_result)
             audit(
-                "scene.apply",
+                "scene.device_succeeded" if command_result.get("ok") else "scene.device_failed",
                 actor=access.get("user"),
-                target_type="scene",
-                target_id=scene,
-                target_name=scene,
-                home_id=access["home"]["id"] if access.get("home") else None,
-                metadata={"affected": len(target), "mode": mode},
+                target_type="device",
+                target_id=device_id,
+                target_name=str(device.get("name", device_id)),
+                home_id=access_home_id(access),
+                metadata={
+                    "scene": scene,
+                    "requestedState": is_on,
+                    "error": command_result.get("error"),
+                    "feedback": command_result.get("feedback"),
+                },
             )
-            return {"ok": True, "scene": scene, "affected": len(target)}
-        except Exception as exc:
-            return {"ok": False, "error": str(exc), "scene": scene, "mode": mode}
+
+        succeeded = [item for item in results if item.get("ok")]
+        failed = [item for item in results if not item.get("ok")]
+        audit(
+            "scene.apply" if not failed else "scene.partial_failure",
+            actor=access.get("user"),
+            target_type="scene",
+            target_id=scene,
+            target_name=scene,
+            home_id=access_home_id(access),
+            metadata={"affected": len(succeeded), "failed": len(failed), "mode": mode},
+        )
+        if failed:
+            reason = "device_scope_denied" if not succeeded and all(
+                item.get("reason") == "device_scope_denied" for item in failed
+            ) else "partial_failure"
+            return {
+                "ok": False,
+                "error": "Scene completed with one or more device failures",
+                "reason": reason,
+                "scene": scene,
+                "affected": len(succeeded),
+                "failed": len(failed),
+                "results": results,
+            }
+        return {"ok": True, "scene": scene, "affected": len(succeeded), "failed": 0, "results": results}
 
     @app.post("/api/assistant/chat")
     def assistant_chat() -> Any:

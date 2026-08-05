@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import time
 from pathlib import Path
 from typing import Callable
@@ -10,6 +11,7 @@ from typing import Callable
 import joblib
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
@@ -20,6 +22,8 @@ FORECAST_HORIZON_HOURS = 24
 TARGET_COLUMN = "power_kw"
 DEFAULT_MAX_HISTORY_DAYS = 730
 MAPE_DENOMINATOR_FLOOR_KW = 0.2
+CAUSAL_FILL_LIMIT_HOURS = 6
+TARGET_OBSERVED_COLUMN = "_power_kw_observed"
 
 
 def parse_args() -> argparse.Namespace:
@@ -114,7 +118,9 @@ def normalize_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
             df[column] = np.nan
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
-    df = df.dropna(subset=["timestamp", "power_kw"]).sort_values("timestamp").reset_index(drop=True)
+    df = df.dropna(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
+    if df["power_kw"].notna().sum() == 0:
+        raise ValueError("Dataset does not contain any observed power_kw values")
     return df
 
 
@@ -146,9 +152,14 @@ def resample_to_hourly(df: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
 
-    hourly["power_kw"] = hourly["power_kw"].interpolate(limit_direction="both")
+    # Preserve label provenance before causal feature filling. Forward fill is
+    # deliberately bounded and only uses values available at or before each
+    # forecast origin; linear/bidirectional interpolation would leak future
+    # observations into earlier feature rows.
+    hourly[TARGET_OBSERVED_COLUMN] = hourly["power_kw"].notna()
+    hourly["power_kw"] = hourly["power_kw"].ffill(limit=CAUSAL_FILL_LIMIT_HOURS)
     for column in ["reactive_power_kw", "voltage", "current_a", "sub_metering_1", "sub_metering_2", "sub_metering_3"]:
-        hourly[column] = hourly[column].interpolate(limit_direction="both").fillna(0.0)
+        hourly[column] = hourly[column].ffill(limit=CAUSAL_FILL_LIMIT_HOURS).fillna(0.0)
 
     return hourly
 
@@ -178,7 +189,13 @@ def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
 def add_lag_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
     df = df.copy()
 
-    lag_steps = [1, 2, 3, 6, 12, 24, 25, 48, 72, 96, 120, 144, 168, 336]
+    # Keep every lag required to reconstruct leakage-free daily and weekly
+    # seasonal-naive forecasts for all 24 direct horizons.
+    lag_steps = sorted(set([
+        *range(1, 25),
+        *range(144, 169),
+        48, 72, 96, 120, 336,
+    ]))
     for lag in lag_steps:
         df[f"{target_col}_lag_{lag}"] = df[target_col].shift(lag)
 
@@ -215,6 +232,11 @@ def add_lag_features(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
 
 
 def build_supervised_dataset(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
+    target_observed = (
+        df[TARGET_OBSERVED_COLUMN].astype(bool)
+        if TARGET_OBSERVED_COLUMN in df.columns
+        else df[TARGET_COLUMN].notna()
+    )
     df = add_time_features(df)
     df = add_lag_features(df, TARGET_COLUMN)
 
@@ -225,14 +247,18 @@ def build_supervised_dataset(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFra
         },
         axis=1,
     )
+    target_validity = pd.concat(
+        [target_observed.shift(-step) for step in range(1, FORECAST_HORIZON_HOURS + 1)],
+        axis=1,
+    ).fillna(False).all(axis=1)
     df = pd.concat([df, target_frame], axis=1)
 
-    df = df.dropna().reset_index(drop=True)
+    df = df.loc[target_validity].dropna().reset_index(drop=True)
 
     target_columns = [f"target_t_plus_{step}" for step in range(1, FORECAST_HORIZON_HOURS + 1)]
     feature_columns = [
         column for column in df.columns
-        if column not in {"timestamp", *target_columns}
+        if column not in {"timestamp", TARGET_OBSERVED_COLUMN, *target_columns}
     ]
 
     X = df[feature_columns].copy()
@@ -255,15 +281,19 @@ def chronological_split(X: pd.DataFrame, y: pd.DataFrame, timestamps: pd.Series)
     }
 
 
-def build_model_factory(model_name: str, n_estimators_override: int | None = None) -> Callable[[], object]:
+def build_model_factory(
+    model_name: str,
+    n_estimators_override: int | None = None,
+    random_state: int = DEFAULT_RANDOM_STATE,
+) -> Callable[[], object]:
     if model_name == "random_forest":
         return lambda: RandomForestRegressor(
             n_estimators=n_estimators_override or 50,  # Giảm từ 180 xuống 50
             max_depth=12,  # Giảm từ 22 xuống 12 để ép file nhỏ lại
             min_samples_leaf=1,
             max_features="sqrt",
-            random_state=DEFAULT_RANDOM_STATE,
-            n_jobs=-1,
+            random_state=random_state,
+            n_jobs=1,
         )
 
     if model_name == "xgboost":
@@ -277,8 +307,8 @@ def build_model_factory(model_name: str, n_estimators_override: int | None = Non
             reg_alpha=0.03,
             reg_lambda=1.8,
             objective="reg:squarederror",
-            random_state=DEFAULT_RANDOM_STATE,
-            n_jobs=-1,
+            random_state=random_state,
+            n_jobs=1,
             tree_method="hist",
         )
 
@@ -291,13 +321,15 @@ def fit_direct_models(
     y_train: pd.DataFrame,
     X_val: pd.DataFrame | None = None,
     y_val: pd.DataFrame | None = None,
+    random_state: int = DEFAULT_RANDOM_STATE,
+    n_estimators_override: int | None = None,
 ):
-    factory = build_model_factory(model_name)
-    models = []
-    best_iterations: list[int | None] = []
-
-    for step in range(FORECAST_HORIZON_HOURS):
-        print(f"  {model_name}: fitting horizon {step + 1}/{FORECAST_HORIZON_HOURS}", flush=True)
+    factory = build_model_factory(
+        model_name,
+        n_estimators_override=n_estimators_override,
+        random_state=random_state,
+    )
+    def fit_horizon(step: int) -> tuple[object, int | None]:
         model = factory()
         target = np.log1p(y_train.iloc[:, step].to_numpy())
         if model_name == "xgboost" and X_val is not None and y_val is not None:
@@ -310,11 +342,22 @@ def fit_direct_models(
                 verbose=False,
             )
             booster = model.get_booster()
-            best_iterations.append((booster.best_iteration + 1) if booster.best_iteration is not None else model.n_estimators)
+            best_iteration = (booster.best_iteration + 1) if booster.best_iteration is not None else model.n_estimators
         else:
             model.fit(X_train, target)
-            best_iterations.append(getattr(model, "n_estimators", None))
-        models.append(model)
+            best_iteration = getattr(model, "n_estimators", None)
+        return model, best_iteration
+
+    parallel_jobs = min(6, max(1, (os.cpu_count() or 2) // 2))
+    print(
+        f"  {model_name}: fitting {FORECAST_HORIZON_HOURS} direct horizons with {parallel_jobs} parallel workers",
+        flush=True,
+    )
+    fitted = Parallel(n_jobs=parallel_jobs, prefer="threads")(
+        delayed(fit_horizon)(step) for step in range(FORECAST_HORIZON_HOURS)
+    )
+    models = [item[0] for item in fitted]
+    best_iterations = [item[1] for item in fitted]
 
     return {
         "name": model_name,
@@ -380,6 +423,24 @@ def evaluate_persistence(X: pd.DataFrame, y: pd.DataFrame) -> dict:
     return evaluate_predictions(y, predictions, elapsed_ms / max(1, len(X)))
 
 
+def evaluate_seasonal_naive(X: pd.DataFrame, y: pd.DataFrame, period_hours: int) -> dict:
+    if period_hours not in (24, 168):
+        raise ValueError("Seasonal-naive period must be 24 or 168 hours")
+
+    columns = []
+    for horizon in range(1, FORECAST_HORIZON_HOURS + 1):
+        lag = period_hours - horizon
+        columns.append(TARGET_COLUMN if lag == 0 else f"{TARGET_COLUMN}_lag_{lag}")
+    missing = [column for column in columns if column not in X.columns]
+    if missing:
+        raise ValueError(f"Seasonal-naive baseline is missing features: {missing}")
+
+    started = time.perf_counter()
+    predictions = X[columns].to_numpy(dtype=float)
+    elapsed_ms = (time.perf_counter() - started) * 1000.0
+    return evaluate_predictions(y, predictions, elapsed_ms / max(1, len(X)))
+
+
 def write_metrics_checkpoint(results: dict, checkpoint_path: Path) -> None:
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     checkpoint_path.write_text(
@@ -413,6 +474,19 @@ def fit_and_compare_models(splits, checkpoint_path: Path | None = None):
     print(f"persistence test MAE: {persistence_test['mae']:.4f}")
     if checkpoint_path:
         write_metrics_checkpoint(results, checkpoint_path)
+
+    for baseline_name, period_hours in (("seasonal_naive_24h", 24), ("seasonal_naive_168h", 168)):
+        baseline_val = evaluate_seasonal_naive(X_val, y_val, period_hours)
+        baseline_test = evaluate_seasonal_naive(X_test, y_test, period_hours)
+        results[baseline_name] = {
+            "model_bundle": None,
+            "val_metrics": baseline_val,
+            "test_metrics": baseline_test,
+        }
+        print(f"{baseline_name} validation MAE: {baseline_val['mae']:.4f}")
+        print(f"{baseline_name} test MAE: {baseline_test['mae']:.4f}")
+        if checkpoint_path:
+            write_metrics_checkpoint(results, checkpoint_path)
 
     for model_name in ["random_forest", "xgboost"]:
         print(f"Training {model_name}...", flush=True)

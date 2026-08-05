@@ -161,6 +161,14 @@ class PostgresAuthStore:
 
             return self.public_user(row) if row else None
 
+    def revoke_session(self, token: str) -> bool:
+        if not token:
+            return False
+        with self.connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("DELETE FROM public.sessions WHERE token = %s", (token,))
+                return cursor.rowcount > 0
+
     def list_user_homes(self, conn: psycopg.Connection[Any], user_id: str) -> list[dict[str, Any]]:
         rows = conn.execute(
             """

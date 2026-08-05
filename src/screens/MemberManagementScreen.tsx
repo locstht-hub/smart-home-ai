@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal, Platform, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { Colors } from '../constants/colors';
@@ -88,8 +89,8 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
             Alert.alert('Lỗi', 'Vui lòng nhập họ tên, tên đăng nhập và mật khẩu.');
             return;
         }
-        if (newPassword.length < 6) {
-            Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự.');
+        if (newPassword.length < 12) {
+            Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 12 ký tự.');
             return;
         }
 
@@ -174,8 +175,8 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
 
     const handleResetPassword = async () => {
         if (!homeId || !resetPasswordMember) return;
-        if (resetPassword.length < 6) {
-            Alert.alert('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự.');
+        if (resetPassword.length < 12) {
+            Alert.alert('Lỗi', 'Mật khẩu mới phải có ít nhất 12 ký tự.');
             return;
         }
 
@@ -328,8 +329,9 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
     return (
         <View style={styles.container}>
             <LinearGradient colors={['#10251f', '#173a31', '#0f172a']} style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Text style={styles.backBtnText}>{'<'} Quay lại</Text>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Quay lại">
+                    <Ionicons name="chevron-back" size={20} color="#ffffff" />
+                    <Text style={styles.backBtnText}>Quay lại</Text>
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{homeName}</Text>
                 <Text style={styles.headerSub}>{memberCount} thành viên ({nonOwnerCount} thành viên con)</Text>
@@ -343,7 +345,7 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#0f766e']} />}
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyIcon}>👥</Text>
+                        <View style={styles.emptyIcon}><Ionicons name="people-outline" size={34} color="#0f766e" /></View>
                         <Text style={styles.emptyTitle}>Chưa có thành viên nào</Text>
                         <Text style={styles.emptySub}>Nhấn nút bên dưới để thêm thành viên vào nhà.</Text>
                     </View>
@@ -358,6 +360,7 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                         </View>
                         {activityLogs.length === 0 ? (
                             <View style={styles.activityEmpty}>
+                                <Ionicons name="document-text-outline" size={23} color="#7c8c86" />
                                 <Text style={styles.activityEmptyText}>Chưa có hoạt động nào trong nhà.</Text>
                             </View>
                         ) : activityLogs.slice(0, 20).map((log) => (
@@ -373,8 +376,9 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                 }
             />
 
-            <TouchableOpacity style={styles.fab} onPress={() => setShowAddModal(true)}>
-                <Text style={styles.fabText}>+ Thêm thành viên</Text>
+            <TouchableOpacity style={styles.fab} onPress={() => setShowAddModal(true)} accessibilityRole="button" accessibilityLabel="Thêm thành viên">
+                <Ionicons name="person-add-outline" size={18} color="#ffffff" />
+                <Text style={styles.fabText}>Thêm thành viên</Text>
             </TouchableOpacity>
 
             <Modal visible={showAddModal} transparent animationType="slide">
@@ -410,7 +414,7 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                         />
                         <TextInput
                             style={styles.modalInput}
-                            placeholder="Mật khẩu (ít nhất 6 ký tự)"
+                            placeholder="Mật khẩu (ít nhất 12 ký tự)"
                             value={newPassword}
                             onChangeText={setNewPassword}
                             secureTextEntry
@@ -469,7 +473,7 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                         </Text>
                         <TextInput
                             style={styles.modalInput}
-                            placeholder="Mật khẩu mới (ít nhất 6 ký tự)"
+                            placeholder="Mật khẩu mới (ít nhất 12 ký tự)"
                             value={resetPassword}
                             onChangeText={setResetPassword}
                             secureTextEntry
@@ -504,7 +508,7 @@ const styles = StyleSheet.create({
 
     // Header
     header: { paddingTop: 50, paddingBottom: 22, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(209, 250, 229, 0.14)', shadowColor: '#10251f', shadowOpacity: 0.2, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
-    backBtn: { marginBottom: 12 },
+    backBtn: { minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 8, marginLeft: -8, paddingHorizontal: 8, borderRadius: 12 },
     backBtnText: { color: 'rgba(236,253,245,0.86)', fontSize: 14, fontWeight: '800' },
     headerTitle: { fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
     headerSub: { fontSize: 13, color: 'rgba(236,253,245,0.72)', marginTop: 4, fontWeight: '600' },
@@ -563,7 +567,7 @@ const styles = StyleSheet.create({
 
     // Empty
     emptyState: { alignItems: 'center', paddingVertical: 60 },
-    emptyIcon: { fontSize: 48, marginBottom: 12 },
+    emptyIcon: { width: 64, height: 64, borderRadius: 22, marginBottom: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e0f2ef', borderWidth: 1, borderColor: '#b8ded7' },
     emptyTitle: { fontSize: 18, fontWeight: '800', color: '#50645c', marginBottom: 6 },
     emptySub: { fontSize: 13, color: '#7c8c86', textAlign: 'center', paddingHorizontal: 40 },
 
@@ -585,8 +589,8 @@ const styles = StyleSheet.create({
     activityHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     activityTitle: { fontSize: 16, fontWeight: '900', color: '#13251f' },
     activityRefresh: { fontSize: 13, fontWeight: '800', color: '#0f766e' },
-    activityEmpty: { paddingVertical: 14, alignItems: 'center' },
-    activityEmptyText: { color: '#7c8c86', fontSize: 13 },
+    activityEmpty: { paddingVertical: 18, alignItems: 'center', gap: 7 },
+    activityEmptyText: { color: '#7c8c86', fontSize: 13, textAlign: 'center' },
     activityItem: {
         flexDirection: 'row',
         alignItems: 'flex-start',
@@ -614,6 +618,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#0f766e',
         borderRadius: 16,
         paddingVertical: 16,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
         alignItems: 'center',
         shadowColor: '#173a31',
         shadowOpacity: 0.3,

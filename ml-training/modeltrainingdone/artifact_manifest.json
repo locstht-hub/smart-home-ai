@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "artifactFile": "best_model.joblib",
+  "sha256": "8fa5e4b5728f59f745b4053ac067c02a1e6c75298ae28b9b4579676ac3d46647",
+  "bytes": 7978594,
+  "distribution": "tracked-git",
+  "runtime": {
+    "python": "3.12",
+    "joblib": "1.5.1",
+    "numpy": "2.3.3",
+    "pandas": "2.3.2",
+    "scikit-learn": "1.7.2",
+    "xgboost": "3.0.4"
+  }
+}

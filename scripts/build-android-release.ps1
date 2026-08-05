@@ -1,7 +1,8 @@
 param(
     [string]$ShortPath = "C:\shb",
     [string]$Abi = "arm64-v8a",
-    [string]$OutputName = "app-release-arm64-v8a.apk"
+    [string]$OutputName = "app-release-arm64-v8a.apk",
+    [switch]$KeepBuildCopy
 )
 
 $ErrorActionPreference = "Stop"
@@ -28,10 +29,24 @@ function Remove-BuildCopy {
     Remove-Item -LiteralPath $resolved -Recurse -Force
 }
 
-Remove-BuildCopy
+if (-not $KeepBuildCopy) {
+    Remove-BuildCopy
+} elseif (Test-Path -LiteralPath $ShortPath) {
+    throw "KeepBuildCopy requires a new or empty build path: $ShortPath"
+}
 New-Item -ItemType Directory -Path $ShortPath | Out-Null
 
-$excludeDirs = @(".git", ".expo", ".codex-temp", "android\.gradle", "android\app\build", "android\app\.cxx")
+$excludeDirs = @(
+    ".git",
+    ".expo",
+    ".codex-temp",
+    ".venv",
+    "__pycache__",
+    "outputs",
+    "android\.gradle",
+    "android\app\build",
+    "android\app\.cxx"
+)
 $excludeFiles = @("*.apk", "*.aab")
 
 robocopy $repoRoot $ShortPath /E /XD $excludeDirs /XF $excludeFiles /R:1 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
@@ -61,4 +76,6 @@ Write-Host $apk.FullName
 Write-Host ("Size: {0} MB" -f [math]::Round($apk.Length / 1MB, 2))
 Write-Host ("ABI: {0}" -f $Abi)
 
-Remove-BuildCopy
+if (-not $KeepBuildCopy) {
+    Remove-BuildCopy
+}

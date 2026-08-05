@@ -10,7 +10,7 @@ interface AuthContextType {
     isLoading: boolean;
     login: (phone: string, password: string) => Promise<{ success: boolean; message: string }>;
     register: (name: string, phone: string, password: string) => Promise<{ success: boolean; message: string }>;
-    logout: () => Promise<void>;
+    logout: () => Promise<{ revoked: boolean; message: string }>;
     approveUser: (userId: string) => Promise<void>;
     rejectUser: (userId: string) => Promise<void>;
     deleteUser: (userId: string) => Promise<{ success: boolean; message: string }>;
@@ -34,6 +34,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         loadData();
     }, []);
+
+    useEffect(() => {
+        if (!serverConfig.apiToken || !user?.serverToken) return;
+        const { serverToken: _legacyToken, ...sanitizedUser } = user;
+        setUser(sanitizedUser);
+        AsyncStorage.setItem('currentUser', JSON.stringify(sanitizedUser)).catch(() => undefined);
+    }, [serverConfig.apiToken, user?.serverToken]);
 
     const normalizeUsers = (rawUsers: User[]): User[] => {
         const byKey = new Map<string, User>();
@@ -138,7 +145,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdAt: session.user.createdAt,
             lastActive: session.user.lastActive || new Date().toISOString(),
             serverRole: session.user.role,
-            serverToken: session.token,
             homeId: primaryHome?.id,
             homeName: primaryHome?.name,
             homeStatus: primaryHome?.status,
@@ -214,9 +220,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const logout = async () => {
+        let revoked = true;
+        let message = 'Đã đăng xuất và thu hồi phiên trên server.';
+        if (serverConfig.apiToken) {
+            try {
+                const client = new SmartHomeApiClient(serverConfig);
+                const response = await client.logout();
+                revoked = response.revoked;
+                if (!revoked) {
+                    message = 'Đã xóa phiên trên thiết bị nhưng server không xác nhận thu hồi phiên.';
+                }
+            } catch (error) {
+                revoked = false;
+                message = 'Đã xóa phiên trên thiết bị nhưng chưa thể xác nhận thu hồi phiên trên server.';
+                console.warn('Server session revocation could not be confirmed:', error);
+            }
+        }
         setUser(null);
         await AsyncStorage.removeItem('currentUser');
         await saveConfig({ ...serverConfig, apiToken: '', homeId: '' });
+        return { revoked, message };
     };
 
     const approveUser = async (userId: string) => {
@@ -258,11 +281,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const changePassword = async (currentPw: string, newPw: string): Promise<{ success: boolean; message: string }> => {
         if (!user) return { success: false, message: 'Chưa đăng nhập' };
-        if (user.serverToken || user.serverRole) {
-            if (newPw.length < 6) return { success: false, message: 'Mật khẩu mới phải có ít nhất 6 ký tự' };
+        if (serverConfig.apiToken || user.serverToken || user.serverRole) {
+            if (newPw.length < 12) return { success: false, message: 'Mật khẩu mới phải có ít nhất 12 ký tự' };
             const client = new SmartHomeApiClient({
                 ...serverConfig,
-                apiToken: user.serverToken || '',
+                apiToken: serverConfig.apiToken || user.serverToken || '',
                 homeId: user.homeId || '',
             });
             try {
@@ -278,7 +301,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const latestCurrent = latestUsers.find(u => u.id === user.id);
         if (!latestCurrent) return { success: false, message: 'Không tìm thấy tài khoản hiện tại' };
         if (latestCurrent.password !== currentPw) return { success: false, message: 'Mật khẩu hiện tại không đúng' };
-        if (newPw.length < 6) return { success: false, message: 'Mật khẩu mới phải có ít nhất 6 ký tự' };
+        if (newPw.length < 12) return { success: false, message: 'Mật khẩu mới phải có ít nhất 12 ký tự' };
         const updatedUser = { ...latestCurrent, password: newPw };
         const updatedUsers = latestUsers.map(u => u.id === user.id ? updatedUser : u);
         await saveUsers(updatedUsers);

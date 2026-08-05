@@ -20,6 +20,12 @@ interface BackendModelInfo extends ModelInfo {
 }
 
 const DEFAULT_TIMEOUT = 8000;
+const ALLOW_INSECURE_LAN_HTTP = __DEV__ && process.env.EXPO_PUBLIC_ALLOW_INSECURE_LAN_HTTP === 'true';
+
+export function isForecastUrlAllowed(url: string): boolean {
+    if (/^https:\/\//i.test(url)) return true;
+    return ALLOW_INSECURE_LAN_HTTP && /^http:\/\/(10\.|172\.|192\.168\.|127\.0\.0\.1|localhost)/i.test(url);
+}
 
 export class FlaskForecastProvider implements ForecastProvider {
     private readonly baseUrl: string;

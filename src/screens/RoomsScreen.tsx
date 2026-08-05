@@ -1,10 +1,25 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Colors } from '../constants/colors';
 import { roomIconImages } from '../constants/roomAssets';
+import { getRoomPresentation } from '../constants/roomPresentation';
+import { AppTheme } from '../constants/theme';
+
+const deviceIcons = {
+    light: 'bulb-outline',
+    fan: 'sync-outline',
+    ac: 'snow-outline',
+    outlet: 'power-outline',
+} as const;
+
+type DeviceControlUiState = {
+    status: 'pending' | 'success' | 'error';
+    message: string;
+};
 
 export default function RoomsScreen({ route }: any) {
     const { user } = useAuth();
@@ -16,12 +31,32 @@ export default function RoomsScreen({ route }: any) {
     const [newDeviceName, setNewDeviceName] = useState('');
     const [newDeviceType, setNewDeviceType] = useState<'light' | 'fan' | 'ac' | 'outlet'>('light');
     const [newDevicePower, setNewDevicePower] = useState('');
+    const [deviceControlStates, setDeviceControlStates] = useState<Record<string, DeviceControlUiState>>({});
 
     useEffect(() => {
         if (route?.params?.roomId) {
             setSelectedRoom(route.params.roomId);
         }
     }, [route?.params?.roomId, route?.params?.timestamp]);
+
+    const handleDeviceToggle = async (roomId: string, deviceId: string) => {
+        setDeviceControlStates(current => ({
+            ...current,
+            [deviceId]: {
+                status: 'pending',
+                message: 'Đang gửi lệnh; đang chờ server/PLC xác nhận...',
+            },
+        }));
+
+        const result = await toggleDevice(roomId, deviceId);
+        setDeviceControlStates(current => ({
+            ...current,
+            [deviceId]: {
+                status: result.success ? 'success' : 'error',
+                message: result.message,
+            },
+        }));
+    };
 
     if (selectedRoom) {
         const room = rooms.find(item => item.id === selectedRoom);
@@ -30,15 +65,32 @@ export default function RoomsScreen({ route }: any) {
         const roomDevices = getUserDevices(selectedRoom);
         const activeDevices = roomDevices.filter(device => device.isOn).length;
         const totalPower = roomDevices.filter(device => device.isOn).reduce((sum, device) => sum + device.power, 0);
+        const visual = getRoomPresentation(room);
+        const controlsDisabled = isHomeSuspended || isManualInventory;
 
         return (
             <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.roomHeader}>
-                    <TouchableOpacity onPress={() => setSelectedRoom(null)} style={styles.backBtn}>
-                        <Text style={{ fontSize: 22 }}>←</Text>
+                    <TouchableOpacity
+                        onPress={() => setSelectedRoom(null)}
+                        style={styles.backBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel="Quay lại danh sách phòng"
+                    >
+                        <Ionicons name="arrow-back" size={22} color={AppTheme.colors.ink} />
                     </TouchableOpacity>
-                    {roomIconImages[room.id] && (
-                        <Image source={roomIconImages[room.id]} style={styles.roomHeaderImage} resizeMode="cover" />
+                    {visual.imageKey ? (
+                        <Image
+                            source={roomIconImages[visual.imageKey]}
+                            style={styles.roomHeaderImage}
+                            resizeMode="cover"
+                            accessible
+                            accessibilityLabel={visual.accessibilityLabel}
+                        />
+                    ) : (
+                        <View style={styles.roomHeaderFallback} accessible accessibilityLabel={visual.accessibilityLabel}>
+                            <Ionicons name={visual.icon as any} size={25} color={AppTheme.colors.brand} />
+                        </View>
                     )}
                     <View style={{ flex: 1 }}>
                         <Text style={styles.roomTitle}>{room.name}</Text>
@@ -48,17 +100,17 @@ export default function RoomsScreen({ route }: any) {
 
                 <View style={styles.roomStats}>
                     <View style={styles.roomStatCard}>
-                        <Text style={{ fontSize: 14 }}>⚡</Text>
+                        <Ionicons name="flash-outline" size={18} color={AppTheme.colors.brand} />
                         <Text style={styles.roomStatLabel}>Công suất</Text>
                         <Text style={styles.roomStatValue}>{totalPower}W</Text>
                     </View>
                     <View style={styles.roomStatCard}>
-                        <Text style={{ fontSize: 14 }}>📱</Text>
+                        <Ionicons name="hardware-chip-outline" size={18} color={AppTheme.colors.brand} />
                         <Text style={styles.roomStatLabel}>Thiết bị</Text>
                         <Text style={styles.roomStatValue}>{roomDevices.length}</Text>
                     </View>
                     <View style={styles.roomStatCard}>
-                        <Text style={{ fontSize: 14 }}>✅</Text>
+                        <Ionicons name="checkmark-circle-outline" size={18} color={AppTheme.colors.brand} />
                         <Text style={styles.roomStatLabel}>Đang bật</Text>
                         <Text style={styles.roomStatValue}>{activeDevices}</Text>
                     </View>
@@ -72,61 +124,91 @@ export default function RoomsScreen({ route }: any) {
                 )}
 
                 <View style={styles.allBtnRow}>
-                    <TouchableOpacity disabled={isHomeSuspended || isManualInventory} style={[styles.allBtn, { backgroundColor: Colors.green[500] }, (isHomeSuspended || isManualInventory) && styles.disabledBtn]} onPress={async () => {
-                        const success = await turnAllOn(selectedRoom);
-                        if (!success) Alert.alert('Lỗi', 'Chưa thể bật tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
-                    }}>
-                        <Text style={styles.allBtnText}>⚡ Bật tất cả</Text>
+                    <TouchableOpacity
+                        disabled={controlsDisabled}
+                        style={[styles.allBtn, { backgroundColor: Colors.green[500] }, controlsDisabled && styles.disabledBtn]}
+                        accessibilityRole="button"
+                        accessibilityLabel="Bật tất cả thiết bị trong phòng"
+                        accessibilityState={{ disabled: controlsDisabled }}
+                        onPress={async () => {
+                            const success = await turnAllOn(selectedRoom);
+                            if (!success) Alert.alert('Lỗi', 'Chưa thể bật tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
+                        }}
+                    >
+                        <Ionicons name="flash-outline" size={18} color="#ffffff" />
+                        <Text style={styles.allBtnText}>Bật tất cả</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity disabled={isHomeSuspended || isManualInventory} style={[styles.allBtn, { backgroundColor: Colors.slate[200] }, (isHomeSuspended || isManualInventory) && styles.disabledBtn]} onPress={async () => {
-                        const success = await turnAllOffRoom(selectedRoom);
-                        if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
-                    }}>
-                        <Text style={[styles.allBtnText, { color: Colors.slate[700] }]}>🔌 Tắt tất cả</Text>
+                    <TouchableOpacity
+                        disabled={controlsDisabled}
+                        style={[styles.allBtn, { backgroundColor: Colors.slate[200] }, controlsDisabled && styles.disabledBtn]}
+                        accessibilityRole="button"
+                        accessibilityLabel="Tắt tất cả thiết bị trong phòng"
+                        accessibilityState={{ disabled: controlsDisabled }}
+                        onPress={async () => {
+                            const success = await turnAllOffRoom(selectedRoom);
+                            if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
+                        }}
+                    >
+                        <Ionicons name="power-outline" size={18} color={Colors.slate[700]} />
+                        <Text style={[styles.allBtnText, { color: Colors.slate[700] }]}>Tắt tất cả</Text>
                     </TouchableOpacity>
                 </View>
 
                 <Text style={styles.sectionTitle}>Thiết bị</Text>
                 {roomDevices.length === 0 ? (
                     <View style={styles.emptyDevicesCard}>
-                        <Text style={styles.emptyDevicesIcon}>📦</Text>
+                        <Ionicons name="cube-outline" size={30} color={AppTheme.colors.inkMuted} style={styles.emptyDevicesIcon} />
                         <Text style={styles.emptyDevicesTitle}>Phòng này chưa có thiết bị</Text>
                         <Text style={styles.emptyDevicesText}>Hãy thêm các thiết bị thực tế đang có trong nhà của bạn.</Text>
                     </View>
                 ) : (
-                    roomDevices.map(device => (
+                    roomDevices.map(device => {
+                        const controlState = deviceControlStates[device.id];
+                        const isControlPending = controlState?.status === 'pending';
+                        const isControlDisabled = isHomeSuspended || device.source === 'manual' || isControlPending;
+                        return (
                         <View key={device.id} style={[styles.deviceCard, device.isOn && styles.deviceCardActive]}>
                             <View style={styles.deviceLeft}>
                                 <View style={[styles.deviceIcon, { backgroundColor: device.isOn ? Colors.green[100] : Colors.slate[100] }]}>
-                                    <Text style={{ fontSize: 20 }}>
-                                        {device.type === 'light' ? '💡' : device.type === 'fan' ? '🌀' : device.type === 'ac' ? '❄️' : '🔌'}
-                                    </Text>
+                                    <Ionicons name={deviceIcons[device.type]} size={22} color={device.isOn ? Colors.green[700] : AppTheme.colors.inkMuted} />
                                 </View>
-                                <View>
+                                <View style={styles.deviceInfo}>
                                     <Text style={styles.deviceName}>{device.name}</Text>
-                                    <Text style={styles.deviceStatus}>{device.source === 'manual' ? `${device.power}W - Khai bao thu cong` : device.isOn ? `${device.power}W - Dang bat` : 'Da tat'}</Text>
+                                    <Text style={styles.deviceStatus}>{device.source === 'manual' ? `${device.power}W - Khai báo thủ công` : device.isOn ? `${device.power}W - Đang bật` : 'Đã tắt'}</Text>
+                                    {controlState && (
+                                        <Text
+                                            style={[
+                                                styles.controlFeedback,
+                                                controlState.status === 'success' && styles.controlFeedbackSuccess,
+                                                controlState.status === 'error' && styles.controlFeedbackError,
+                                            ]}
+                                            accessibilityLiveRegion="polite"
+                                        >
+                                            {controlState.message}
+                                        </Text>
+                                    )}
                                 </View>
                             </View>
                             <View style={styles.deviceActions}>
                                 <TouchableOpacity
                                     style={[styles.toggle, device.isOn && styles.toggleActive]}
-                                    disabled={isHomeSuspended || device.source === 'manual'}
-                                    onPress={async () => {
-                                        const result = await toggleDevice(selectedRoom, device.id);
-                                        if (!result.success) {
-                                            Alert.alert('Lỗi', result.error || 'Chưa thể điều khiển thiết bị. Kiểm tra PLC/server rồi thử lại.');
-                                        }
-                                    }}
+                                    disabled={isControlDisabled}
+                                    accessibilityRole="switch"
+                                    accessibilityLabel={`${device.isOn ? 'Tắt' : 'Bật'} ${device.name}`}
+                                    accessibilityState={{ checked: device.isOn, disabled: isControlDisabled, busy: isControlPending }}
+                                    onPress={() => void handleDeviceToggle(selectedRoom, device.id)}
                                 >
                                     <View style={[styles.toggleCircle, device.isOn && styles.toggleCircleActive]} />
                                 </TouchableOpacity>
                                 {canManageInventory && device.source !== 'server' && (
                                     <TouchableOpacity
                                         style={styles.deleteDeviceBtn}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Xóa thiết bị ${device.name}`}
                                         onPress={() => {
                                             Alert.alert('Xóa thiết bị', `Xóa "${device.name}" khỏi ${room.name}?`, [
                                                 { text: 'Hủy', style: 'cancel' },
-                                                { text: 'Xoa', style: 'destructive', onPress: async () => { const result = await deleteDevice(selectedRoom, device.id); if (!result.success) Alert.alert('Loi', result.error || 'Khong the xoa thiet bi'); } },
+                                                { text: 'Xóa', style: 'destructive', onPress: async () => { const result = await deleteDevice(selectedRoom, device.id); if (!result.success) Alert.alert('Lỗi', result.error || 'Không thể xóa thiết bị'); } },
                                             ]);
                                         }}
                                     >
@@ -135,7 +217,7 @@ export default function RoomsScreen({ route }: any) {
                                 )}
                             </View>
                         </View>
-                    ))
+                    )})
                 )}
 
                 {canManageInventory && (isManualInventory || !isServerControlled) && (
@@ -166,12 +248,13 @@ export default function RoomsScreen({ route }: any) {
                             <Text style={styles.modalLabel}>Loại thiết bị</Text>
                             <View style={styles.typeRow}>
                                 {[
-                                    { type: 'light' as const, label: '💡 Đèn' },
-                                    { type: 'fan' as const, label: '🌀 Quạt' },
-                                    { type: 'ac' as const, label: '❄️ Máy lạnh' },
-                                    { type: 'outlet' as const, label: '🔌 Ổ cắm' },
+                                    { type: 'light' as const, label: 'Đèn', icon: 'bulb-outline' as const },
+                                    { type: 'fan' as const, label: 'Quạt', icon: 'sync-outline' as const },
+                                    { type: 'ac' as const, label: 'Máy lạnh', icon: 'snow-outline' as const },
+                                    { type: 'outlet' as const, label: 'Ổ cắm', icon: 'power-outline' as const },
                                 ].map(item => (
                                     <TouchableOpacity key={item.type} style={[styles.typeBtn, newDeviceType === item.type && styles.typeBtnActive]} onPress={() => setNewDeviceType(item.type)}>
+                                        <Ionicons name={item.icon} size={18} color={newDeviceType === item.type ? AppTheme.colors.brand : AppTheme.colors.inkMuted} />
                                         <Text style={[styles.typeBtnText, newDeviceType === item.type && styles.typeBtnTextActive]}>{item.label}</Text>
                                     </TouchableOpacity>
                                 ))}
@@ -242,6 +325,13 @@ export default function RoomsScreen({ route }: any) {
                 </View>
             )}
 
+            {!isServerControlled && (
+                <View style={styles.localDataBanner}>
+                    <Ionicons name="information-circle-outline" size={18} color={Colors.amber[700]} />
+                    <Text style={styles.localDataText}>Dữ liệu cục bộ. Không phải phản hồi PLC.</Text>
+                </View>
+            )}
+
             {user?.role === 'admin' && (
                 <View style={styles.adminHintCard}>
                     <Text style={styles.adminHintTitle}>Quản trị viên</Text>
@@ -252,21 +342,46 @@ export default function RoomsScreen({ route }: any) {
             <View style={styles.roomGrid}>
                 {rooms.map(room => {
                     const isActive = room.active > 0;
+                    const visual = getRoomPresentation(room);
                     return (
-                        <TouchableOpacity key={room.id} style={[styles.roomCard, isActive && styles.roomCardActive]} onPress={() => setSelectedRoom(room.id)}>
+                        <TouchableOpacity
+                            key={room.id}
+                            style={[styles.roomCard, isActive && styles.roomCardActive]}
+                            onPress={() => setSelectedRoom(room.id)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Mở ${room.name}, ${room.active} trên ${room.devices} thiết bị đang hoạt động`}
+                        >
                             {isActive && <View style={styles.roomActiveDot} />}
                             <View style={[styles.roomCardIcon, isActive && styles.roomCardIconActive]}>
-                                {roomIconImages[room.id] ? (
-                                    <Image source={roomIconImages[room.id]} style={styles.roomCardIconImage} resizeMode="cover" />
+                                {visual.imageKey ? (
+                                    <Image
+                                        source={roomIconImages[visual.imageKey]}
+                                        style={styles.roomCardIconImage}
+                                        resizeMode="cover"
+                                        accessible
+                                        accessibilityLabel={visual.accessibilityLabel}
+                                    />
                                 ) : (
-                                    <Text style={{ fontSize: 22 }}>🏠</Text>
+                                    <Ionicons
+                                        name={visual.icon as any}
+                                        size={24}
+                                        color={isActive ? Colors.green[700] : AppTheme.colors.inkMuted}
+                                        accessible
+                                        accessibilityLabel={visual.accessibilityLabel}
+                                    />
                                 )}
                             </View>
                             <Text style={styles.roomCardName}>{room.name}</Text>
                             <Text style={styles.roomCardSub}>{room.active}/{room.devices} thiết bị</Text>
                             <View style={styles.roomCardStats}>
-                                <Text style={styles.roomCardStat}>⚡ {room.power}W</Text>
-                                <Text style={styles.roomCardStat}>📱 {room.devices} thiết bị</Text>
+                                <View style={styles.inlineStat}>
+                                    <Ionicons name="flash-outline" size={14} color={AppTheme.colors.inkMuted} />
+                                    <Text style={styles.roomCardStat}>{room.power}W</Text>
+                                </View>
+                                <View style={styles.inlineStat}>
+                                    <Ionicons name="hardware-chip-outline" size={14} color={AppTheme.colors.inkMuted} />
+                                    <Text style={styles.roomCardStat}>{room.devices} thiết bị</Text>
+                                </View>
                             </View>
                         </TouchableOpacity>
                     );
@@ -276,13 +391,17 @@ export default function RoomsScreen({ route }: any) {
             <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Cảnh nhanh</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {[
-                    { label: '☀️ Buổi sáng', colors: ['#d97706', '#f59e0b'], scene: 'morning' as const },
-                    { label: '⚡ Đi làm', colors: ['#0f766e', '#115e59'], scene: 'work' as const },
-                    { label: '🎉 Cuối tuần', colors: ['#256f5f', '#173a31'], scene: 'weekend' as const },
-                    { label: '💤 Ngủ', colors: ['#334155', '#13251f'], scene: 'sleep' as const },
+                    { label: 'Buổi sáng', icon: 'sunny-outline' as const, colors: ['#d97706', '#f59e0b'], scene: 'morning' as const },
+                    { label: 'Đi làm', icon: 'briefcase-outline' as const, colors: ['#0f766e', '#115e59'], scene: 'work' as const },
+                    { label: 'Cuối tuần', icon: 'people-outline' as const, colors: ['#256f5f', '#173a31'], scene: 'weekend' as const },
+                    { label: 'Ngủ', icon: 'moon-outline' as const, colors: ['#334155', '#13251f'], scene: 'sleep' as const },
                 ].map((item, index) => (
                     <TouchableOpacity
                         key={index}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Kích hoạt cảnh ${item.label}`}
+                        accessibilityState={{ disabled: isHomeSuspended }}
+                        disabled={isHomeSuspended}
                         onPress={() => {
                             Alert.alert('Kích hoạt cảnh', `Bật chế độ ${item.label}?`, [
                                 { text: 'Hủy', style: 'cancel' },
@@ -300,6 +419,7 @@ export default function RoomsScreen({ route }: any) {
                         }}
                     >
                         <LinearGradient colors={item.colors as [string, string]} style={styles.sceneBtn}>
+                            <Ionicons name={item.icon} size={18} color="#ffffff" />
                             <Text style={styles.sceneBtnText}>{item.label}</Text>
                         </LinearGradient>
                     </TouchableOpacity>
@@ -365,60 +485,66 @@ export default function RoomsScreen({ route }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#edf3f0' },
+    container: { flex: 1, backgroundColor: AppTheme.colors.canvas },
     content: { padding: 16, paddingBottom: 30 },
-    pageTitle: { fontSize: 28, fontWeight: '900', color: '#13251f', marginBottom: 16, marginTop: 8, letterSpacing: -0.4 },
-    sectionTitle: { fontSize: 17, fontWeight: '800', color: '#13251f', marginBottom: 10, letterSpacing: -0.1 },
-    addRoomBtn: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: '#0f766e', marginBottom: 14 },
+    pageTitle: { fontSize: 28, fontWeight: '900', color: AppTheme.colors.ink, marginBottom: 16, marginTop: 8, letterSpacing: -0.4 },
+    sectionTitle: { fontSize: 17, fontWeight: '800', color: AppTheme.colors.ink, marginBottom: 10, letterSpacing: -0.1 },
+    addRoomBtn: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: AppTheme.colors.brand, marginBottom: 14 },
     addRoomBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
     roomGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    roomCard: { width: '48%' as any, minHeight: 178, backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, position: 'relative', borderWidth: 1, borderColor: '#dce7e1' },
+    roomCard: { width: '48%' as any, minHeight: 178, backgroundColor: AppTheme.colors.surface, borderRadius: 18, padding: 14, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, position: 'relative', borderWidth: 1, borderColor: AppTheme.colors.border },
     roomCardActive: { borderColor: '#34d399', backgroundColor: '#f3fbf6', shadowOpacity: 0.1 },
     roomActiveDot: { position: 'absolute', top: 12, right: 12, width: 9, height: 9, borderRadius: 5, backgroundColor: Colors.green[500], borderWidth: 2, borderColor: '#f8fbf9' },
     roomCardIcon: { width: 58, height: 58, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 12, overflow: 'hidden', backgroundColor: '#e7eee9' },
     roomCardIconActive: { borderWidth: 2, borderColor: '#34d399' },
     roomCardIconImage: { width: '100%', height: '100%', borderRadius: 14 },
-    roomCardName: { fontSize: 15, fontWeight: '800', color: '#13251f' },
-    roomCardSub: { fontSize: 12, color: '#61736c', marginTop: 3, marginBottom: 10, fontWeight: '600' },
+    roomCardName: { fontSize: 15, fontWeight: '800', color: AppTheme.colors.ink },
+    roomCardSub: { fontSize: 12, color: AppTheme.colors.inkMuted, marginTop: 3, marginBottom: 10, fontWeight: '600' },
     roomCardStats: { gap: 5, marginTop: 'auto' },
-    roomCardStat: { fontSize: 11, color: '#50645c', fontWeight: '700', fontVariant: ['tabular-nums'] },
-    sceneBtn: { minWidth: 118, paddingHorizontal: 16, paddingVertical: 13, borderRadius: 14, marginRight: 10, shadowColor: '#173a31', shadowOpacity: 0.09, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 2 },
+    inlineStat: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    roomCardStat: { fontSize: 11, color: AppTheme.colors.inkMuted, fontWeight: '700', fontVariant: ['tabular-nums'] },
+    sceneBtn: { minWidth: 118, paddingHorizontal: 16, paddingVertical: 13, borderRadius: 14, marginRight: 10, shadowColor: '#173a31', shadowOpacity: 0.09, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
     sceneBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
-    energyCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 16, marginTop: 16, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
+    energyCard: { backgroundColor: AppTheme.colors.surface, borderRadius: 18, padding: 16, marginTop: 16, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, borderWidth: 1, borderColor: AppTheme.colors.border },
     energyRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
     energyLabel: { fontSize: 13, color: '#50645c', fontWeight: '700' },
-    energyValue: { fontSize: 13, fontWeight: '900', color: '#13251f', fontVariant: ['tabular-nums'] },
+    energyValue: { fontSize: 13, fontWeight: '900', color: AppTheme.colors.ink, fontVariant: ['tabular-nums'] },
     energyBarBg: { height: 9, backgroundColor: '#e7eee9', borderRadius: 999, overflow: 'hidden' },
     energyBarFill: { height: '100%', borderRadius: 999 },
-    roomHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderWidth: 1, borderColor: '#dce7e1', marginBottom: 14, backgroundColor: '#f8fbf9', borderRadius: 18, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2 },
+    roomHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderWidth: 1, borderColor: AppTheme.colors.border, marginBottom: 14, backgroundColor: AppTheme.colors.surface, borderRadius: 18, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2 },
     roomHeaderImage: { width: 46, height: 46, borderRadius: 14 },
-    backBtn: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e7eee9' },
-    roomTitle: { fontSize: 20, fontWeight: '900', color: '#13251f', letterSpacing: -0.2 },
-    roomSubtitle: { fontSize: 13, color: '#61736c', fontWeight: '600' },
+    roomHeaderFallback: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: AppTheme.colors.surfaceMuted },
+    backBtn: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: AppTheme.colors.surfaceMuted },
+    roomTitle: { fontSize: 20, fontWeight: '900', color: AppTheme.colors.ink, letterSpacing: -0.2 },
+    roomSubtitle: { fontSize: 13, color: AppTheme.colors.inkMuted, fontWeight: '600' },
     roomStats: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-    roomStatCard: { flex: 1, backgroundColor: '#f8fbf9', borderRadius: 16, padding: 12, alignItems: 'center', shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
-    roomStatLabel: { fontSize: 11, color: '#61736c', marginTop: 4, fontWeight: '700' },
-    roomStatValue: { fontSize: 19, fontWeight: '900', color: '#13251f', marginTop: 2, fontVariant: ['tabular-nums'] },
+    roomStatCard: { flex: 1, backgroundColor: AppTheme.colors.surface, borderRadius: 16, padding: 12, alignItems: 'center', shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2, borderWidth: 1, borderColor: AppTheme.colors.border },
+    roomStatLabel: { fontSize: 11, color: AppTheme.colors.inkMuted, marginTop: 4, fontWeight: '700' },
+    roomStatValue: { fontSize: 19, fontWeight: '900', color: AppTheme.colors.ink, marginTop: 2, fontVariant: ['tabular-nums'] },
     allBtnRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-    allBtn: { flex: 1, paddingVertical: 13, borderRadius: 13, alignItems: 'center', shadowColor: '#173a31', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 2 },
+    allBtn: { flex: 1, paddingVertical: 13, borderRadius: 13, flexDirection: 'row', gap: 7, justifyContent: 'center', alignItems: 'center', shadowColor: '#173a31', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 2 },
     allBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
-    deviceCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
+    deviceCard: { backgroundColor: AppTheme.colors.surface, borderRadius: 18, padding: 14, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2, borderWidth: 1, borderColor: AppTheme.colors.border },
     deviceCardActive: { borderColor: '#34d399', backgroundColor: '#f3fbf6' },
     deviceLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    deviceInfo: { flex: 1 },
     deviceActions: { alignItems: 'flex-end', gap: 8, marginLeft: 12 },
     deviceIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-    deviceName: { fontSize: 15, fontWeight: '800', color: '#13251f' },
-    deviceStatus: { fontSize: 12, color: '#61736c', marginTop: 3, fontWeight: '600', fontVariant: ['tabular-nums'] },
+    deviceName: { fontSize: 15, fontWeight: '800', color: AppTheme.colors.ink },
+    deviceStatus: { fontSize: 12, color: AppTheme.colors.inkMuted, marginTop: 3, fontWeight: '600', fontVariant: ['tabular-nums'] },
+    controlFeedback: { fontSize: 11, lineHeight: 16, color: Colors.amber[700], fontWeight: '700', marginTop: 5, fontVariant: ['tabular-nums'] },
+    controlFeedbackSuccess: { color: Colors.green[700] },
+    controlFeedbackError: { color: AppTheme.colors.danger },
     toggle: { width: 50, height: 28, borderRadius: 14, backgroundColor: '#cddbd5', justifyContent: 'center', paddingHorizontal: 2 },
     toggleActive: { backgroundColor: '#16a34a' },
     toggleCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', shadowColor: '#173a31', shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
     toggleCircleActive: { alignSelf: 'flex-end' },
     deleteDeviceBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: Colors.red[50], borderWidth: 1, borderColor: Colors.red[200] },
     deleteDeviceText: { fontSize: 12, fontWeight: '600', color: Colors.red[600] },
-    emptyDevicesCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 24, alignItems: 'center', marginBottom: 12, shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
-    emptyDevicesIcon: { fontSize: 28, marginBottom: 10 },
-    emptyDevicesTitle: { fontSize: 16, fontWeight: '800', color: '#13251f', marginBottom: 4 },
-    emptyDevicesText: { fontSize: 13, color: '#61736c', textAlign: 'center', lineHeight: 18 },
+    emptyDevicesCard: { backgroundColor: AppTheme.colors.surface, borderRadius: 18, padding: 24, alignItems: 'center', marginBottom: 12, shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2, borderWidth: 1, borderColor: AppTheme.colors.border },
+    emptyDevicesIcon: { marginBottom: 10 },
+    emptyDevicesTitle: { fontSize: 16, fontWeight: '800', color: AppTheme.colors.ink, marginBottom: 4 },
+    emptyDevicesText: { fontSize: 13, color: AppTheme.colors.inkMuted, textAlign: 'center', lineHeight: 18 },
     addDeviceBtn: { borderRadius: 12, overflow: 'hidden', marginTop: 10 },
     addDeviceBtnGradient: { padding: 14, alignItems: 'center' },
     addDeviceBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
@@ -428,9 +554,11 @@ const styles = StyleSheet.create({
     adminHintCard: { backgroundColor: '#fff8e6', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#f5d991', marginBottom: 14 },
     adminHintTitle: { fontSize: 14, fontWeight: '800', color: Colors.amber[700], marginBottom: 4 },
     adminHintText: { fontSize: 13, color: Colors.amber[700], lineHeight: 18 },
+    localDataBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.amber[50], borderRadius: 14, padding: 12, borderWidth: 1, borderColor: Colors.amber[200], marginBottom: 14 },
+    localDataText: { flex: 1, color: Colors.amber[700], fontSize: 12, fontWeight: '700', lineHeight: 17 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.56)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#f8fbf9', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, shadowColor: '#10251f', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: -10 }, elevation: 5 },
-    modalTitle: { fontSize: 20, fontWeight: '900', color: '#13251f', marginBottom: 16, letterSpacing: -0.2 },
+    modalContent: { backgroundColor: AppTheme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, shadowColor: '#10251f', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: -10 }, elevation: 5 },
+    modalTitle: { fontSize: 20, fontWeight: '900', color: AppTheme.colors.ink, marginBottom: 16, letterSpacing: -0.2 },
     modalLabel: { fontSize: 13, fontWeight: '800', color: '#50645c', marginBottom: 8, marginTop: 8 },
     modalInput: { backgroundColor: '#edf3f0', borderRadius: 14, padding: 14, fontSize: 16, color: '#13251f', borderWidth: 1, borderColor: '#cddbd5', marginBottom: 8, fontWeight: '700' },
     typeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },

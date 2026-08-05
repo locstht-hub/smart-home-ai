@@ -20,6 +20,7 @@ import pandas as pd
 # These must match train_lstm_forecast.py
 DEFAULT_LOOKBACK = 168
 FORECAST_HORIZON_HOURS = 24
+CAUSAL_FILL_LIMIT_HOURS = 6
 
 SEQUENCE_COLUMNS = [
     "power_kw",
@@ -128,9 +129,10 @@ class LstmPredictor:
         if df["power_kw"].isna().all():
             raise ValueError("history must include power_kw values")
 
-        df["power_kw"] = df["power_kw"].interpolate(limit_direction="both")
+        df["power_kw"] = df["power_kw"].ffill(limit=CAUSAL_FILL_LIMIT_HOURS)
         for col in numeric_cols[1:]:
-            df[col] = df[col].interpolate(limit_direction="both").fillna(0.0)
+            df[col] = df[col].ffill(limit=CAUSAL_FILL_LIMIT_HOURS).fillna(0.0)
+        df = df.dropna(subset=["power_kw"]).reset_index(drop=True)
 
         # Resample to hourly
         hourly = (
@@ -139,9 +141,13 @@ class LstmPredictor:
             .agg({col: "mean" if col not in ["sub_metering_1", "sub_metering_2", "sub_metering_3"] else "sum" for col in numeric_cols})
             .reset_index()
         )
-        hourly["power_kw"] = hourly["power_kw"].interpolate(limit_direction="both")
+        hourly["power_kw"] = hourly["power_kw"].ffill(limit=CAUSAL_FILL_LIMIT_HOURS)
         for col in numeric_cols[1:]:
-            hourly[col] = hourly[col].interpolate(limit_direction="both").fillna(0.0)
+            hourly[col] = hourly[col].ffill(limit=CAUSAL_FILL_LIMIT_HOURS).fillna(0.0)
+        if hourly["power_kw"].isna().any():
+            raise ValueError(
+                f"History contains a power_kw gap longer than {CAUSAL_FILL_LIMIT_HOURS} hours"
+            )
 
         # Add time features
         hourly = self._add_time_features(hourly)

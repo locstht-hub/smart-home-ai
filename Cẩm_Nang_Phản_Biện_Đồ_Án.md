@@ -213,7 +213,7 @@ LLM không nên tự bịa số `kW/kWh`. Khi có dữ liệu thật từ PLC/MF
    - Giúp hệ thống có một mốc tham chiếu (baseline/ceiling) để biết ngưỡng tiêu thụ tối đa lý thuyết của thiết bị.
    - Phù hợp cho đồ án/prototype khi không thể lắp cảm biến đo dòng điện (CT) cho từng ổ cắm/thiết bị riêng lẻ vì hạn chế chi phí và độ phức tạp phần cứng.
 2. **Giải pháp thực tế của hệ thống:**
-   - Hệ thống không chỉ dựa vào số liệu định mức nhập tay. Ta có **đồng hồ đo điện tổng MFM384** kết nối qua PLC gửi dữ liệu thời gian thực về server. Dữ liệu này đo đạc chính xác 100% công suất thực ($kW$) và điện năng ($kWh$) tổng của cả nhà, đã bao gồm cả hao mòn thiết bị và biến động điện áp thực tế.
+   - Hệ thống được thiết kế để nhận số đo tổng nhà từ **MFM384 qua PLC**. Hiện chưa có bộ log chuẩn đủ để tuyên bố độ chính xác ngoài hiện trường; sai số phải được xác định từ cấp chính xác của đồng hồ, biến dòng và quá trình hiệu chuẩn, không được nói “chính xác 100%”.
 3. **Hướng phát triển nâng cao (đề xuất khi bảo vệ):**
    - **Tích hợp Smart Plug (Ổ cắm thông minh):** Đo trực tiếp công suất thực tế của các tải lớn (như tủ lạnh, điều hòa) và gửi dữ liệu thời gian thực về API thay vì nhập tay.
    - **Ứng dụng thuật toán NILM (Non-Intrusive Load Monitoring):** Sử dụng AI phân tích dữ liệu dòng điện tổng đo từ MFM384 để nhận diện và tách biệt lượng điện tiêu thụ của từng thiết bị mà không cần lắp thêm cảm biến ở từng ổ cắm.
@@ -224,7 +224,7 @@ LLM không nên tự bịa số `kW/kWh`. Khi có dữ liệu thật từ PLC/MF
 
 **Trả lời:** Rất thuyết phục về mặt thuật toán và nghiên cứu khoa học. Sự thuyết phục nằm ở phương pháp kết hợp 2 trụ cột (Dual-Approach):
 
-1. **Tính chuẩn hóa quốc tế của UCI:** Tập dữ liệu UCI (Individual Household Electric Power Consumption) là tập dữ liệu benchmark tiêu chuẩn quốc tế với hơn 2 triệu dòng dữ liệu thực tế thu thập liên tục trong 4 năm tại Pháp. Cả thế giới (các nghiên cứu quốc tế IEEE/Springer) đều dùng tập dữ liệu này làm chuẩn so sánh. Việc dùng UCI giúp loại bỏ hoàn toàn sự nghi ngờ về tính nhiễu hoặc sai số của dữ liệu tự thu thập ngắn hạn.
+1. **Vai trò của UCI:** UCI Individual Household Electric Power Consumption là tập dữ liệu công khai dài hạn, phù hợp để xây pipeline và so sánh mô hình. Bộ chạy chuẩn hiện tại sử dụng 507.970 dòng thô sau bước nạp/lọc của pipeline. UCI giúp benchmark có thể tái lập nhưng không loại bỏ sai số và không chứng minh mô hình phù hợp với hộ gia đình tại Cần Thơ.
 2. **Phương pháp kết hợp 2 trụ cột (Dual-Approach) cho luận văn:**
    - **Trụ cột 1 (Thuật toán AI):** Sử dụng dữ liệu UCI để huấn luyện và đánh giá định lượng năng lực của các mô hình Machine Learning (XGBoost, Random Forest) qua các chỉ số chuẩn ($MAE, RMSE, R^2 = 0.945$).
    - **Trụ cột 2 (Phần cứng thực tế):** Sử dụng mô hình phần cứng PLC S7-1200 + MFM384 để kiểm thử thực nghiệm khả năng truyền thông thời gian thực, điều khiển khép kín và đo đạc thực tế.
@@ -235,18 +235,20 @@ LLM không nên tự bịa số `kW/kWh`. Khi có dữ liệu thật từ PLC/MF
 
 **Trả lời:** Trong kỹ thuật IoT và tự động hóa, việc này được giải quyết hợp lý bằng 2 luận điểm:
 
-1. **Thu thập dữ liệu theo ca thực nghiệm tập trung (Session-based Testing):** Sinh viên tiến hành các ca thử nghiệm từ 2-4 tiếng khi làm việc tại phòng lab với tủ điện, đại diện cho các khung giờ sinh hoạt khác nhau trong ngày (sáng, tối, cao điểm). Với tần số lấy mẫu 60 giây/lần, vài tuần thử nghiệm đã tạo ra hơn 30.000 điểm mẫu dữ liệu (`data points`) thời gian thực, hoàn toàn đủ độ lớn thống kê.
-2. **Kiến trúc triển khai thực tế (Production Architecture vs Prototype):** Trong giai đoạn prototype/luận văn, backend chạy trên laptop để thuan tiện phát triển. Khi triển khai thực tế (production), backend sẽ được đóng gói lên các thiết bị nhúng nhỏ gọn tiêu thụ ít điện năng như Edge Gateway (Raspberry Pi hoặc Industrial Mini PC) đặt cố định trong tủ điện cùng PLC để tự động thu thập dữ liệu 24/7 mà không cần máy tính cá nhân.
+1. **Thu thập dữ liệu theo ca thực nghiệm tập trung (session-based testing):** Có thể chạy các ca 2–4 giờ tại phòng lab, nhưng chỉ báo cáo số điểm thực thu được từ raw log. Hiện chưa có bằng chứng chuẩn cho con số 30.000 điểm, nên không sử dụng con số đó khi phản biện.
+2. **Kiến trúc triển khai:** Trong prototype, backend chạy trên laptop. Kiến trúc production đề xuất chuyển sang edge gateway chạy liên tục trong LAN của PLC; đây là hướng triển khai, chưa phải kết quả đã xác nhận.
 
 ---
 
 ### Câu hỏi 12e: Các kịch bản tải thật (Real-world Load Scenarios) được thiết lập như thế nào để chứng minh hệ thống hoạt động đúng trong thực tế?
 
-**Trả lời:** Ngoài dữ liệu UCI, hệ thống được kiểm thử đối chứng qua 3 kịch bản tải thật tại hiện trường:
+**Trả lời:** Ba kịch bản sau là **kế hoạch thực nghiệm**, chưa được gọi là kết quả hoàn thành nếu chưa có raw log, ảnh bố trí tải, thông số thiết bị đo và đủ số lần lặp:
 
-1. **Kịch bản SC-01 (Vắng nhà / Tiết kiệm):** Tắt hết thiết bị, chỉ chừa 1 tải nhỏ (đèn ngủ 15W) để chứng minh hệ thống nhận diện đúng công suất nền ($I \approx 0.07A$).
-2. **Kịch bản SC-02 (Sinh hoạt bình thường):** Bật 1-2 đèn phòng (đèn khách 45W + đèn bếp 35W) để kiểm tra tính ổn định đo lường của MFM384 khi tải thay đổi.
-3. **Kịch bản SC-03 (Giờ cao điểm / Cảnh báo Quota):** Bật tất cả thiết bị đồng thời để kích hoạt mức công suất tối đa, kiểm tra thanh Quota trên App chuyển sang màu đỏ và hệ thống phát cảnh báo vượt hạn mức.
+1. **SC-01 (tải nền):** Dùng tải nhỏ đã đo độc lập để kiểm tra khả năng nhận biết công suất nền.
+2. **SC-02 (thay đổi tải):** Đóng/cắt từng tải đã biết để so sánh biến thiên tại MFM384, PLC, API và app.
+3. **SC-03 (tải cao/cảnh báo quota):** Dùng tải an toàn trong giới hạn tủ điện để kiểm tra cảnh báo giao diện; không dùng kịch bản này để tự động cắt tải.
+
+Mỗi điều kiện nên có ít nhất 30 lần lặp đối với latency, đồng bộ thời gian và lưu log thô để tính median, p95, tỷ lệ thành công và timeout.
 
 ---
 
@@ -315,9 +317,9 @@ Không nên phát triển thêm quá nhiều giao diện hoặc AI Assistant tr�
 
 ### Câu hỏi 17: Vì sao chatbot runtime tạm thời dùng Gemini API, còn LoRA/Unsloth để hướng phát triển?
 
-**Trả lời:** Trong giai đoạn demo, hệ thống ưu tiên độ ổn định của điều khiển PLC và tốc độ phản hồi cho người dùng. Vì vậy chatbot runtime có thể dùng Gemini API thông qua backend để trả lời các câu hỏi giải thích dữ liệu, quota, forecast và cách dùng app.
+**Trả lời:** Trong giai đoạn demo, hệ thống ưu tiên độ ổn định của luồng điều khiển PLC và khả năng phản hồi của giao diện. Chatbot được tách thành một dịch vụ tư vấn; backend có thể cấu hình nhà cung cấp `Gemini`, `mock` hoặc `local_lora` mà không cho mô hình ngôn ngữ quyền ghi trực tiếp xuống PLC.
 
-Mô hình LoRA fine-tune bằng Unsloth vẫn có giá trị vì chứng minh hệ thống đã xây dựng được dataset tiếng Việt riêng cho User Energy Assistant. Bản hiện tại đã train với 329 mẫu train, 39 mẫu eval và đạt 138/140 điểm, tương đương 98.6%, trên bộ test nội bộ 70 câu. Tuy nhiên khi chạy LoRA local trên laptop không có GPU mạnh, thời gian phản hồi có thể chậm hơn API cloud, đặc biệt với câu hỏi phân tích dài.
+Kho mã hiện có dữ liệu và kịch bản phục vụ hướng fine-tune LoRA/Unsloth, nhưng chưa có bộ bằng chứng chuẩn gồm artifact mô hình, log huấn luyện, cấu hình phần cứng, thời gian suy luận và kết quả đánh giá có thể tái lập. Vì vậy khi phản biện **không tuyên bố LoRA đã huấn luyện thành công hoặc đạt 98,6%** nếu chưa xuất trình đủ các bằng chứng này.
 
 Kiến trúc hiện tại tách rõ hai nhóm tác vụ:
 
@@ -330,96 +332,74 @@ Nhờ vậy lệnh bật/tắt thiết bị không phụ thuộc vào LLM. Nếu
 
 Hướng phát triển sau này:
 
-1. Giữ Gemini API cho demo nhanh và ổn định.
-2. Dùng `local_lora` khi có máy đủ mạnh hoặc AI server riêng.
-3. Backend chỉ cần đổi `assistant.provider`, app không cần thay đổi lớn.
-4. LoRA local có thể triển khai riêng thành AI server, nhận context từ backend rồi trả lời.
+1. Dùng Gemini API khi cần bản demo phản hồi ổn định và có kết nối mạng.
+2. Dùng `mock` cho kiểm thử hợp đồng phần mềm, không xem là bằng chứng chất lượng AI.
+3. Chỉ công bố `local_lora` sau khi có artifact và báo cáo đánh giá tái lập.
+4. Backend chỉ đổi `assistant.provider`; ứng dụng không cần thay đổi luồng điều khiển thiết bị.
 
-Kết luận: Gemini API là giải pháp runtime tạm thời để demo ổn định; LoRA/Unsloth là hướng phát triển để chủ động mô hình AI riêng, giảm phụ thuộc API ngoài và tăng giá trị nghiên cứu của đồ án.
----
-
-### Cau hoi moi - Sau khi them Supabase thi SQLite con vai tro gi, va du lieu nhieu nha duoc tach nhu the nao?
-
-**Tra loi:** He thong hien tai ho tro hai che do luu tru:
-
-```text
-Khong co DATABASE_URL -> dung SQLite local
-Co DATABASE_URL       -> dung Supabase/Postgres
-```
-
-SQLite van co gia tri trong giai doan prototype vi chay local nhanh, de demo offline va de fallback khi chua cau hinh cloud database. Supabase/Postgres la huong nang cap de luu tru tap trung, phu hop hon khi can demo nhieu thiet bi, nhieu nha hoac can du lieu khong phu thuoc vao laptop local.
-
-Du lieu nhieu nha khong bi tron vi backend tach theo `home_id`:
-
-1. Bang `homes` luu tung nha, moi nha co `id` rieng.
-2. Bang `home_members` gan `user_id` voi `home_id` va vai tro trong nha.
-3. Bang `power_readings` luu du lieu dien nang, moi dong luon co `home_id`.
-4. Bang `audit_logs` co `home_id` de truy vet thao tac theo tung nha.
-5. Bang `users` chi luu tai khoan; quyen cua tai khoan trong tung nha nam o `home_members`.
-
-Luon dung luong truy cap:
-
-```text
-Mobile App/Admin Site -> Flask Backend -> SQLite hoac Supabase/Postgres
-```
-
-App mobile khong ghi truc tiep vao Supabase. Backend van la lop kiem tra token, kiem tra user co quyen tren `home_id` hay khong, ghi audit log, sau do moi doc/ghi database. Cach nay giup bao mat hon va giu duoc logic dieu khien PLC o backend.
-
-Neu hoi vi sao khong dung Supabase truc tiep tu app, cau tra loi ngan gon la: app khong nen co quyen truy cap database/PLC truc tiep. Tat ca lenh quan trong phai qua backend de kiem tra quyen, log thao tac va xu ly an toan.
-
-Trang thai hien tai nen trinh bay la:
-
-```text
-Da co tuy chon Supabase/Postgres va da test ket noi thanh cong.
-SQLite van duoc giu lam fallback local.
-Chua dung Supabase Auth; backend van dung auth/session rieng de giam rui ro thay doi lon.
-```
+Kết luận: Gemini API là lựa chọn runtime cho phần hỏi đáp; LoRA/Unsloth hiện là hướng nghiên cứu. Cả hai đều độc lập với đường điều khiển an toàn.
 
 ---
 
-### Cau hoi moi - Backend con chay tren laptop thi co thuc te khong?
+### Câu hỏi 18: Sau khi thêm Supabase/PostgreSQL thì SQLite còn vai trò gì, và dữ liệu nhiều nhà được tách như thế nào?
 
-**Tra loi:** Trong giai doan prototype, backend duoc trien khai tren laptop de thuan tien phat trien, debug va kiem thu voi PLC/MFM384. Dieu nay phu hop voi giai doan do an vi lap trinh vien can sua code nhanh, xem log truc tiep va test lien tuc voi thiet bi trong phong lab.
-
-Tuy nhien, backend tren laptop khong nen duoc xem la kien truc production cuoi cung. Neu tat laptop thi app khong goi duoc backend, du server database Supabase van con du lieu. Vi vay du an da tach ro hai tang:
+**Trả lời:** Hệ thống hỗ trợ hai chế độ lưu trữ:
 
 ```text
-Backend Flask: hien chay tren laptop de phat trien va kiem thu.
-Database: da co tuy chon Supabase/Postgres de luu tru tap trung tren cloud.
+Không có DATABASE_URL -> dùng SQLite cục bộ
+Có DATABASE_URL       -> dùng PostgreSQL/Supabase
 ```
 
-Khi trien khai thuc te, backend co the duoc chuyen sang edge gateway nhu mini PC, Raspberry Pi hoac industrial PC dat cung mang voi PLC/MFM384:
+SQLite phù hợp cho phát triển và demo cục bộ. PostgreSQL/Supabase phù hợp hơn khi cần lưu trữ tập trung và nhiều hộ. Việc có mã hỗ trợ hai chế độ không đồng nghĩa bản cloud đã được chứng nhận cho production.
+
+Dữ liệu nhiều nhà được tách theo `home_id`:
+
+1. `homes` lưu từng nhà với mã riêng.
+2. `home_members` gắn `user_id`, `home_id` và vai trò trong nhà.
+3. `power_readings` và `audit_logs` luôn gắn với `home_id`.
+4. Backend kiểm tra tư cách thành viên trước khi đọc dữ liệu hoặc gửi lệnh.
+
+Luồng truy cập đúng là:
+
+```text
+Mobile App/Admin Site -> Flask Backend -> SQLite hoặc PostgreSQL/Supabase
+```
+
+Ứng dụng không ghi trực tiếp vào database hoặc PLC. Flask Backend chịu trách nhiệm xác thực phiên, kiểm tra quyền theo nhà, ghi nhật ký và điều phối I/O PLC.
+
+---
+
+### Câu hỏi 19: Backend còn chạy trên laptop thì có thực tế không?
+
+**Trả lời:** Laptop phù hợp cho prototype, debug và kiểm thử trong phòng lab, nhưng không phải kiến trúc production cuối cùng. Nếu laptop tắt thì dịch vụ API và đường điều khiển từ xa không hoạt động, dù database bên ngoài có thể vẫn lưu dữ liệu.
+
+```text
+Prototype: Flask Backend chạy trên máy phát triển
+Triển khai sau này: Flask Backend chạy trên edge gateway trong LAN của PLC
+```
+
+Khi triển khai thực tế, backend có thể chuyển sang mini PC, Raspberry Pi hoặc industrial PC đặt cùng mạng với PLC/MFM384. Đây là kiến trúc đề xuất, chưa phải kết quả triển khai đã được đo kiểm.
 
 ```text
 Mobile App/Admin Site
-        |
-        v
-Edge Gateway chay Flask Backend
-        |
-        +--> PLC/MFM384 trong mang noi bo
-        |
-        +--> Supabase/Postgres cloud
+        -> Edge Gateway chạy Flask Backend
+             -> PLC/MFM384 trong mạng nội bộ
+             -> PostgreSQL/Supabase (tùy cấu hình)
 ```
 
-Cach nay hop ly hon viec dua backend truc tiep len cloud, vi PLC/MFM384 thuong nam trong mang noi bo va khong nen mo truc tiep ra Internet. Edge gateway giup:
+PLC không nên được mở trực tiếp ra Internet. Edge gateway giữ đường PLC trong LAN; truy cập từ xa cần VPN/tunnel và chính sách bảo mật được cấu hình riêng.
 
-1. Backend van doc/ghi PLC on dinh trong LAN.
-2. He thong van co the chay lien tuc ma khong phu thuoc laptop phat trien.
-3. Du lieu van duoc dong bo len Supabase/Postgres de luu tru tap trung.
-4. App co the goi backend qua LAN, Cloudflare Tunnel, VPN hoac domain rieng.
-5. Kien truc phu hop hon voi mo hinh IoT/industrial edge.
+Câu trả lời ngắn khi phản biện:
 
-Cau tra loi ngan gon khi phan bien:
-
-> Trong prototype, backend chay tren laptop de de phat trien va kiem thu voi PLC. Du lieu da duoc tach sang Supabase/PostgreSQL de luu tru tap trung. Khi trien khai thuc te, backend se duoc chuyen sang edge gateway nhu mini PC hoac Raspberry Pi dat cung mang voi PLC/MFM384, giup he thong hoat dong lien tuc va giam phu thuoc vao may phat trien.
+> Trong prototype, backend chạy trên laptop để phát triển và kiểm thử. Kiến trúc production đề xuất chuyển backend sang edge gateway đặt cùng LAN với PLC; phương án này vẫn cần được triển khai và đo kiểm thực tế.
 
 ---
 
-### Cau hoi moi - He thong quan ly thiet bi tung nha nhu the nao neu chi lam muc 1?
+### Câu hỏi 20: Hệ thống quản lý thiết bị từng nhà như thế nào khi chưa đo riêng từng tải?
 
-**Tra loi:** Muc 1 cua du an la quan ly phong va thiet bi theo cach khai bao thu cong, phu hop voi prototype va luan van. Nguoi dung/owner/admin se tao phong, tao thiet bi, gan thiet bi vao phong va nhap cong suat dinh muc cua thiet bi.
+**Trả lời:** Ở mức hiện tại, owner/admin khai báo phòng, thiết bị, loại thiết bị và công suất định mức. Dữ liệu công suất đo thực tế là số đo tổng nhà từ PLC/MFM384; không được trình bày công suất định mức như số đo thời gian thực của từng thiết bị.
 
-Cau truc du lieu tren Supabase/Postgres:
+Cấu trúc dữ liệu:
 
 ```text
 homes
@@ -428,70 +408,105 @@ homes
   -> power_readings
 ```
 
-Trong do:
-
-1. `rooms` luu danh sach phong cua tung nha, moi phong co `home_id`.
-2. `devices` luu danh sach thiet bi, moi thiet bi co `home_id`, co the co `room_id`, loai thiet bi va `rated_power_w`.
-3. `device_events` luu lich su tao/sua/bat/tat/dong bo trang thai thiet bi.
-4. `power_readings` van luu du lieu do dien thuc te theo tong nha.
-
-Can noi ro khi phan bien:
+Trong đó, `rooms` và `devices` thuộc một `home_id`; `device_events` lưu lịch sử thao tác; `power_readings` lưu dữ liệu đo tổng nhà. Cần nói rõ khi phản biện:
 
 ```text
-Cong suat tung thiet bi trong muc 1 la cong suat dinh muc do nguoi dung nhap,
-khong phai gia tri do rieng tung thiet bi trong thoi gian thuc.
-Du lieu do dien thuc te hien duoc lay theo tong nha tu PLC/MFM384 va luu vao power_readings.
+Công suất của từng thiết bị hiện là công suất định mức do người dùng nhập,
+không phải giá trị đo riêng từng tải theo thời gian thực.
 ```
 
-Ly do cach nay hop ly:
-
-1. Phu hop voi giai doan prototype vi khong can lap cam bien rieng cho tung thiet bi.
-2. Van mo ta duoc cau truc nha thong minh: nha, phong, thiet bi, quyen nguoi dung.
-3. Du cho app/admin site hien thi va quan ly tai san thiet bi.
-4. De mo rong sau nay bang cach gan moi thiet bi voi kenh do rieng hoac PLC tag rieng.
-
-
-## 4. Chuyên ngành Điện và Bảo mật hệ thống (OT Security)
-
-### Câu hỏi 21: Đồ án này có bị thiên quá nhiều về ngành Công nghệ thông tin (IT) không? Làm thế nào để chứng minh tính chuyên ngành Điện/Điện tử?
-
-**Trả lời:** Đồ án này tích hợp liên ngành nhưng trọng tâm 100% là giải quyết bài toán Điện và Tự động hóa:
-1. **Thiết bị đo lường chuyên dụng:** Sử dụng đồng hồ đa năng công nghiệp MFM384 để đo lường thực tế các đại lượng điện nòng cốt ($V, I, P, PF, kWh$).
-2. **Truyền thông công nghiệp:** Cấu hình và lập trình giao thức Modbus RTU RS485 qua module CM 1241 để đọc thanh ghi dữ liệu điện năng của thiết bị hiện trường về PLC SIMATIC S7-1200.
-3. **Thuật toán chuyên ngành Điện:** Thuật toán Sa thải phụ tải chủ động (Active Load-shedding) là thuật toán kinh điển trong quản lý hệ thống điện và lưới điện thông minh (Smart Grid/DSM), nhằm bảo vệ các thiết bị đóng cắt và bảo vệ quá tải đường dây.
-4. **Hệ thống điều khiển tại chỗ (Local Automation):** Toàn bộ logic an toàn và ngắt contactor được nạp trực tiếp vào chương trình PLC để chạy độc lập. Nếu mất mạng internet hoặc mất kết nối API Cloud, PLC vẫn thực thi bảo vệ ngắt tải tại chỗ bình thường.
+Muốn đánh giá từng tải thật, cần gắn kênh đo hoặc tag PLC riêng và hiệu chuẩn thiết bị đo.
 
 ---
 
-### Câu hỏi 22: Tại sao cơ chế phân quyền (Admin/Owner/Member) lại quan trọng đối với một hệ thống điều khiển điện như HEMS?
+## 6. Những phần mềm đã hoàn thiện thêm và cách chứng minh phản hồi ứng dụng
 
-**Trả lời:** Trong các hệ thống điều khiển công nghiệp và lưới điện thông minh (OT Security), phân quyền và ghi nhật ký là yêu cầu kỹ thuật và an toàn bắt buộc:
-1. **Bảo vệ thiết bị vật lý:** PLC điều khiển trực tiếp các tải động lực (contactor, relay). Nếu không phân quyền, bất kỳ ai cũng có thể gửi lệnh điều khiển. Việc gửi lệnh bật/tắt liên tục hoặc xung đột sẽ làm hỏng tiếp điểm contactor, cháy cuộn dây relay hoặc hỏng động cơ.
-2. **An toàn lao động khi bảo trì (Lockout/Tagout):** Khi thiết bị đang được bảo trì tại hiện trường, tài khoản `owner` có quyền khóa thiết bị trên phần mềm để tài khoản `member` không thể vô tình bật thiết bị từ xa qua điện thoại di động, tránh gây tai nạn giật điện.
-3. **Nhật ký sự cố điện (Audit logs):** Bảng nhật ký `audit_logs` đóng vai trò là nhật ký vận hành trạm. Khi có sự cố quá tải hoặc thiết bị bị ngắt, kỹ sư điện có thể tra cứu lịch sử để phân tích xem đây là do thuật toán tự động sa thải tải (Auto-shedding) hay do con người điều khiển sai để khắc phục.
+### Câu hỏi 21: Sau bản thảo ngày 12/7, phần mềm đã hoàn thiện thêm những gì?
 
----
+**Trả lời:** Có thể trình bày các phần đã có trong mã. Backend, forecast, research, admin audit và helper ánh xạ phòng đã vượt các bộ test riêng; cổng frontend tổng hiện đạt 16/20 nên không nói toàn bộ giao diện đã kiểm thử hoàn tất:
 
-### Câu hỏi 23: Tại sao hệ thống lại tích hợp thêm tính năng cảnh báo qua SMS? Chức năng này có vai trò điều khiển đóng cắt thiết bị hay không?
+1. Token người dùng được lưu bằng SecureStore; đăng xuất phía server có thu hồi phiên; API người dùng chỉ nhận Bearer token.
+2. Phân quyền theo `home_id`, tách credential thu thập telemetry và giới hạn đăng nhập.
+3. I/O PLC được tuần tự hóa; trạng thái thiết bị lấy từ đường feedback độc lập; scene trả kết quả theo từng thiết bị và xử lý lỗi một phần.
+4. Collector có backoff; dữ liệu mock không được ghi như dữ liệu thật trong chế độ tự động.
+5. Forecast API kiểm tra checksum/kích thước artifact, giới hạn request, từ chối timestamp sai và trả `501` cho retrain chưa triển khai.
+6. App có trạng thái chờ/thành công/lỗi rõ hơn, nhãn trợ năng, lỗi đăng nhập tại chỗ và ẩn/hiện mật khẩu. Bốn regression frontend còn phải sửa: tích hợp helper hình phòng/nhãn trợ năng, tiếng Việt có dấu, một đường xử lý bàn phím Android thống nhất và AppTheme dùng chung trong RoomsScreen.
 
-**Trả lời:** Hệ thống tích hợp SMS như một kênh cảnh báo mở rộng bên cạnh thông báo đẩy trên ứng dụng di động để đảm bảo độ tin cậy thông tin:
-1. **Bảo đảm thông tin truyền suốt:** Thông báo đẩy (push notification) trên ứng dụng phụ thuộc vào kết nối mạng internet 3G/4G/Wi-Fi của điện thoại. Trong trường hợp điện thoại chủ nhà mất mạng nhưng vẫn có sóng viễn thông, tin nhắn SMS là kênh dự phòng khẩn cấp tối ưu để họ nhận được cảnh báo vượt quota điện năng tháng.
-2. **Cảnh báo khẩn cấp có chọn lọc:** SMS chỉ được gửi khi điện năng sử dụng đạt các ngưỡng quan trọng (90%, 100%) và tích hợp giải thuật giới hạn tần suất (rate-limiting) chỉ gửi một lần duy nhất cho mỗi ngưỡng để tránh gây phiền hà và tốn kém chi phí cho chủ hộ.
-3. **An toàn bảo mật (OT Security):** SMS trong hệ thống này **thuần túy là kênh cảnh báo một chiều (notification-only)**, không hỗ trợ bất kỳ cú pháp tin nhắn nào để điều khiển đóng/cắt thiết bị điện từ xa hay tác động trực tiếp xuống PLC S7-1200. Điều này loại bỏ hoàn toàn nguy cơ kẻ tấn công giả mạo tin nhắn SMS để can thiệp trái phép vào hệ thống điện gia đình, đảm bảo an toàn vận hành ở biên.
-
----
-
-### Câu hỏi 24: Hệ thống HEMS có tự động ngắt tải ngay lập tức khi lượng điện năng tiêu thụ vượt quota tháng (kWh) hay không? Cơ chế an toàn ở đây là gì?
-
-**Trả lời:** Hệ thống **không tự động ngắt tải ngay lập tức** khi vượt quota điện năng tháng (kWh). Logic xử lý được phân tầng rõ ràng để đảm bảo an toàn sinh hoạt:
-1. **Cảnh báo và Đề xuất (Chính):** Khi điện năng tháng (kWh) chạm các ngưỡng 80%, 90%, và 100% hạn mức, hệ thống chỉ gửi thông báo đẩy (push notification) lên ứng dụng di động và gửi SMS cảnh báo đến chủ nhà, kèm theo đề xuất giải pháp tiết kiệm để chủ nhà tự điều chỉnh thiết bị.
-2. **Sa thải phụ tải có điều kiện (Nâng cao):** Việc tự động ngắt tải chỉ áp dụng cho các thiết bị phi thiết yếu (như bình nóng lạnh, điều hòa phòng khách) và chỉ kích hoạt khi chủ nhà chủ động thiết lập bật 'Chế độ tự động sa thải tải' trên ứng dụng di động. Các tải thiết yếu (chiếu sáng phòng ngủ, thiết bị y tế, tủ lạnh) hoàn toàn không bị ảnh hưởng, đảm bảo giảm rủi ro ảnh hưởng đến tải quan trọng và nâng cao an toàn vận hành cho người sử dụng.
-3. **Ngưỡng công suất tức thời ($P_{limit}$):** Hệ thống phân biệt rõ quota điện năng tháng (kWh) và ngưỡng công suất tức thời $P_{limit}$ (kW). Việc ngắt tải để bảo vệ an toàn điện chỉ xảy ra khi công suất tức thời vượt quá giới hạn an toàn của đường dây (kW) để tránh chập cháy, và cũng tuân thủ feedback phản hồi khép kín từ PLC.
+Đây là bằng chứng phần mềm; không dùng nó để thay thế số đo PLC/MFM384 hoặc latency phần cứng.
 
 ---
 
-### Câu hỏi 25: Mô hình AI dự báo phụ tải có trực tiếp tham gia vào việc ra lệnh đóng cắt thiết bị hay không?
+### Câu hỏi 22: Có cần đưa khả năng xử lý phản hồi của ứng dụng vào luận văn và bài báo không?
 
-**Trả lời:** Trong phiên bản thiết kế hiện tại, mô hình AI **không trực tiếp tham gia vào việc ra lệnh đóng cắt thiết bị**:
-1. **Vai trò dự báo sớm:** AI dự báo phụ tải chuỗi thời gian (24 giờ tiếp theo) đóng vai trò cung cấp thông tin tham khảo sớm về xu hướng tiêu thụ điện cho chủ nhà và hỗ trợ Backend tính toán đề xuất phương án tiết kiệm năng lượng tối ưu.
-2. **Đảm bảo an toàn bằng logic cứng:** Lệnh đóng cắt thiết bị khi quá tải đường dây hoặc khi sa thải phụ tải có điều kiện được thực thi bởi các thuật toán logic cứng (rule-based) cài đặt trực tiếp trên PLC S7-1200 và Flask Backend. Điều này đảm bảo tính ổn định, phản hồi thời gian thực và tránh các sai sót không mong muốn của mô hình dự báo AI (như sai số dự báo hoặc mất kết nối mạng Cloud).
+**Trả lời:** Có, đặc biệt trong luận văn, vì phản hồi khép kín là điểm nối giữa app, backend và PLC. Không nên chỉ chèn ảnh màn hình đẹp. Nên đưa một chuỗi bằng chứng:
+
+```text
+Người dùng thao tác
+  -> app hiển thị trạng thái đang xử lý
+  -> backend xác thực và kiểm tra quyền
+  -> hàng đợi ghi lệnh PLC
+  -> đọc feedback trạng thái độc lập
+  -> app hiển thị thành công, lỗi hoặc timeout
+```
+
+Luận văn nên có sơ đồ tuần tự, ảnh ghép 4 trạng thái `loading/success/error/timeout` và bảng test case. Bài báo chỉ nên dành chỗ cho phần này nếu phản hồi end-to-end là một đóng góp chính; khi đó phải kèm phân bố latency đo trên phần cứng thật, không chỉ ảnh giao diện.
+
+---
+
+### Câu hỏi 23: Có thể nói APK hiện tại đã sẵn sàng phát hành không?
+
+**Trả lời:** Có thể nói đã tạo và xác minh APK phục vụ thử nghiệm, nhưng chưa gọi là bản phát hành production nếu còn dùng khóa ký debug, chưa kiểm thử thiết bị mục tiêu và chưa hoàn tất cấu hình HTTPS/domain production. Phải tách “build thành công” khỏi “đủ điều kiện phân phối”.
+
+---
+
+## 7. Chuyên ngành Điện và bảo mật hệ thống (OT Security)
+
+### Câu hỏi 24: Đồ án có bị thiên quá nhiều về Công nghệ thông tin không?
+
+**Trả lời:** Đây là đề tài liên ngành. Thành phần Điện/Tự động hóa nằm ở MFM384, Modbus RTU/RS485, S7-1200, ánh xạ tag, relay/contactor, feedback vật lý và thiết kế ca thử tải. Phần mềm cung cấp giám sát, phân quyền, lưu vết và dự báo. Không nên nói trọng tâm “100% là điện” khi bằng chứng phần cứng còn thiếu; thay vào đó, cần chứng minh hai miền được tích hợp và phân định đúng trách nhiệm an toàn.
+
+---
+
+### Câu hỏi 25: Vì sao phân quyền và audit log quan trọng?
+
+**Trả lời:** Lệnh điều khiển phải đi qua backend để xác thực phiên, kiểm tra quyền theo nhà và ghi nhật ký. Điều này giảm nguy cơ truy cập chéo nhà và giúp truy vết thao tác. Tuy nhiên RBAC phần mềm **không thay thế** khóa liên động, aptomat, E-stop hoặc quy trình lockout/tagout vật lý; dự án chưa tuyên bố đã triển khai khóa bảo trì đạt chuẩn.
+
+---
+
+### Câu hỏi 26: Hệ thống đã có SMS hoặc push notification chưa?
+
+**Trả lời:** Chưa có bằng chứng mã nguồn và kiểm thử đủ để công bố SMS/push đã triển khai. Hiện có thể trình bày cảnh báo quota trong ứng dụng; SMS/push là hướng mở rộng. Khi triển khai cần quản lý sự đồng ý của người dùng, rate limit, chi phí, bảo mật credential và kiểm thử gửi nhận.
+
+---
+
+### Câu hỏi 27: Hệ thống có tự động ngắt tải khi vượt quota hoặc ngưỡng công suất không?
+
+**Trả lời:** Không. Phiên bản hiện tại khóa cứng tự động sa thải tải bằng cờ an toàn trong mã, kể cả khi biến môi trường yêu cầu bật. Quota dùng để giám sát và cảnh báo. Muốn nghiên cứu tự động cắt tải phải có phân loại tải, interlock, manual override, feedback contactor, quy trình E-stop/recovery và dữ liệu thử nghiệm thật được phê duyệt.
+
+---
+
+### Câu hỏi 28: Mô hình AI dự báo có trực tiếp ra lệnh đóng cắt thiết bị không?
+
+**Trả lời:** Không. Forecast chỉ cung cấp thông tin tham khảo; đường điều khiển thiết bị tách khỏi mô hình. Endpoint retrain thật hiện trả `HTTP 501`, tránh tạo cảm giác mô hình đã tự học lại trong production.
+
+---
+
+### Câu hỏi 29: Kết quả dự báo hiện tại đã đủ mạnh chưa?
+
+**Trả lời:** Kết quả chuẩn hiện tại là benchmark trên dữ liệu UCI, chưa phải dữ liệu MFM384 tại Cần Thơ. XGBoost đạt MAE `0,4855 kW`, RMSE `0,6475 kW`, MAPE `66,24%` và R² `0,2219`; tốt hơn Seasonal Naive 24h khoảng `9,8%` theo MAE nhưng chỉ hơn Random Forest khoảng `1,2%`. Vì vậy đây là bằng chứng khả thi ban đầu, chưa đủ để tuyên bố mô hình vượt trội hoặc tổng quát cho ngôi nhà thật.
+
+Để thuyết phục hơn cần thêm dữ liệu địa phương, ít nhất 5 rolling folds với nhiều seed, sai số theo từng horizon, đồ thị actual-vs-predicted, khoảng dự báo, kiểm định so sánh mô hình và phân tích drift/ablation.
+
+---
+
+### Câu hỏi 30: Ba hình hiện tại trong luận văn/bài báo đã đủ thuyết phục chưa?
+
+**Trả lời:** Chưa. Sơ đồ kiến trúc, pipeline bằng chứng và biểu đồ MAE/RMSE là nền tảng tốt nhưng chưa chứng minh hệ thống hoạt động end-to-end. Nên bổ sung:
+
+1. Sơ đồ tuần tự command-feedback, tách rõ luồng điều khiển và telemetry.
+2. Ảnh ghép trạng thái app `loading/success/error/timeout`.
+3. Đồ thị actual-vs-predicted theo thời gian và sai số theo horizon.
+4. Boxplot/ECDF latency thật khi có đủ ca đo PLC/MFM384.
+5. Bảng evidence gate ghi rõ mục nào là software test, public benchmark hay real hardware.
+
+Không dùng hình placeholder latency như một kết quả thực nghiệm.

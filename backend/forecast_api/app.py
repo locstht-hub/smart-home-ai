@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import io
+import hashlib
 import json
-import threading
-import time
+import os
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -17,12 +17,14 @@ from flask import Flask, jsonify, request
 BASE_DIR = Path(__file__).resolve().parents[2]
 ARTIFACTS_DIR = BASE_DIR / "ml-training" / "modeltrainingdone"
 MODEL_PATH = ARTIFACTS_DIR / "best_model.joblib"
+ARTIFACT_MANIFEST_PATH = ARTIFACTS_DIR / "artifact_manifest.json"
 METRICS_PATH = ARTIFACTS_DIR / "metrics.json"
 SAMPLE_FORECAST_PATH = ARTIFACTS_DIR / "sample_forecast.json"
 ZIP_PATH = ARTIFACTS_DIR / "model_artifacts.zip"
 TARGET_COLUMN = "power_kw"
 MAX_REQUIRED_LAG = 336
 FORECAST_SOURCE = "flask_model"
+CAUSAL_FILL_LIMIT_HOURS = 6
 
 # LSTM artifacts directory (created by train_lstm_forecast.py)
 LSTM_ARTIFACTS_DIR = BASE_DIR / "ml-training" / "modeltrainingdone" / "lstm"
@@ -51,6 +53,33 @@ def load_json_from_zip(entry_name: str) -> dict[str, Any]:
             return json.load(io.TextIOWrapper(file, encoding="utf-8"))
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify_model_artifact() -> dict[str, Any]:
+    if not ARTIFACT_MANIFEST_PATH.is_file():
+        raise RuntimeError(f"Forecast artifact manifest is missing: {ARTIFACT_MANIFEST_PATH}")
+    manifest = load_json_file(ARTIFACT_MANIFEST_PATH)
+    if manifest.get("artifactFile") != MODEL_PATH.name:
+        raise RuntimeError("Forecast artifact manifest points to an unexpected file")
+    if not MODEL_PATH.is_file():
+        raise RuntimeError(f"Forecast model artifact is missing: {MODEL_PATH}")
+    expected_size = int(manifest.get("bytes") or 0)
+    if MODEL_PATH.stat().st_size != expected_size:
+        raise RuntimeError("Forecast model artifact size does not match its manifest")
+    expected_sha256 = str(manifest.get("sha256") or "").lower()
+    actual_sha256 = sha256_file(MODEL_PATH)
+    if actual_sha256 != expected_sha256:
+        raise RuntimeError("Forecast model artifact checksum does not match its manifest")
+    return {**manifest, "sha256": actual_sha256, "verified": True}
+
+
+ARTIFACT_MANIFEST = verify_model_artifact()
 MODEL_BUNDLE = joblib.load(MODEL_PATH)
 METRICS = load_json_file(METRICS_PATH)
 SAMPLE_FORECAST = load_json_file(SAMPLE_FORECAST_PATH) if SAMPLE_FORECAST_PATH.exists() else load_json_from_zip("sample_forecast.json")
@@ -75,6 +104,20 @@ except Exception as e:
     LSTM_AVAILABLE = False
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = max(
+    64 * 1024,
+    int(os.environ.get("FORECAST_MAX_CONTENT_LENGTH", 2 * 1024 * 1024)),
+)
+
+
+@app.errorhandler(ValueError)
+def handle_value_error(error: ValueError):
+    return jsonify({"error": str(error)}), 400
+
+
+@app.errorhandler(413)
+def handle_request_too_large(_error: Any):
+    return jsonify({"error": "Forecast request body is too large"}), 413
 
 
 def normalize_history(history: list[dict[str, Any]]) -> pd.DataFrame:
@@ -85,8 +128,11 @@ def normalize_history(history: list[dict[str, Any]]) -> pd.DataFrame:
     if "timestamp" not in df.columns:
         raise ValueError("Each history row must include timestamp")
 
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-    df = df.dropna(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
+    parsed_timestamps = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
+    if parsed_timestamps.isna().any():
+        raise ValueError("Every history timestamp must be a valid ISO-8601 date-time")
+    df["timestamp"] = parsed_timestamps
+    df = df.sort_values("timestamp").reset_index(drop=True)
 
     for column in NUMERIC_COLUMNS:
         if column not in df.columns:
@@ -96,9 +142,11 @@ def normalize_history(history: list[dict[str, Any]]) -> pd.DataFrame:
     if df[TARGET_COLUMN].isna().all():
         raise ValueError("history must include power_kw values")
 
-    df[TARGET_COLUMN] = df[TARGET_COLUMN].interpolate(limit_direction="both")
+    df[TARGET_COLUMN] = df[TARGET_COLUMN].ffill(limit=CAUSAL_FILL_LIMIT_HOURS)
     for column in NUMERIC_COLUMNS[1:]:
-        df[column] = df[column].interpolate(limit_direction="both").fillna(0.0)
+        df[column] = df[column].ffill(limit=CAUSAL_FILL_LIMIT_HOURS).fillna(0.0)
+
+    df = df.dropna(subset=[TARGET_COLUMN]).reset_index(drop=True)
 
     return df
 
@@ -121,9 +169,14 @@ def resample_to_hourly(df: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
 
-    hourly["power_kw"] = hourly["power_kw"].interpolate(limit_direction="both")
+    hourly["power_kw"] = hourly["power_kw"].ffill(limit=CAUSAL_FILL_LIMIT_HOURS)
     for column in NUMERIC_COLUMNS[1:]:
-        hourly[column] = hourly[column].interpolate(limit_direction="both").fillna(0.0)
+        hourly[column] = hourly[column].ffill(limit=CAUSAL_FILL_LIMIT_HOURS).fillna(0.0)
+
+    if hourly[TARGET_COLUMN].isna().any():
+        raise ValueError(
+            f"History contains a power_kw gap longer than {CAUSAL_FILL_LIMIT_HOURS} hours"
+        )
 
     return hourly
 
@@ -242,7 +295,7 @@ def sample_prediction_points() -> list[dict[str, Any]]:
             "time": row["timestamp"],
             "predictedKw": round(float(row["predicted_kw"]), 4),
             "confidence": confidence_for_horizon(index + 1),
-            "source": FORECAST_SOURCE,
+            "source": "sample_forecast",
         }
         for index, row in enumerate(SAMPLE_FORECAST["forecast"])
     ]
@@ -315,6 +368,9 @@ def build_model_info() -> dict[str, Any]:
         "testMae": BEST_TEST_METRICS.get("mae"),
         "testRmse": BEST_TEST_METRICS.get("rmse"),
         "testMape": BEST_TEST_METRICS.get("mape"),
+        "artifactFile": ARTIFACT_MANIFEST["artifactFile"],
+        "artifactSha256": ARTIFACT_MANIFEST["sha256"],
+        "artifactVerified": ARTIFACT_MANIFEST["verified"],
     }
 
 
@@ -345,7 +401,10 @@ def lstm_prediction_points(
 
     if not history:
         if allow_sample:
-            return LSTM_PREDICTOR.predict_sample()
+            return [
+                {**row, "source": "sample_forecast_lstm"}
+                for row in LSTM_PREDICTOR.predict_sample()
+            ]
         raise ValueError("history is required")
 
     predictions, base_ts = LSTM_PREDICTOR.predict_from_history(history)
@@ -365,7 +424,9 @@ def get_requested_model() -> str:
     requested = request.args.get("model", "xgboost").strip().lower()
     if requested in {"lstm", "cnn_lstm", "cnn-lstm"}:
         return "lstm"
-    return "xgboost"
+    if requested in {"xgboost", "random_forest", "random-forest"}:
+        return "xgboost"
+    raise ValueError(f"Unsupported forecast model: {requested}")
 
 
 def dispatch_predictions(payload: dict[str, Any], model_type: str) -> list[dict[str, Any]]:
@@ -409,7 +470,10 @@ def model_info():
 def sample_forecast():
     model_type = get_requested_model()
     if model_type == "lstm" and LSTM_AVAILABLE:
-        predictions = LSTM_PREDICTOR.predict_sample()
+        predictions = [
+            {**row, "source": "sample_forecast_lstm"}
+            for row in LSTM_PREDICTOR.predict_sample()
+        ]
     else:
         predictions = sample_prediction_points()
     return jsonify(
@@ -439,8 +503,8 @@ def forecast_bundle():
             history_hourly_rows = len(hourly)
             if history_hourly_rows > MAX_REQUIRED_LAG:
                 is_sufficient = True
-        except Exception:
-            pass
+        except ValueError as error:
+            return jsonify({"error": str(error)}), 400
             
     if is_sufficient:
         data_mode = "real_history"
@@ -530,35 +594,13 @@ def model_compare():
 
 @app.post("/forecast/trigger-retrain")
 def trigger_retrain():
-    """Proof of Concept endpoint for Edge Server Continuous Learning."""
-    model_type = get_requested_model()
-
-    def retrain_task(model: str):
-        print("\n" + "=" * 60)
-        print(f"[EDGE-ML] KÍCH HOẠT QUÁ TRÌNH TÁI HUẤN LUYỆN (RETRAIN) - {model.upper()}")
-        print("=" * 60)
-        print("[EDGE-ML] Dang ket noi toi database cuc bo cua server rieng...")
-        time.sleep(2)
-        print("[EDGE-ML] Lấy thành công dữ liệu điện năng tiêu thụ 30 ngày qua.")
-        time.sleep(1)
-        print("[EDGE-ML] Tiến hành làm sạch dữ liệu và tạo đặc trưng (Feature Engineering)...")
-        time.sleep(2)
-        print(f"[EDGE-ML] Khởi chạy thuật toán online-learning cho model {model.upper()}...")
-        for i in range(1, 4):
-            time.sleep(1.5)
-            print(f"  > Epoch {i}/3 ... Loss đang giảm ...")
-        time.sleep(1)
-        print(f"[EDGE-ML] (GIẢ LẬP POC) Tích hợp trọng số (weights) mới vào kiến trúc.")
-        print(f"[EDGE-ML] Lưu model vào Artifacts directory: {model.upper()}_v_updated.joblib")
-        time.sleep(1)
-        print("[EDGE-ML] KHỞI ĐỘNG LẠI PREDICTOR THÀNH CÔNG. EDGE DEVICE SẴN SÀNG!\n" + "=" * 60 + "\n")
-
-    # Start the task in a background thread so the HTTP request returns immediately
-    thread = threading.Thread(target=retrain_task, args=(model_type,))
-    thread.daemon = True
-    thread.start()
-
-    return jsonify({"status": "accepted", "message": "Quá trình tái huấn luyện bắt đầu chạy ngầm tại Biên (Edge)."}), 202
+    get_requested_model()
+    return jsonify(
+        {
+            "status": "not_implemented",
+            "error": "Real retraining is not implemented.",
+        }
+    ), 501
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)

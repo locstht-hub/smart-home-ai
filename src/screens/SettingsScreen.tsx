@@ -1,17 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { Colors } from '../constants/colors';
+import { AppTheme } from '../constants/theme';
 import { buildPlcMappingSummary } from '../constants/plcMapping';
 
 export default function SettingsScreen() {
     const navigation = useNavigation<any>();
     const { user, logout, changePassword } = useAuth();
     const { config, status, error, systemStatus, saveConfig, testConnection, refreshSystemStatus } = useSmartHomeServer();
-    const [notifEnabled, setNotifEnabled] = useState(true);
+    const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [showServerModal, setShowServerModal] = useState(false);
     const [showPlcModal, setShowPlcModal] = useState(false);
@@ -82,15 +84,26 @@ export default function SettingsScreen() {
         }
     };
 
+    const performLogout = async () => {
+        const result = await logout();
+        if (!result.revoked) {
+            if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.alert(result.message);
+            } else {
+                Alert.alert('Cảnh báo đăng xuất', result.message);
+            }
+        }
+    };
+
     const handleLogout = () => {
         if (Platform.OS === 'web') {
-            void logout();
+            void performLogout();
             return;
         }
 
         Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
             { text: 'Hủy', style: 'cancel' },
-            { text: 'Đăng xuất', style: 'destructive', onPress: logout },
+            { text: 'Đăng xuất', style: 'destructive', onPress: () => void performLogout() },
         ]);
     };
 
@@ -128,7 +141,7 @@ export default function SettingsScreen() {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <LinearGradient colors={['#10251f', '#173a31', '#0f172a']} style={styles.profileCard}>
-                <View style={styles.avatar}><Text style={styles.avatarText}>U</Text></View>
+                <View style={styles.avatar}><Ionicons name="person-outline" size={28} color="#fff" /></View>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.profileName}>{user?.name}</Text>
                     <Text style={styles.profilePhone}>{user?.phone}</Text>
@@ -142,53 +155,62 @@ export default function SettingsScreen() {
 
             <Text style={styles.sectionLabel}>TÀI KHOẢN</Text>
             <View style={styles.menuCard}>
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
+                <TouchableOpacity style={styles.menuItem} accessibilityRole="button" accessibilityLabel="Xem thông tin cá nhân" onPress={() => {
                     Alert.alert('Thông tin cá nhân', `Họ tên: ${user?.name}\nSĐT: ${user?.phone}\nVai trò: ${accountRoleLabel}\nTrạng thái: Đang hoạt động`);
                 }}>
                     <View style={styles.menuLeft}>
-                        <View style={styles.menuIcon}><Text>U</Text></View>
+                        <View style={styles.menuIcon}><Ionicons name="person-outline" size={20} color="#0f766e" /></View>
                         <Text style={styles.menuText}>Thông tin cá nhân</Text>
                     </View>
-                    <Text style={styles.menuArrow}>{'>'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    setNotifEnabled(!notifEnabled);
-                    Alert.alert(notifEnabled ? 'Đã tắt thông báo' : 'Đã bật thông báo');
-                }}>
-                    <View style={styles.menuLeft}>
-                        <View style={styles.menuIcon}><Text>!</Text></View>
-                        <Text style={styles.menuText}>Thông báo</Text>
-                    </View>
-                    <View style={[styles.toggle, notifEnabled && styles.toggleActive]}>
-                        <View style={[styles.toggleCircle, notifEnabled && styles.toggleCircleActive]} />
-                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={Colors.slate[400]} />
                 </TouchableOpacity>
                 {user?.serverRole === 'owner' && user?.canManageMembers ? (
-                    <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('MemberManagement')}>
+                    <TouchableOpacity style={styles.menuItem} accessibilityRole="button" accessibilityLabel="Quản lý gia đình" onPress={() => navigation.navigate('MemberManagement')}>
                         <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#e0f2ef' }]}><Text>👥</Text></View>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e0f2ef' }]}><Ionicons name="people-outline" size={20} color="#0f766e" /></View>
                             <View>
-                                <Text style={styles.menuText}>Quan ly gia dinh</Text>
-                                <Text style={styles.menuSubText}>{user?.homeName || 'Quan ly thanh vien trong nha'}</Text>
+                                <Text style={styles.menuText}>Quản lý gia đình</Text>
+                                <Text style={styles.menuSubText}>{user?.homeName || 'Quản lý thành viên trong nhà'}</Text>
                             </View>
                         </View>
-                        <Text style={styles.menuArrow}>{'>'}</Text>
+                        <Ionicons name="chevron-forward" size={18} color={Colors.slate[400]} />
                     </TouchableOpacity>
                 ) : null}
-                <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => setShowPasswordModal(true)}>
+                <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} accessibilityRole="button" accessibilityLabel="Đổi mật khẩu" onPress={() => setShowPasswordModal(true)}>
                     <View style={styles.menuLeft}>
-                        <View style={styles.menuIcon}><Text>*</Text></View>
+                        <View style={styles.menuIcon}><Ionicons name="lock-closed-outline" size={20} color="#0f766e" /></View>
                         <Text style={styles.menuText}>Bảo mật</Text>
                     </View>
-                    <Text style={styles.menuArrow}>{'>'}</Text>
+                    <Ionicons name="chevron-forward" size={18} color={Colors.slate[400]} />
                 </TouchableOpacity>
             </View>
 
-            <Text style={styles.sectionLabel}>KẾT NỐI</Text>
+            <Text style={styles.sectionLabel}>HỆ THỐNG</Text>
             <View style={styles.menuCard}>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setShowServerModal(true)}>
+                <TouchableOpacity
+                    style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Mở cài đặt nâng cao"
+                    accessibilityState={{ expanded: showAdvancedSettings }}
+                    onPress={() => setShowAdvancedSettings(value => !value)}
+                >
                     <View style={styles.menuLeft}>
-                        <View style={styles.menuIcon}><Text>API</Text></View>
+                        <View style={styles.menuIcon}><Ionicons name="options-outline" size={20} color="#0f766e" /></View>
+                        <View>
+                            <Text style={styles.menuText}>Cài đặt nâng cao</Text>
+                            <Text style={styles.menuSubText}>Server, PLC, mapping và nguồn dữ liệu</Text>
+                        </View>
+                    </View>
+                    <Ionicons name={showAdvancedSettings ? 'chevron-up' : 'chevron-down'} size={18} color={Colors.slate[400]} />
+                </TouchableOpacity>
+            </View>
+
+            {showAdvancedSettings ? <>
+            <Text style={styles.sectionLabel}>KẾT NỐI NÂNG CAO</Text>
+            <View style={styles.menuCard}>
+                <TouchableOpacity style={styles.menuItem} accessibilityRole="button" accessibilityLabel="Cấu hình Server API" onPress={() => setShowServerModal(true)}>
+                    <View style={styles.menuLeft}>
+                        <View style={styles.menuIcon}><Ionicons name="server-outline" size={20} color="#0f766e" /></View>
                         <View>
                             <Text style={styles.menuText}>Server API riêng</Text>
                             <Text style={styles.menuSubText}>{preferLocalApi ? localApiBaseUrl : apiBaseUrl}</Text>
@@ -196,9 +218,9 @@ export default function SettingsScreen() {
                     </View>
                     <Text style={styles.menuValue}>{connectionLabel}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem} onPress={handleShowPlcInfo}>
+                <TouchableOpacity style={styles.menuItem} accessibilityRole="button" accessibilityLabel="Xem thông tin PLC" onPress={handleShowPlcInfo}>
                     <View style={styles.menuLeft}>
-                        <View style={styles.menuIcon}><Text>PLC</Text></View>
+                        <View style={styles.menuIcon}><Ionicons name="hardware-chip-outline" size={20} color="#0f766e" /></View>
                         <View>
                             <Text style={styles.menuText}>PLC S7-1200</Text>
                             <Text style={styles.menuSubText}>{systemStatus?.plcHost || 'Chưa cấu hình PLC thật'}</Text>
@@ -206,25 +228,25 @@ export default function SettingsScreen() {
                     </View>
                     <Text style={styles.menuValue}>{sourceLabel}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem} onPress={handleShowPlcMapping}>
+                <TouchableOpacity style={styles.menuItem} accessibilityRole="button" accessibilityLabel="Xem bảng mapping PLC" onPress={handleShowPlcMapping}>
                     <View style={styles.menuLeft}>
-                        <View style={styles.menuIcon}><Text>MAP</Text></View>
+                        <View style={styles.menuIcon}><Ionicons name="git-network-outline" size={20} color="#0f766e" /></View>
                         <View>
                             <Text style={styles.menuText}>Bảng mapping PLC</Text>
-                            <Text style={styles.menuSubText}>PLC tag {'->'} API device {'->'} tên trên app</Text>
+                            <Text style={styles.menuSubText}>Liên kết tag PLC với thiết bị trên app</Text>
                         </View>
                     </View>
-                    <Text style={styles.menuArrow}>{'>'}</Text>
+                    <Ionicons name="chevron-forward" size={18} color={Colors.slate[400]} />
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => { void refreshSystemStatus(); }}>
+                <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} accessibilityRole="button" accessibilityLabel="Làm mới trạng thái hệ thống" onPress={() => { void refreshSystemStatus(); }}>
                     <View style={styles.menuLeft}>
-                        <View style={styles.menuIcon}><Text>SYS</Text></View>
+                        <View style={styles.menuIcon}><Ionicons name="refresh-outline" size={20} color="#0f766e" /></View>
                         <View>
                             <Text style={styles.menuText}>Làm mới trạng thái</Text>
-                            <Text style={styles.menuSubText}>Kiểm tra server đang mock hay PLC thật</Text>
+                            <Text style={styles.menuSubText}>Kiểm tra nguồn dữ liệu hiện tại</Text>
                         </View>
                     </View>
-                    <Text style={styles.menuArrow}>{'>'}</Text>
+                    <Ionicons name="chevron-forward" size={18} color={Colors.slate[400]} />
                 </TouchableOpacity>
             </View>
 
@@ -252,6 +274,7 @@ export default function SettingsScreen() {
                 </View>
             </View>
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            </> : null}
 
             <TouchableOpacity
                 style={styles.logoutBtn}
@@ -262,12 +285,12 @@ export default function SettingsScreen() {
                 <Text style={styles.logoutText}>Đăng xuất</Text>
             </TouchableOpacity>
 
-            <Text style={styles.version}>Smart Home Control v3.0.0</Text>
+            <Text style={styles.version}>Smart Home AI v1.0.2</Text>
             <Text style={styles.copyright}>Server riêng + PLC S7-1200 + MFM384</Text>
             <View style={{ height: 30 }} />
 
             <Modal visible={showPasswordModal} transparent animationType="slide">
-                <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Đổi mật khẩu</Text>
                         <TextInput style={styles.modalInput} placeholder="Mật khẩu hiện tại" value={currentPw} onChangeText={setCurrentPw} secureTextEntry placeholderTextColor={Colors.slate[400]} />
@@ -286,7 +309,7 @@ export default function SettingsScreen() {
             </Modal>
 
             <Modal visible={showPlcModal} transparent animationType="slide">
-                <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Thông tin PLC</Text>
                         <Text style={styles.modalHint}>
@@ -310,7 +333,7 @@ export default function SettingsScreen() {
             </Modal>
 
             <Modal visible={showServerModal} transparent animationType="slide">
-                <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Cấu hình Server API</Text>
                         <Text style={styles.modalHint}>Khuyến nghị: https://api.smarthomeai.id.vn. Điện thoại thật local: http://IP-LAPTOP:5001.</Text>
@@ -350,11 +373,10 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#edf3f0' },
+    container: { flex: 1, backgroundColor: AppTheme.colors.canvas },
     content: { padding: 16, paddingBottom: 30 },
     profileCard: { borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(209, 250, 229, 0.16)', shadowColor: '#10251f', shadowOpacity: 0.22, shadowRadius: 24, shadowOffset: { width: 0, height: 14 }, elevation: 4 },
     avatar: { width: 60, height: 60, borderRadius: 18, backgroundColor: 'rgba(236,253,245,0.14)', borderWidth: 1, borderColor: 'rgba(236,253,245,0.2)', alignItems: 'center', justifyContent: 'center' },
-    avatarText: { fontSize: 28, color: '#fff', fontWeight: '900' },
     profileName: { fontSize: 21, fontWeight: '900', color: '#fff', letterSpacing: -0.2 },
     profilePhone: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
     badgeRow: { flexDirection: 'row', gap: 6, marginTop: 8 },
@@ -362,7 +384,7 @@ const styles = StyleSheet.create({
     badgeText: { fontSize: 11, color: '#ecfdf5', fontWeight: '800' },
     sectionLabel: { fontSize: 12, fontWeight: '900', color: '#50645c', letterSpacing: 1, marginBottom: 8, paddingHorizontal: 4 },
     menuCard: { backgroundColor: '#f8fbf9', borderRadius: 18, overflow: 'hidden', marginBottom: 20, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
-    menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: '#e7eee9' },
+    menuItem: { minHeight: 56, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: '#e7eee9' },
     menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     menuIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#e7eee9', alignItems: 'center', justifyContent: 'center' },
     menuText: { fontSize: 15, fontWeight: '800', color: '#13251f' },

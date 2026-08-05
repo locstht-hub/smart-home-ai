@@ -14,6 +14,8 @@ const state = {
   homeDetail: null,
   editingRoomId: '',
   editingDeviceId: '',
+  apiOnline: null,
+  hasDashboardData: false,
 };
 
 const els = {
@@ -29,6 +31,9 @@ const els = {
   createOwnerTopBtn: document.getElementById('createOwnerTopBtn'),
   createOwnerHomeBtn: document.getElementById('createOwnerHomeBtn'),
   apiStatus: document.getElementById('apiStatus'),
+  apiOfflineBanner: document.getElementById('apiOfflineBanner'),
+  apiOfflineMessage: document.getElementById('apiOfflineMessage'),
+  apiRetryBtn: document.getElementById('apiRetryBtn'),
   pageTitle: document.getElementById('pageTitle'),
   navItems: Array.from(document.querySelectorAll('.nav-item')),
   views: {
@@ -242,24 +247,89 @@ async function apiFetch(path, options = {}) {
     headers.Authorization = `Bearer ${state.token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
-
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
-
-  if (!response.ok) {
-    throw new Error(data.error || `API trả về mã ${response.status}`);
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch {
+    const error = new Error('Không thể kết nối API');
+    error.isApiUnavailable = true;
+    markApiUnavailable();
+    throw error;
   }
 
+  const text = await response.text();
+  let data = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = {};
+    }
+  }
+
+  if (!response.ok) {
+    const error = new Error(data.error || `API trả về mã ${response.status}`);
+    error.status = response.status;
+    error.isApiUnavailable = response.status >= 500;
+    if (error.isApiUnavailable) markApiUnavailable();
+    throw error;
+  }
+
+  markApiAvailable();
   return data;
 }
 
 function setApiStatus(text, mode = '') {
   els.apiStatus.textContent = text;
   els.apiStatus.className = `api-status ${mode}`.trim();
+}
+
+function setApiActionsDisabled(disabled) {
+  const controls = document.querySelectorAll([
+    '#createOwnerTopBtn',
+    '#createOwnerHomeBtn',
+    '#refreshHomeDetailBtn',
+    '.action-btn',
+    '#roomInventoryForm button',
+    '#deviceInventoryForm button',
+    '#ownerForm button[type="submit"]',
+  ].join(','));
+
+  controls.forEach((control) => {
+    if (disabled && !control.disabled) {
+      control.dataset.disabledByApi = 'true';
+      control.disabled = true;
+      control.setAttribute('aria-disabled', 'true');
+    } else if (!disabled && control.dataset.disabledByApi === 'true') {
+      delete control.dataset.disabledByApi;
+      control.disabled = false;
+      control.removeAttribute('aria-disabled');
+    }
+  });
+}
+
+function markApiUnavailable() {
+  state.apiOnline = false;
+  const hasStaleData = state.hasDashboardData;
+  els.apiOfflineMessage.textContent = hasStaleData
+    ? 'Đang giữ dữ liệu tải gần nhất. Các thao tác quản trị tạm thời bị vô hiệu hóa.'
+    : 'Chưa tải được dữ liệu quản trị. Hãy thử lại khi API hoạt động.';
+  els.apiOfflineBanner.classList.remove('hidden');
+  els.workspace.classList.toggle('data-unavailable', !hasStaleData);
+  document.body.classList.add('api-offline');
+  setApiActionsDisabled(true);
+  setApiStatus('Không thể kết nối API', 'error');
+}
+
+function markApiAvailable() {
+  state.apiOnline = true;
+  els.apiOfflineBanner.classList.add('hidden');
+  els.workspace.classList.remove('data-unavailable');
+  document.body.classList.remove('api-offline');
+  setApiActionsDisabled(false);
 }
 
 function setAuthenticated(isAuthenticated) {
@@ -712,7 +782,9 @@ async function loadDashboard() {
   state.homes = homes.homes || [];
   state.users = users.users || [];
   state.logs = logs.logs || [];
+  state.hasDashboardData = true;
   renderAll();
+  markApiAvailable();
   setApiStatus('API: online', 'ok');
 }
 
@@ -746,8 +818,14 @@ function logout() {
   state.homeDetail = null;
   state.editingRoomId = '';
   state.editingDeviceId = '';
+  state.apiOnline = null;
+  state.hasDashboardData = false;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  els.apiOfflineBanner.classList.add('hidden');
+  els.workspace.classList.remove('data-unavailable');
+  document.body.classList.remove('api-offline');
+  setApiActionsDisabled(false);
   setAuthenticated(false);
   setApiStatus('API: chưa kiểm tra', '');
 }
@@ -788,6 +866,10 @@ function handleAuditDetailToggle(event) {
 
 function refreshDashboard() {
   loadDashboard().catch((error) => {
+    if (error.isApiUnavailable) {
+      markApiUnavailable();
+      return;
+    }
     setApiStatus(`API: ${error.message}`, 'error');
   });
 }
@@ -1070,13 +1152,25 @@ els.loginForm.addEventListener('submit', async (event) => {
   try {
     await login(els.usernameInput.value.trim(), els.passwordInput.value);
   } catch (error) {
-    els.loginMessage.textContent = error.message || 'Không thể đăng nhập';
-    setApiStatus('API: lỗi đăng nhập', 'error');
+    if (error.isApiUnavailable) {
+      els.loginMessage.textContent = 'Không thể kết nối API. Vui lòng thử lại sau.';
+      markApiUnavailable();
+    } else if (error.status === 401) {
+      els.loginMessage.textContent = 'Tên đăng nhập hoặc mật khẩu không đúng.';
+      setApiStatus('API: thông tin đăng nhập không hợp lệ', 'error');
+    } else if (error.status === 403) {
+      els.loginMessage.textContent = 'Tài khoản không có quyền truy cập trang quản trị.';
+      setApiStatus('API: không đủ quyền', 'error');
+    } else {
+      els.loginMessage.textContent = error.message || 'Không thể đăng nhập';
+      setApiStatus('API: lỗi đăng nhập', 'error');
+    }
   }
 });
 
 els.logoutBtn.addEventListener('click', logout);
 els.refreshAllBtn.addEventListener('click', refreshDashboard);
+els.apiRetryBtn.addEventListener('click', refreshDashboard);
 els.backToHomesBtn.addEventListener('click', () => switchView('homes'));
 els.refreshHomeDetailBtn.addEventListener('click', () => {
   if (state.selectedHomeId) {
@@ -1132,7 +1226,15 @@ document.querySelectorAll('.refresh-btn').forEach((button) => {
 
 if (state.token && state.user) {
   setAuthenticated(true);
-  loadDashboard().catch(() => logout());
+  loadDashboard().catch((error) => {
+    if (error.status === 401) {
+      logout();
+      els.loginMessage.textContent = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+      setApiStatus('API: phiên đăng nhập hết hạn', 'error');
+      return;
+    }
+    markApiUnavailable();
+  });
 } else {
   setAuthenticated(false);
 }

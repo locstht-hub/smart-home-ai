@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { Colors } from '../constants/colors';
 
@@ -20,23 +21,17 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const APP_LOGO = require('../../assets/icon.png');
 
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-    const icons: Record<string, string> = {
-        'Tổng quan': '🏠',
-        'Phòng': '🛋️',
-        'Phân tích': '📊',
-        'Chat': '💬',
-        'Cài đặt': '⚙️',
-        'Quản lý': '🔧',
-    };
+type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
+
+function TabIcon({ label, focused, iconName }: { label: string; focused: boolean; iconName: TabIconName }) {
+    const color = focused ? '#0f766e' : '#80918a';
+
     return (
         <View style={{ alignItems: 'center', gap: 2 }} accessible={false} importantForAccessibility="no-hide-descendants">
-            {label === 'Tổng quan' ? (
-                <Image source={APP_LOGO} style={{ width: 22, height: 22, borderRadius: 6 }} />
-            ) : (
-                <Text style={{ fontSize: 20 }}>{icons[label] || '📱'}</Text>
-            )}
-            <Text style={{ fontSize: 10, fontWeight: focused ? '800' : '600', color: focused ? '#0f766e' : '#94a3b8' }}>{label}</Text>
+            <View style={{ width: 28, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={iconName} size={21} color={color} />
+            </View>
+            <Text style={{ fontSize: 10, fontWeight: focused ? '800' : '600', color }}>{label}</Text>
         </View>
     );
 }
@@ -48,6 +43,7 @@ function MainTabs() {
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
+                tabBarHideOnKeyboard: true,
                 tabBarStyle: {
                     height: 70,
                     paddingBottom: 10,
@@ -66,34 +62,34 @@ function MainTabs() {
             <Tab.Screen
                 name="Dashboard"
                 component={DashboardScreen}
-                options={{ tabBarAccessibilityLabel: 'Tổng quan', tabBarIcon: ({ focused }) => <TabIcon label="Tổng quan" focused={focused} /> }}
+                options={{ tabBarAccessibilityLabel: 'Tổng quan', tabBarIcon: ({ focused }) => <TabIcon label="Tổng quan" focused={focused} iconName={focused ? 'home' : 'home-outline'} /> }}
             />
             <Tab.Screen
                 name="RoomList"
                 component={RoomsScreen}
-                options={{ tabBarAccessibilityLabel: 'Danh sách phòng', tabBarIcon: ({ focused }) => <TabIcon label="Phòng" focused={focused} /> }}
+                options={{ tabBarAccessibilityLabel: 'Danh sách phòng', tabBarIcon: ({ focused }) => <TabIcon label="Phòng" focused={focused} iconName={focused ? 'bed' : 'bed-outline'} /> }}
             />
             <Tab.Screen
                 name="Analysis"
                 component={AnalysisScreen}
-                options={{ tabBarAccessibilityLabel: 'Phân tích điện năng', tabBarIcon: ({ focused }) => <TabIcon label="Phân tích" focused={focused} /> }}
+                options={{ tabBarAccessibilityLabel: 'Phân tích điện năng', tabBarIcon: ({ focused }) => <TabIcon label="Phân tích" focused={focused} iconName={focused ? 'analytics' : 'analytics-outline'} /> }}
             />
             <Tab.Screen
                 name="Chat"
                 component={ChatScreen}
-                options={{ tabBarAccessibilityLabel: 'Trợ lý hội thoại', tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} /> }}
+                options={{ tabBarAccessibilityLabel: 'Trợ lý hội thoại', tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} iconName={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'} /> }}
             />
             {user?.role === 'admin' && (
                 <Tab.Screen
                     name="Admin"
                     component={AdminScreen}
-                    options={{ tabBarAccessibilityLabel: 'Quản lý hệ thống', tabBarIcon: ({ focused }) => <TabIcon label="Quản lý" focused={focused} /> }}
+                    options={{ tabBarAccessibilityLabel: 'Quản lý hệ thống', tabBarIcon: ({ focused }) => <TabIcon label="Quản lý" focused={focused} iconName={focused ? 'shield-checkmark' : 'shield-checkmark-outline'} /> }}
                 />
             )}
             <Tab.Screen
                 name="Settings"
                 component={SettingsScreen}
-                options={{ tabBarAccessibilityLabel: 'Cài đặt', tabBarIcon: ({ focused }) => <TabIcon label="Cài đặt" focused={focused} /> }}
+                options={{ tabBarAccessibilityLabel: 'Cài đặt', tabBarIcon: ({ focused }) => <TabIcon label="Cài đặt" focused={focused} iconName={focused ? 'settings' : 'settings-outline'} /> }}
             />
         </Tab.Navigator>
     );

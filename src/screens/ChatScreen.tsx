@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, PermissionsAndroid, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, PermissionsAndroid, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
-    Actions,
     Bubble,
     Composer,
     GiftedChat,
@@ -10,7 +9,7 @@ import {
     MessageText,
     Send,
 } from 'react-native-gifted-chat';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVoice, VoiceEvent, VoiceKit, VoiceMode } from 'react-native-voicekit';
 import * as Speech from 'expo-speech';
@@ -19,21 +18,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { useData } from '../contexts/DataContext';
 import { Colors } from '../constants/colors';
+import AmbientTechBackground from '../components/AmbientTechBackground';
 
 const APP_AVATAR = require('../../assets/icon.png');
-
-const ICONS: Record<string, string> = {
-    'volume-mute': 'Mute',
-    'volume-high': 'Vol',
-    mic: 'Mic',
-    'mic-outline': 'Mic',
-    stop: 'Stop',
-    send: 'Send',
-};
-
-function Ionicons({ name, size = 16, color = '#000', style }: { name: string; size?: number; color?: string; style?: any }) {
-    return <Text style={[{ color, fontSize: Math.max(10, Math.round(size * 0.62)), fontWeight: '700' }, style]}>{ICONS[name] || name}</Text>;
-}
 
 const QUICK_REPLIES = [
     'bật đèn phòng khách',
@@ -77,7 +64,6 @@ export default function ChatScreen() {
     const { user } = useAuth();
     const { client, isConfigured, status } = useSmartHomeServer();
     const { refresh: refreshDevices } = useData();
-    const tabBarHeight = useBottomTabBarHeight();
     const lastHandledTranscriptRef = useRef('');
     const initialMessages = useMemo<IMessage[]>(() => [
         {
@@ -95,6 +81,7 @@ export default function ChatScreen() {
     const [messages, setMessages] = useState<IMessage[]>(initialMessages);
     const [voiceError, setVoiceError] = useState<string | null>(null);
     const [isVoiceStarting, setIsVoiceStarting] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [speechVoice, setSpeechVoice] = useState<string | undefined>(undefined);
     const {
@@ -222,7 +209,12 @@ export default function ChatScreen() {
         const userMessage = newMessages[0]?.text?.trim();
         if (!userMessage) return;
 
-        await processUserText(userMessage);
+        setIsSending(true);
+        try {
+            await processUserText(userMessage);
+        } finally {
+            setIsSending(false);
+        }
     }, [processUserText]);
 
     useEffect(() => {
@@ -331,6 +323,9 @@ export default function ChatScreen() {
                     style={styles.muteButton}
                     onPress={() => setIsMuted(prev => !prev)}
                     activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={isMuted ? 'Bật âm thanh phản hồi' : 'Tắt âm thanh phản hồi'}
+                    accessibilityState={{ selected: isMuted }}
                 >
                     <Ionicons
                         name={isMuted ? 'volume-mute' : 'volume-high'}
@@ -364,148 +359,178 @@ export default function ChatScreen() {
                         style={styles.voiceStopButton}
                         onPress={() => void stopListening()}
                         activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel="Dừng ghi âm"
                     >
                         <Ionicons name="stop" size={16} color="#ffffff" />
                     </TouchableOpacity>
                 </View>
             )}
 
-            <GiftedChat
-                messages={messages}
-                onSend={onSend}
-                user={{
-                    _id: user?.id || 'guest',
-                    name: user?.name || 'Bạn',
-                    avatar: APP_AVATAR,
-                }}
-                placeholder="Nhập nội dung chat ở đây..."
-                alwaysShowSend
-                minInputToolbarHeight={54}
-                keyboardShouldPersistTaps="handled"
-                bottomOffset={tabBarHeight}
-                textInputProps={{
-                    placeholderTextColor: Colors.slate[400],
-                    autoCorrect: false,
-                    spellCheck: false,
-                    autoCapitalize: 'sentences',
-                    keyboardType: 'default',
-                    multiline: true,
-                    textAlignVertical: 'center',
-                }}
-                renderBubble={(props) => (
-                    <Bubble
-                        {...props}
-                        wrapperStyle={{
-                            right: {
-                                backgroundColor: '#0f766e',
-                                borderRadius: 18,
-                                paddingVertical: 4,
-                                paddingHorizontal: 4,
-                            },
-                            left: {
-                                backgroundColor: '#f8fbf9',
-                                borderWidth: 0,
-                                borderRadius: 18,
-                                paddingVertical: 4,
-                                paddingHorizontal: 4,
-                            },
-                        }}
-                        textStyle={{
-                            right: { color: '#ffffff', fontSize: 15, lineHeight: 22 },
-                            left: { color: Colors.slate[800], fontSize: 15, lineHeight: 22 },
-                        }}
-                    />
-                )}
-                renderInputToolbar={(props) => (
-                    <InputToolbar
-                        {...props}
-                        containerStyle={styles.toolbar}
-                        primaryStyle={styles.toolbarPrimary}
-                    />
-                )}
-                renderActions={(props) => (
-                    <Actions
-                        {...props}
-                        icon={() => (
+            <View style={styles.chatStage}>
+                <AmbientTechBackground variant="chat" />
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+                >
+                    <GiftedChat
+                    messages={messages}
+                    onSend={onSend}
+                    user={{
+                        _id: user?.id || 'guest',
+                        name: user?.name || 'Bạn',
+                        avatar: APP_AVATAR,
+                    }}
+                    isKeyboardInternallyHandled={false}
+                    focusOnInputWhenOpeningKeyboard={false}
+                    placeholder="Nhập nội dung chat ở đây..."
+                    alwaysShowSend
+                    minInputToolbarHeight={54}
+                    keyboardShouldPersistTaps="handled"
+                    textInputProps={{
+                        placeholderTextColor: Colors.slate[400],
+                        autoCorrect: false,
+                        spellCheck: false,
+                        autoCapitalize: 'sentences',
+                        keyboardType: 'default',
+                        multiline: true,
+                        textAlignVertical: 'center',
+                    }}
+                    renderBubble={(props) => (
+                        <Bubble
+                            {...props}
+                            wrapperStyle={{
+                                right: {
+                                    backgroundColor: '#0f766e',
+                                    borderRadius: 18,
+                                    paddingVertical: 4,
+                                    paddingHorizontal: 4,
+                                },
+                                left: {
+                                    backgroundColor: '#f8fbf9',
+                                    borderWidth: 0,
+                                    borderRadius: 18,
+                                    paddingVertical: 4,
+                                    paddingHorizontal: 4,
+                                },
+                            }}
+                            textStyle={{
+                                right: { color: '#ffffff', fontSize: 15, lineHeight: 22 },
+                                left: { color: Colors.slate[800], fontSize: 15, lineHeight: 22 },
+                            }}
+                        />
+                    )}
+                    renderInputToolbar={(props) => (
+                        <InputToolbar
+                            {...props}
+                            containerStyle={styles.toolbar}
+                            primaryStyle={styles.toolbarPrimary}
+                        />
+                    )}
+                    renderActions={(props) => (
+                        <TouchableOpacity
+                            style={styles.micAccessoryContainer}
+                            onPress={() => void handleVoicePress()}
+                            disabled={isVoiceStarting}
+                            activeOpacity={0.72}
+                            accessibilityRole="button"
+                            accessibilityLabel={isListening ? 'Dừng ghi âm' : 'Nhập lệnh bằng giọng nói'}
+                            accessibilityState={{ disabled: isVoiceStarting, busy: isVoiceStarting, selected: isListening }}
+                        >
                             <View style={[
                                 styles.micAccessory,
                                 isListening && styles.micAccessoryActive,
+                                isVoiceStarting && styles.controlDisabled,
                             ]}>
-                                <Ionicons
-                                    name={isListening ? 'mic' : 'mic-outline'}
-                                    size={22}
-                                    color={isListening ? '#ffffff' : Colors.slate[600]}
-                                />
+                                {isVoiceStarting ? (
+                                    <ActivityIndicator size="small" color={Colors.slate[600]} />
+                                ) : (
+                                    <Ionicons
+                                        name={isListening ? 'mic' : 'mic-outline'}
+                                        size={22}
+                                        color={isListening ? '#ffffff' : Colors.slate[600]}
+                                    />
+                                )}
                             </View>
-                        )}
-                        containerStyle={styles.micAccessoryContainer}
-                        onPressActionButton={() => void handleVoicePress()}
-                    />
-                )}
-                renderComposer={(props) => (
-                    <Composer
-                        {...props}
-                        textInputStyle={styles.textInput}
-                        placeholderTextColor={Colors.slate[400]}
-                    />
-                )}
-                renderCustomView={(props) => {
-                    const message = props.currentMessage as any;
-                    if (message && message.metadata) {
-                        const { endpoint, elapsedMs } = message.metadata;
-                        const isLocal = endpoint === 'local';
-                        const icon = isLocal ? '⚡' : '☁️';
-                        const label = isLocal ? 'Local API' : 'Cloud API';
-                        const time = (elapsedMs / 1000).toFixed(1);
-                        return (
-                            <View style={styles.metadataContainer}>
-                                <View style={[
-                                    styles.metadataBadge,
-                                    isLocal ? styles.metadataBadgeLocal : styles.metadataBadgeCloud
-                                ]}>
-                                    <Text style={[
-                                        styles.metadataBadgeText,
-                                        isLocal ? styles.metadataBadgeTextLocal : styles.metadataBadgeTextCloud
+                        </TouchableOpacity>
+                    )}
+                    renderComposer={(props) => (
+                        <Composer
+                            {...props}
+                            textInputStyle={styles.textInput}
+                            placeholderTextColor={Colors.slate[400]}
+                        />
+                    )}
+                    renderCustomView={(props) => {
+                        const message = props.currentMessage as any;
+                        if (message && message.metadata) {
+                            const { endpoint, elapsedMs } = message.metadata;
+                            const isLocal = endpoint === 'local';
+                            const label = isLocal ? 'Local API' : 'Cloud API';
+                            const time = (elapsedMs / 1000).toFixed(1);
+                            return (
+                                <View style={styles.metadataContainer}>
+                                    <View style={[
+                                        styles.metadataBadge,
+                                        isLocal ? styles.metadataBadgeLocal : styles.metadataBadgeCloud
                                     ]}>
-                                        {icon} {label} • {time}s
-                                    </Text>
+                                        <Ionicons name={isLocal ? 'flash-outline' : 'cloud-outline'} size={13} color={isLocal ? Colors.green[700] : Colors.blue[700]} />
+                                        <Text style={[
+                                            styles.metadataBadgeText,
+                                            isLocal ? styles.metadataBadgeTextLocal : styles.metadataBadgeTextCloud
+                                        ]}>
+                                            {label} • {time}s
+                                        </Text>
+                                    </View>
                                 </View>
-                            </View>
-                        );
-                    }
-                    return null;
-                }}
-                renderMessageText={(props) => (
-                    <MessageText
-                        {...props}
-                        textStyle={{
-                            right: { color: '#ffffff', fontSize: 15, lineHeight: 22 },
-                            left: { color: Colors.slate[800], fontSize: 15, lineHeight: 22 },
-                        }}
-                        textProps={{ selectable: true }}
-                    />
-                )}
-                renderSend={(props) => (
-                    <Send {...props} containerStyle={styles.sendContainer}>
-                        <LinearGradient
-                            colors={['#0f766e', '#115e59']}
-                            style={styles.sendCircle}
+                            );
+                        }
+                        return null;
+                    }}
+                    renderMessageText={(props) => (
+                        <MessageText
+                            {...props}
+                            textStyle={{
+                                right: { color: '#ffffff', fontSize: 15, lineHeight: 22 },
+                                left: { color: Colors.slate[800], fontSize: 15, lineHeight: 22 },
+                            }}
+                            textProps={{ selectable: true }}
+                        />
+                    )}
+                    renderSend={(props) => (
+                        <Send
+                            {...props}
+                            containerStyle={[styles.sendContainer, (!props.text?.trim() || isSending) && styles.controlDisabled]}
+                            disabled={!props.text?.trim() || isSending}
+                            sendButtonProps={{
+                                accessibilityLabel: 'Gửi tin nhắn',
+                                accessibilityState: { disabled: !props.text?.trim(), busy: isSending },
+                                activeOpacity: 0.72,
+                            }}
                         >
-                            <Ionicons name="send" size={18} color="#ffffff" />
-                        </LinearGradient>
-                    </Send>
-                )}
-                listViewProps={{
-                    contentContainerStyle: { paddingBottom: 10, paddingHorizontal: 4 },
-                    keyboardShouldPersistTaps: 'handled',
-                }}
-            />
+                            <LinearGradient
+                                colors={['#0f766e', '#115e59']}
+                                style={styles.sendCircle}
+                            >
+                                {isSending ? <ActivityIndicator size="small" color="#ffffff" /> : <Ionicons name="send" size={18} color="#ffffff" />}
+                            </LinearGradient>
+                        </Send>
+                    )}
+                    listViewProps={{
+                        contentContainerStyle: { paddingBottom: 10, paddingHorizontal: 4 },
+                        keyboardShouldPersistTaps: 'handled',
+                    }}
+                    />
+                </KeyboardAvoidingView>
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#edf3f0' },
+    chatStage: { flex: 1, position: 'relative' },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -653,6 +678,7 @@ const styles = StyleSheet.create({
     micAccessoryActive: {
         backgroundColor: Colors.red[500],
     },
+    controlDisabled: { opacity: 0.48 },
     textInput: {
         flex: 1,
         color: '#13251f',

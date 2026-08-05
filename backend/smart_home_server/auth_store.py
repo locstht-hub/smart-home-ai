@@ -13,28 +13,45 @@ from typing import Any, Iterator
 
 SESSION_DAYS = 30
 DEFAULT_HOME_ENERGY_LIMIT_KWH = 2500.0
+PBKDF2_ITERATIONS = 600_000
+LEGACY_PBKDF2_ITERATIONS = 120_000
 
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def hash_password(password: str, salt: str | None = None) -> str:
+def hash_password(password: str, salt: str | None = None, iterations: int = PBKDF2_ITERATIONS) -> str:
     current_salt = salt or secrets.token_hex(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), current_salt.encode("utf-8"), 120_000)
-    return f"pbkdf2_sha256${current_salt}${digest.hex()}"
+    current_iterations = max(1, int(iterations))
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        current_salt.encode("utf-8"),
+        current_iterations,
+    )
+    return f"pbkdf2_sha256${current_iterations}${current_salt}${digest.hex()}"
 
 
 def verify_password(password: str, stored_hash: str) -> bool:
-    try:
-        algorithm, salt, expected = stored_hash.split("$", 2)
-    except ValueError:
+    parts = stored_hash.split("$")
+    if len(parts) == 4:
+        algorithm, raw_iterations, salt, expected = parts
+        try:
+            iterations = int(raw_iterations)
+        except ValueError:
+            return False
+    elif len(parts) == 3:
+        algorithm, salt, expected = parts
+        iterations = LEGACY_PBKDF2_ITERATIONS
+    else:
         return False
 
     if algorithm != "pbkdf2_sha256":
         return False
 
-    return secrets.compare_digest(hash_password(password, salt), f"{algorithm}${salt}${expected}")
+    candidate = hash_password(password, salt, iterations).rsplit("$", 1)[-1]
+    return secrets.compare_digest(candidate, expected)
 
 
 class AuthStore:
@@ -307,6 +324,13 @@ class AuthStore:
             ).fetchone()
 
             return self.public_user(row) if row else None
+
+    def revoke_session(self, token: str) -> bool:
+        if not token:
+            return False
+        with self.connect() as conn:
+            cursor = conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+            return cursor.rowcount > 0
 
     def list_user_homes(self, conn: sqlite3.Connection, user_id: str) -> list[dict[str, Any]]:
         rows = conn.execute(

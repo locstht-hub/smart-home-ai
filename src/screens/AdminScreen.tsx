@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { Colors } from '../constants/colors';
@@ -70,23 +71,26 @@ export default function AdminScreen() {
 
             {pendingUsers.length > 0 && (
                 <>
-                    <Text style={styles.sectionTitle}>⏳ Chờ duyệt ({pendingUsers.length})</Text>
+                    <View style={styles.sectionHeading}>
+                        <Ionicons name="time-outline" size={19} color={Colors.amber[700]} />
+                        <Text style={styles.sectionTitle}>Chờ duyệt ({pendingUsers.length})</Text>
+                    </View>
                     {pendingUsers.map(currentUser => (
                         <View key={currentUser.id} style={[styles.userCard, { borderLeftColor: Colors.amber[400], borderLeftWidth: 4 }]}>
                             <View style={styles.userInfo}>
                                 <Text style={styles.userName}>{currentUser.name}</Text>
-                                <Text style={styles.userPhone}>📱 {currentUser.phone}</Text>
+                                <View style={styles.metaRow}><Ionicons name="call-outline" size={14} color="#61736c" /><Text style={styles.userPhone}>{currentUser.phone}</Text></View>
                                 <Text style={styles.userDate}>Đăng ký: {formatTime(currentUser.createdAt)}</Text>
                             </View>
                             <View style={styles.actionBtns}>
-                                <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(currentUser.id, currentUser.name)}>
-                                    <Text style={styles.approveBtnText}>✓ Duyệt</Text>
+                                <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(currentUser.id, currentUser.name)} accessibilityRole="button" accessibilityLabel={`Duyệt tài khoản ${currentUser.name}`}>
+                                    <Ionicons name="checkmark" size={16} color="#ffffff" /><Text style={styles.approveBtnText}>Duyệt</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(currentUser.id, currentUser.name)}>
-                                    <Text style={styles.rejectBtnText}>✕ Từ chối</Text>
+                                <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(currentUser.id, currentUser.name)} accessibilityRole="button" accessibilityLabel={`Từ chối tài khoản ${currentUser.name}`}>
+                                    <Ionicons name="close" size={16} color={Colors.red[600]} /><Text style={styles.rejectBtnText}>Từ chối</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.deleteUserBtn} onPress={() => handleDeleteUser(currentUser.id, currentUser.name)}>
-                                    <Text style={styles.deleteUserText}>🗑 Xóa</Text>
+                                <TouchableOpacity style={styles.deleteUserBtn} onPress={() => handleDeleteUser(currentUser.id, currentUser.name)} accessibilityRole="button" accessibilityLabel={`Xóa tài khoản ${currentUser.name}`}>
+                                    <Ionicons name="trash-outline" size={15} color={Colors.red[600]} /><Text style={styles.deleteUserText}>Xóa</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -96,14 +100,18 @@ export default function AdminScreen() {
 
             {pendingUsers.length === 0 && (
                 <View style={styles.emptyBox}>
-                    <Text style={styles.emptyIcon}>✅</Text>
+                    <View style={styles.emptyIcon}><Ionicons name="checkmark-circle-outline" size={25} color={Colors.green[600]} /></View>
                     <Text style={styles.emptyText}>Không có tài khoản nào chờ duyệt</Text>
                 </View>
             )}
 
-            <Text style={styles.sectionTitle}>👥 Người dùng đã duyệt ({approvedUsers.length})</Text>
+            <View style={styles.sectionHeading}>
+                <Ionicons name="people-outline" size={20} color="#0f766e" />
+                <Text style={styles.sectionTitle}>Người dùng đã duyệt ({approvedUsers.length})</Text>
+            </View>
             {approvedUsers.length === 0 ? (
                 <View style={styles.emptyBox}>
+                    <View style={styles.emptyIcon}><Ionicons name="people-outline" size={25} color="#7c8c86" /></View>
                     <Text style={styles.emptyText}>Chưa có người dùng nào</Text>
                 </View>
             ) : approvedUsers.map(currentUser => {
@@ -115,7 +123,7 @@ export default function AdminScreen() {
                     <View key={currentUser.id} style={[styles.userCard, { borderLeftColor: Colors.green[400], borderLeftWidth: 4 }]}>
                         <View style={styles.userInfo}>
                             <Text style={styles.userName}>{currentUser.name}</Text>
-                            <Text style={styles.userPhone}>📱 {currentUser.phone}</Text>
+                            <View style={styles.metaRow}><Ionicons name="call-outline" size={14} color="#61736c" /><Text style={styles.userPhone}>{currentUser.phone}</Text></View>
                             <Text style={styles.userDate}>
                                 {currentUser.lastActive ? `Online: ${formatTime(currentUser.lastActive)}` : 'Chưa đăng nhập'}
                             </Text>
@@ -123,7 +131,7 @@ export default function AdminScreen() {
                         </View>
                         <View style={styles.approvedActions}>
                             <View style={[styles.statusBadge, { backgroundColor: Colors.green[100] }]}>
-                                <Text style={[styles.statusText, { color: Colors.green[700] }]}>Active</Text>
+                                <Text style={[styles.statusText, { color: Colors.green[700] }]}>Đang hoạt động</Text>
                             </View>
                             <View style={styles.approvedBtnRow}>
                                 <TouchableOpacity style={styles.manageBtn} onPress={() => setManagedUserId(currentUser.id)}>
@@ -138,9 +146,13 @@ export default function AdminScreen() {
                 );
             })}
 
-            <Text style={styles.sectionTitle}>📋 Hoạt động gần đây</Text>
+            <View style={styles.sectionHeading}>
+                <Ionicons name="list-outline" size={20} color="#0f766e" />
+                <Text style={styles.sectionTitle}>Hoạt động gần đây</Text>
+            </View>
             {activityLogs.length === 0 ? (
                 <View style={styles.emptyBox}>
+                    <View style={styles.emptyIcon}><Ionicons name="document-text-outline" size={25} color="#7c8c86" /></View>
                     <Text style={styles.emptyText}>Chưa có hoạt động nào</Text>
                 </View>
             ) : activityLogs.slice(0, 12).map(log => (
@@ -167,11 +179,11 @@ export default function AdminScreen() {
                             <>
                                 <View style={styles.modalHeader}>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={styles.modalTitle}>{isServerControlled ? 'Nha dung chung tren server' : `Nhà của ${managedUser.name}`}</Text>
+                                        <Text style={styles.modalTitle}>{isServerControlled ? 'Nhà dùng chung trên server' : `Nhà của ${managedUser.name}`}</Text>
                                         <Text style={styles.modalSubtitle}>{managedUser.phone}</Text>
                                     </View>
-                                    <TouchableOpacity onPress={() => setManagedUserId(null)}>
-                                        <Text style={styles.closeText}>✕</Text>
+                                    <TouchableOpacity style={styles.closeButton} onPress={() => setManagedUserId(null)} accessibilityRole="button" accessibilityLabel="Đóng chi tiết nhà">
+                                        <Ionicons name="close" size={23} color="#7c8c86" />
                                     </TouchableOpacity>
                                 </View>
 
@@ -245,7 +257,8 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#edf3f0' },
     content: { padding: 16, paddingBottom: 30 },
     pageTitle: { fontSize: 28, fontWeight: '900', color: '#13251f', marginTop: 8, marginBottom: 14, letterSpacing: -0.4 },
-    sectionTitle: { fontSize: 17, fontWeight: '800', color: '#13251f', marginBottom: 10, marginTop: 16, letterSpacing: -0.1 },
+    sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10, marginTop: 16 },
+    sectionTitle: { flex: 1, fontSize: 17, fontWeight: '800', color: '#13251f', letterSpacing: -0.1 },
     statsRow: { flexDirection: 'row', gap: 10, marginBottom: 6 },
     statCard: { flex: 1, borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#dce7e1' },
     statValue: { fontSize: 27, fontWeight: '900', color: '#13251f', fontVariant: ['tabular-nums'] },
@@ -253,24 +266,25 @@ const styles = StyleSheet.create({
     userCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
     userInfo: { flex: 1 },
     userName: { fontSize: 15, fontWeight: '800', color: '#13251f' },
-    userPhone: { fontSize: 13, color: '#61736c', marginTop: 2, fontWeight: '600' },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+    userPhone: { fontSize: 13, color: '#61736c', fontWeight: '600' },
     userDate: { fontSize: 11, color: '#7c8c86', marginTop: 4 },
     houseSummary: { fontSize: 12, color: '#0f766e', marginTop: 4, fontWeight: '800', fontVariant: ['tabular-nums'] },
     actionBtns: { gap: 6 },
     approvedActions: { alignItems: 'flex-end', gap: 8 },
     approvedBtnRow: { flexDirection: 'row', gap: 6 },
-    approveBtn: { backgroundColor: '#16a34a', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+    approveBtn: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#16a34a', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
     approveBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
-    rejectBtn: { backgroundColor: '#fff4f2', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#fecaca' },
+    rejectBtn: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#fff4f2', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#fecaca' },
     rejectBtnText: { color: Colors.red[600], fontSize: 13, fontWeight: '800' },
     statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
     statusText: { fontSize: 12, fontWeight: '800' },
     manageBtn: { backgroundColor: '#0f766e', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
     manageBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
-    deleteUserBtn: { backgroundColor: '#fff4f2', borderColor: '#fecaca', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+    deleteUserBtn: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#fff4f2', borderColor: '#fecaca', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
     deleteUserText: { color: Colors.red[600], fontSize: 12, fontWeight: '600' },
     emptyBox: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 20, alignItems: 'center', marginBottom: 6, borderWidth: 1, borderColor: '#dce7e1' },
-    emptyIcon: { fontSize: 24, marginBottom: 6 },
+    emptyIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: '#edf3f0', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
     emptyText: { fontSize: 14, color: '#61736c', fontWeight: '600', textAlign: 'center' },
     logItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#dce7e1' },
     logDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0f766e', marginTop: 6 },
@@ -281,7 +295,7 @@ const styles = StyleSheet.create({
     modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
     modalTitle: { fontSize: 20, fontWeight: '900', color: '#13251f', letterSpacing: -0.2 },
     modalSubtitle: { fontSize: 13, color: '#61736c', marginTop: 2, fontWeight: '600' },
-    closeText: { fontSize: 22, color: '#94a3b8' },
+    closeButton: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#edf3f0' },
     houseStatsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
     houseStatCard: { flex: 1, backgroundColor: '#edf3f0', borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#dce7e1' },
     houseStatValue: { fontSize: 18, fontWeight: '900', color: '#13251f', fontVariant: ['tabular-nums'] },

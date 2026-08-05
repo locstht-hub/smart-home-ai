@@ -113,17 +113,13 @@ button:active {
   min-height: 56px;
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
+.brand-avatar {
+  display: block;
+  flex: 0 0 46px;
   width: 46px;
   height: 46px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
-  background: linear-gradient(135deg, #0f766e, #115e59);
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 900;
+  filter: drop-shadow(0 8px 14px rgba(3, 30, 25, 0.34));
 }
 
 .brand strong,
@@ -281,6 +277,39 @@ h2 {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.api-offline-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid #f6c7c1;
+  border-radius: 16px;
+  background: #fff4f2;
+  color: var(--danger);
+}
+
+.api-offline-banner strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.api-offline-banner p {
+  margin: 0;
+  color: #7a3029;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.workspace.data-unavailable {
+  display: none;
+}
+
+body.api-offline button:disabled {
+  cursor: not-allowed;
 }
 
 .version-pill,

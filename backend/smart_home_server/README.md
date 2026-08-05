@@ -1,5 +1,11 @@
 # Smart Home Server API
 
+> PLC safety boundary: run exactly one server worker while this process owns
+> the S7 connection. The in-process I/O lock cannot coordinate multiple WSGI
+> workers. For horizontal scaling, move all PLC reads and writes into one
+> dedicated gateway/queue and keep `WEB_CONCURRENCY=1` until that gateway has
+> been implemented and tested.
+
 Server rieng lam trung tam dieu khien va giam sat trong do an.
 
 ## Workflow

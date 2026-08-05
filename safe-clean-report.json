@@ -1,0 +1,431 @@
+﻿{
+    "GeneratedAt":  "2026-07-09 20:43:32",
+    "Items":  [
+                  {
+                      "Label":  "Project dist",
+                      "Target":  "C:\\Users\\ADMIN\\.gemini\\antigravity\\scratch\\smart-home-app\\dist",
+                      "Action":  "Remove directory",
+                      "BeforeGB":  0.51,
+                      "AfterGB":  0,
+                      "FreedGB":  0.51,
+                      "Exists":  false,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Project Android app build",
+                      "Target":  "C:\\Users\\ADMIN\\.gemini\\antigravity\\scratch\\smart-home-app\\android\\app\\build",
+                      "Action":  "Remove directory",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "C:\\tmp contents",
+                      "Target":  "C:\\tmp",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  2.87,
+                      "AfterGB":  0,
+                      "FreedGB":  2.87,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Windows Temp contents",
+                      "Target":  "C:\\Windows\\Temp",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  1.77,
+                      "AfterGB":  0.91,
+                      "FreedGB":  0.86,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\Cache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.36,
+                      "AfterGB":  0,
+                      "FreedGB":  0.36,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\Code Cache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Code Cache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.35,
+                      "AfterGB":  0,
+                      "FreedGB":  0.35,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\GPUCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\GPUCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.01,
+                      "AfterGB":  0,
+                      "FreedGB":  0.01,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\DawnCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\DawnCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\GrShaderCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\GrShaderCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\ShaderCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\ShaderCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\Service Worker\\CacheStorage",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Service Worker\\CacheStorage",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.04,
+                      "AfterGB":  0,
+                      "FreedGB":  0.04,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Guest Profile\\Cache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Guest Profile\\Cache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Guest Profile\\Code Cache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Guest Profile\\Code Cache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Guest Profile\\GPUCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Guest Profile\\GPUCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Guest Profile\\DawnCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Guest Profile\\DawnCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Guest Profile\\GrShaderCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Guest Profile\\GrShaderCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Guest Profile\\ShaderCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Guest Profile\\ShaderCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Guest Profile\\Service Worker\\CacheStorage",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Guest Profile\\Service Worker\\CacheStorage",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 2\\Cache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 2\\Cache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.01,
+                      "AfterGB":  0,
+                      "FreedGB":  0.01,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 2\\Code Cache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 2\\Code Cache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 2\\GPUCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 2\\GPUCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 2\\DawnCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 2\\DawnCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 2\\GrShaderCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 2\\GrShaderCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 2\\ShaderCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 2\\ShaderCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 2\\Service Worker\\CacheStorage",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 2\\Service Worker\\CacheStorage",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\Cache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Cache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.4,
+                      "AfterGB":  0,
+                      "FreedGB":  0.4,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\Code Cache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Code Cache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.3,
+                      "AfterGB":  0,
+                      "FreedGB":  0.3,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\GPUCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\GPUCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.01,
+                      "AfterGB":  0,
+                      "FreedGB":  0.01,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\DawnCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\DawnCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\GrShaderCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\GrShaderCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\ShaderCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\ShaderCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Default\\Service Worker\\CacheStorage",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Service Worker\\CacheStorage",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.18,
+                      "AfterGB":  0,
+                      "FreedGB":  0.18,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 1\\Cache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Profile 1\\Cache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.01,
+                      "AfterGB":  0,
+                      "FreedGB":  0.01,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 1\\Code Cache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Profile 1\\Code Cache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 1\\GPUCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Profile 1\\GPUCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  true,
+                      "Attempted":  true
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 1\\DawnCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Profile 1\\DawnCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 1\\GrShaderCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Profile 1\\GrShaderCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 1\\ShaderCache",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Profile 1\\ShaderCache",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0,
+                      "AfterGB":  0,
+                      "FreedGB":  0,
+                      "Exists":  false,
+                      "Attempted":  false
+                  },
+                  {
+                      "Label":  "Browser cache: Profile 1\\Service Worker\\CacheStorage",
+                      "Target":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Profile 1\\Service Worker\\CacheStorage",
+                      "Action":  "Clear contents",
+                      "BeforeGB":  0.02,
+                      "AfterGB":  0,
+                      "FreedGB":  0.02,
+                      "Exists":  true,
+                      "Attempted":  true
+                  }
+              ],
+    "TotalFreedGB":  5.93,
+    "ErrorCount":  4,
+    "ErrorsSample":  [
+                         {
+                             "Target":  null,
+                             "Error":  "The process cannot access the file \u0027backend.err.log\u0027 because it is being used by another process."
+                         },
+                         {
+                             "Target":  null,
+                             "Error":  "Access to the path is denied."
+                         },
+                         {
+                             "Target":  null,
+                             "Error":  "The process cannot access the file \u0027C:\\Windows\\Temp\\DESKTOP-70S4NU9-20260709-1940.log\u0027 because it is being used by another process."
+                         },
+                         {
+                             "Target":  null,
+                             "Error":  "The process cannot access the file \u0027journal.baj\u0027 because it is being used by another process."
+                         }
+                     ],
+    "Drives":  [
+                   {
+                       "Drive":  "C:",
+                       "SizeGB":  357.9,
+                       "FreeGB":  78.83,
+                       "UsedGB":  279.07,
+                       "FreePct":  22
+                   },
+                   {
+                       "Drive":  "D:",
+                       "SizeGB":  117.19,
+                       "FreeGB":  61.38,
+                       "UsedGB":  55.81,
+                       "FreePct":  52.4
+                   }
+               ]
+}

@@ -1,53 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, TextInput, Animated, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, TextInput, Animated, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { PowerCurrentResponse, HomeQuota } from '../types/smartHomeServer';
 import { Colors } from '../constants/colors';
+import { AppTheme } from '../constants/theme';
 import { roomIconImages } from '../constants/roomAssets';
+import { getRoomPresentation } from '../constants/roomPresentation';
 
 const POWER_REFRESH_MS = 30000;
-const ICONS: Record<string, string> = {
-    bell: '!',
-    flash: '⚡',
-    'trending-up': '↗',
-    'stats-chart': '▥',
-    'sine-wave': '~',
-    'current-ac': 'I',
-    clock: '◷',
-    'edit-3': '✎',
-    power: '⏻',
-    moon: '☾',
-    home: '⌂',
-    'home-lightning-bolt': '⌂',
-};
-
-function IconText({ name, size = 16, color = '#000', style }: { name: string; size?: number; color?: string; style?: any }) {
-    return (
-        <Text
-            style={[
-                {
-                    color,
-                    fontSize: size,
-                    lineHeight: Math.ceil(size * 1.15),
-                    fontWeight: '800',
-                    textAlign: 'center',
-                    includeFontPadding: false,
-                },
-                style,
-            ]}
-        >
-            {ICONS[name] || name}
-        </Text>
-    );
-}
-
-const Feather = IconText;
-const Ionicons = IconText;
-const MaterialCommunityIcons = IconText;
-
 export default function DashboardScreen({ navigation }: any) {
     const { user } = useAuth();
     const { rooms, getTotalPower, getActiveDeviceCount, turnAllOff, applyScene, serverError, isHomeSuspended, isServerControlled } = useData();
@@ -170,10 +134,10 @@ export default function DashboardScreen({ navigation }: any) {
     };
 
     const getQuotaWarningText = (ratio: number) => {
-        if (ratio >= 1.0) return '⚠️ ĐÃ VƯỢT QUÁ HẠN MỨC THÁNG NÀY!';
-        if (ratio >= 0.9) return '⚠️ Nguy cơ vượt hạn mức (>90%)!';
-        if (ratio >= 0.75) return '⚠️ Đã tiêu thụ hơn 75% hạn mức';
-        return '⚡ Mức tiêu thụ nằm trong tầm kiểm soát';
+        if (ratio >= 1.0) return 'ĐÃ VƯỢT QUÁ HẠN MỨC THÁNG NÀY';
+        if (ratio >= 0.9) return 'Nguy cơ vượt hạn mức (>90%)';
+        if (ratio >= 0.75) return 'Đã tiêu thụ hơn 75% hạn mức';
+        return 'Mức tiêu thụ nằm trong tầm kiểm soát';
     };
 
     const handleSaveQuota = async () => {
@@ -221,8 +185,8 @@ export default function DashboardScreen({ navigation }: any) {
                     <Text style={styles.welcomeLabel}>Xin chào, {user?.name}</Text>
                     <Text style={styles.welcomeTitle}>{getGreeting()}</Text>
                 </View>
-                <TouchableOpacity style={styles.notifBadge} onPress={() => navigation.navigate('Analysis')}>
-                    <Feather name="bell" size={20} color={Colors.slate[600]} />
+                <TouchableOpacity style={styles.notifBadge} accessibilityRole="button" accessibilityLabel="Mở trang phân tích" onPress={() => navigation.navigate('Analysis')}>
+                    <Ionicons name="analytics-outline" size={20} color={Colors.slate[600]} />
                 </TouchableOpacity>
             </View>
 
@@ -285,21 +249,21 @@ export default function DashboardScreen({ navigation }: any) {
             <View style={styles.statsGrid}>
                 <View style={[styles.statCard, styles.statCardWide]}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.blue[100] }]}>
-                        <Ionicons name="stats-chart" size={16} color={Colors.blue[600]} />
+                        <Ionicons name="speedometer-outline" size={18} color={Colors.blue[600]} />
                     </View>
                     <Text style={styles.statValue}>{energyStatValue}</Text>
                     <Text style={styles.statLabel}>{energyStatLabel}</Text>
                 </View>
                 <View style={[styles.statCard, styles.statCardHalf]}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.green[100] }]}>
-                        <MaterialCommunityIcons name="sine-wave" size={16} color={Colors.green[600]} />
+                        <Ionicons name="flash-outline" size={18} color={Colors.green[600]} />
                     </View>
                     <Text style={styles.statValueSmall}>{voltageValue}</Text>
                     <Text style={styles.statLabel}>Điện áp (V)</Text>
                 </View>
                 <View style={[styles.statCard, styles.statCardHalf]}>
                     <View style={[styles.statIcon, { backgroundColor: Colors.orange[100] }]}>
-                        <MaterialCommunityIcons name="current-ac" size={16} color={Colors.orange[600]} />
+                        <Ionicons name="pulse-outline" size={18} color={Colors.orange[600]} />
                     </View>
                     <Text style={styles.statValueSmall}>{currentValue}</Text>
                     <Text style={styles.statLabel}>Dòng điện (I)</Text>
@@ -311,17 +275,16 @@ export default function DashboardScreen({ navigation }: any) {
                 <View style={styles.quotaCard}>
                     <View style={styles.quotaHeader}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Feather name="trending-up" size={18} color={Colors.slate[700]} />
+                            <Ionicons name="trending-up" size={18} color={Colors.slate[700]} />
                             <Text style={styles.quotaTitle}>Hạn mức điện năng HEMS</Text>
                         </View>
                         {isOwner && (
                             <TouchableOpacity onPress={() => {
                                 setQuotaInput(quota?.energyLimitKwh ? String(quota.energyLimitKwh) : '');
                                 setIsQuotaModalVisible(true);
-                            }} style={styles.quotaEditBtn}>
-                                <Text style={styles.quotaEditBtnText}>
-                                    <Feather name="edit-3" size={12} color={Colors.primary[600]} /> Thiết lập
-                                </Text>
+                            }} style={styles.quotaEditBtn} accessibilityRole="button" accessibilityLabel="Thiết lập hạn mức điện năng">
+                                <Ionicons name="create-outline" size={16} color={Colors.primary[600]} />
+                                <Text style={styles.quotaEditBtnText}>Thiết lập</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -395,53 +358,58 @@ export default function DashboardScreen({ navigation }: any) {
                 animationType="slide"
                 onRequestClose={() => setIsQuotaModalVisible(false)}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Cài Đặt Hạn Mức Điện Năng</Text>
-                        <Text style={styles.modalSubtitle}>Nhập hạn mức điện năng cho nhà trong tháng này (kWh/tháng):</Text>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Cài Đặt Hạn Mức Điện Năng</Text>
+                            <Text style={styles.modalSubtitle}>Nhập hạn mức điện năng cho nhà trong tháng này (kWh/tháng):</Text>
 
-                        <TextInput
-                            style={styles.modalInput}
-                            placeholder="Ví dụ: 2500"
-                            placeholderTextColor={Colors.slate[400]}
-                            keyboardType="numeric"
-                            value={quotaInput}
-                            onChangeText={setQuotaInput}
-                            autoFocus
-                        />
+                            <TextInput
+                                style={styles.modalInput}
+                                placeholder="Ví dụ: 2500"
+                                placeholderTextColor={Colors.slate[400]}
+                                keyboardType="numeric"
+                                value={quotaInput}
+                                onChangeText={setQuotaInput}
+                                autoFocus
+                            />
 
-                        <View style={styles.modalBtnRow}>
-                            <TouchableOpacity
-                                style={[styles.modalBtn, styles.modalBtnCancel]}
-                                onPress={() => setIsQuotaModalVisible(false)}
-                                disabled={isSubmittingQuota}
-                            >
-                                <Text style={styles.modalBtnCancelText}>Hủy</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.modalBtn, styles.modalBtnSave, isSubmittingQuota && { opacity: 0.7 }]}
-                                onPress={handleSaveQuota}
-                                disabled={isSubmittingQuota}
-                            >
-                                <Text style={styles.modalBtnSaveText}>
-                                    {isSubmittingQuota ? 'Đang lưu...' : 'Lưu hạn mức'}
-                                </Text>
-                            </TouchableOpacity>
+                            <View style={styles.modalBtnRow}>
+                                <TouchableOpacity
+                                    style={[styles.modalBtn, styles.modalBtnCancel]}
+                                    onPress={() => setIsQuotaModalVisible(false)}
+                                    disabled={isSubmittingQuota}
+                                >
+                                    <Text style={styles.modalBtnCancelText}>Hủy</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.modalBtn, styles.modalBtnSave, isSubmittingQuota && { opacity: 0.7 }]}
+                                    onPress={handleSaveQuota}
+                                    disabled={isSubmittingQuota}
+                                >
+                                    <Text style={styles.modalBtnSaveText}>
+                                        {isSubmittingQuota ? 'Đang lưu...' : 'Lưu hạn mức'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             <Text style={styles.sectionTitle}>Thao tác nhanh</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActions}>
-                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.red[200], backgroundColor: Colors.red[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} onPress={async () => {
+                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.red[200], backgroundColor: Colors.red[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} accessibilityRole="button" accessibilityLabel="Tắt tất cả thiết bị" onPress={async () => {
                     const success = await turnAllOff();
                     if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị. Kiểm tra PLC/server rồi thử lại.');
                 }}>
-                    <MaterialCommunityIcons name="power" size={14} color={Colors.red[600]} />
+                    <Ionicons name="power-outline" size={18} color={Colors.red[600]} />
                     <Text style={{ color: Colors.red[600], fontWeight: '500', fontSize: 13 }}>Tắt tất cả</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.blue[200], backgroundColor: Colors.blue[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} onPress={() => {
+                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.blue[200], backgroundColor: Colors.blue[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} accessibilityRole="button" accessibilityLabel="Bật chế độ đêm" onPress={() => {
                     Alert.alert('Chế độ đêm', 'Tắt các thiết bị đèn/quạt trong hệ thống?', [
                         { text: 'Hủy', style: 'cancel' },
                         {
@@ -453,10 +421,10 @@ export default function DashboardScreen({ navigation }: any) {
                         },
                     ]);
                 }}>
-                    <Feather name="moon" size={14} color={Colors.blue[600]} />
+                    <Ionicons name="moon-outline" size={18} color={Colors.blue[600]} />
                     <Text style={{ color: Colors.blue[600], fontWeight: '500', fontSize: 13 }}>Chế độ đêm</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.amber[200], backgroundColor: Colors.amber[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} onPress={() => {
+                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.amber[200], backgroundColor: Colors.amber[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} accessibilityRole="button" accessibilityLabel="Bật chế độ vắng nhà" onPress={() => {
                     Alert.alert('Chế độ vắng nhà', 'Tắt tất cả thiết bị trong nhà?', [
                         { text: 'Hủy', style: 'cancel' },
                         {
@@ -469,7 +437,7 @@ export default function DashboardScreen({ navigation }: any) {
                         },
                     ]);
                 }}>
-                    <Feather name="home" size={14} color={Colors.amber[600]} />
+                    <Ionicons name="home-outline" size={18} color={Colors.amber[600]} />
                     <Text style={{ color: Colors.amber[600], fontWeight: '500', fontSize: 13 }}>Vắng nhà</Text>
                 </TouchableOpacity>
             </ScrollView>
@@ -481,14 +449,16 @@ export default function DashboardScreen({ navigation }: any) {
                 </TouchableOpacity>
             </View>
 
-            {rooms.slice(0, 3).map(room => (
-                <TouchableOpacity key={room.id} style={styles.roomCard} onPress={() => navigation.navigate('RoomList', { roomId: room.id, timestamp: Date.now() })}>
+            {rooms.slice(0, 3).map(room => {
+                const visual = getRoomPresentation(room);
+                return (
+                <TouchableOpacity key={room.id} style={styles.roomCard} onPress={() => navigation.navigate('RoomList', { roomId: room.id, timestamp: Date.now() })} accessibilityRole="button" accessibilityLabel={`${room.name}, ${room.active} trên ${room.devices} thiết bị đang bật`}>
                     <View style={styles.roomCardLeft}>
                         <View style={[styles.roomIcon, room.active > 0 && styles.roomIconActive]}>
-                            {roomIconImages[room.id] ? (
-                                <Image source={roomIconImages[room.id]} style={styles.roomIconImage} resizeMode="cover" />
+                            {visual.imageKey ? (
+                                <Image source={roomIconImages[visual.imageKey]} style={styles.roomIconImage} resizeMode="cover" accessible accessibilityLabel={visual.accessibilityLabel} />
                             ) : (
-                                <MaterialCommunityIcons name="home-lightning-bolt" size={22} color={room.active > 0 ? Colors.green[600] : Colors.slate[400]} />
+                                <Ionicons name={visual.icon as any} size={24} color={Colors.slate[600]} accessibilityLabel={visual.accessibilityLabel} />
                             )}
                         </View>
                         <View>
@@ -500,10 +470,11 @@ export default function DashboardScreen({ navigation }: any) {
                         <Text style={styles.roomPower}>{room.power}W</Text>
                     </View>
                 </TouchableOpacity>
-            ))}
+                );
+            })}
 
             <LinearGradient colors={[Colors.amber[50], Colors.orange[50]]} style={styles.tipCard}>
-                <Text style={{ fontSize: 20 }}>💡</Text>
+                <Ionicons name="bulb-outline" size={22} color={Colors.amber[700]} />
                 <View style={{ flex: 1 }}>
                     <Text style={styles.tipTitle}>Mẹo tiết kiệm điện</Text>
                     <Text style={styles.tipText}>Tắt các thiết bị không cần thiết khi ra khỏi phòng để tiết kiệm điện năng.</Text>
@@ -516,11 +487,11 @@ export default function DashboardScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#edf3f0' },
+    container: { flex: 1, backgroundColor: AppTheme.colors.canvas },
     content: { padding: 16, paddingBottom: 28 },
     welcomeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, marginTop: 8 },
     welcomeLabel: { fontSize: 13, color: '#61736c', fontWeight: '600' },
-    welcomeTitle: { fontSize: 26, fontWeight: '800', color: '#13251f', letterSpacing: -0.3 },
+    welcomeTitle: { fontSize: 26, fontWeight: '800', color: AppTheme.colors.ink, letterSpacing: -0.3 },
     notifBadge: { padding: 10, backgroundColor: '#f8fbf9', borderRadius: 14, position: 'relative', borderWidth: 1, borderColor: '#dce7e1', shadowColor: '#173a31', shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
     notifIcon: { fontSize: 18 },
     notifDot: { position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: 8, backgroundColor: Colors.red[500], alignItems: 'center', justifyContent: 'center' },
@@ -548,7 +519,7 @@ const styles = StyleSheet.create({
     powerUnit: { fontSize: 18, color: 'rgba(236,253,245,0.78)', fontWeight: '800' },
     powerSubtext: { fontSize: 13, color: 'rgba(236,253,245,0.72)', fontWeight: '600' },
     statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-    statCard: { backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, borderWidth: 1, borderColor: '#dce7e1', shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2 },
+    statCard: { backgroundColor: AppTheme.colors.surface, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: AppTheme.colors.border, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2 },
     statCardWide: { width: '100%' },
     statCardHalf: { flex: 1, minWidth: 0 },
     statIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
@@ -559,7 +530,7 @@ const styles = StyleSheet.create({
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     seeAll: { fontSize: 13, fontWeight: '800', color: '#0f766e' },
     quickActions: { marginBottom: 20 },
-    actionBtn: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, marginRight: 10, shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 1 },
+    actionBtn: { minHeight: 44, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, marginRight: 10, shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 1 },
     roomCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#dce7e1', shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
     roomCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     roomIcon: { width: 48, height: 48, borderRadius: 13, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: '#e7eee9' },
@@ -583,7 +554,7 @@ const styles = StyleSheet.create({
     quotaCard: { backgroundColor: '#f8fbf9', borderRadius: 20, padding: 16, marginBottom: 20, shadowColor: '#173a31', shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 2, borderWidth: 1, borderColor: '#dce7e1' },
     quotaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     quotaTitle: { fontSize: 14, fontWeight: '800', color: '#13251f' },
-    quotaEditBtn: { paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#e0f2ef', borderRadius: 10 },
+    quotaEditBtn: { minHeight: 44, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#e0f2ef', borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
     quotaEditBtnText: { fontSize: 12, fontWeight: '800', color: '#0f766e' },
     quotaInfoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
     quotaInfoText: { fontSize: 13, color: '#61736c' },

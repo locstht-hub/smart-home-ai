@@ -1,0 +1,138 @@
+{
+  "paragraphs": [
+    "TỐI ƯU PID CHO BỒN NƯỚC, MỞ RỘNG INTERNET VẠN VẬT CHO GIÁM SÁT - ĐIỀU KHIỂN",
+    "Trần Trung Khánh1, Nguyễn Văn Hậu1",
+    "Khoa Điện - Điện Tử , Trường Đại học Kỹ thuật - Công nghệ Cần Thơ",
+    "Email: hmhuan@ctuet.edu.vn",
+    "1. ĐẶT VẤN ĐỀ",
+    "Trong các hệ thống cấp-thải nước, làm mát và bể trung gian, mực nước là đại lượng an toàn-vận hành cốt lõi. Vận hành thủ công hoặc điều khiển tối giản dễ gây rủi ro cạn bồn dẫn tới khô bơm, tràn bồn, dao động cung-cầu, lãng phí năng lượng và phụ thuộc người vận hành (1). Thực tế còn xuất hiện nhiễu- bất định (thay đổi độ mở van xả, biến động lưu lượng, sai số- độ trễ cảm biến, ảnh hưởng nhiệt độ, độ nhớt), nên cần một bộ điều khiển ổn định, bền vững, bám điểm đặt nhanh, vọt lố nhỏ và lệnh mượt trong giới hạn phần cứng.",
+    "Nghiên cứu này chọn PID làm bộ điều khiển cơ sở vì cấu trúc đơn giản, dễ triển khai trên PLC và đã được kiểm chứng trong công nghiệp. Bài toán trọng tâm là tinh chỉnh bộ số  theo tiêu chí ứng dụng (vọt lố, thời gian xác lập, độ nhạy) (2,3). Thay cho thủ công khó lặp lại, quy trình đề xuất khởi tạo Ziegler- Nichols (Z-N), sau đó tối ưu tự động bằng GA và khai thác ANN như bộ học theo- tuner dựa trên dữ liệu chất lượng.",
+    "Để bảo đảm tính khách quan và khả năng chuyển giao, mô hình toán học bồn nước đơn được thiết lập từ tham số đo đạc thực tế và sử dụng MATLAB/Simulink làm môi trường mô phỏng lý tưởng cho thiết kế- tối ưu (đánh giá qua ITAE, vọt lố, , ) (4). Các bộ số thu được được đối chiếu trên đối tượng thực (PLC S7-1200 + VFD) với fine-tuning ngắn để bù sai khác do vận hành (độ mở van, sai lệch/độ trễ cảm biến, ảnh hưởng nhiệt độ, tổn thất cục bộ), từ đó lượng hóa chênh lệch mô phỏng ↔ thực nghiệm và rút ra khuyến nghị.",
+    "Cuối cùng, IoT/Web SCADA được tích hợp như khả năng mở rộng cho giám sát- điều khiển từ xa (cảnh báo, nhật ký, xu hướng), nhưng không thay đổi trọng tâm của bài báo là mô hình-thuật toán- quy trình tối ưu và chuyển giao PID. Quy trình trọn vẹn “mô hình hóa → mô phỏng →Z-N/GA/ANN → PLC + Fine-Tuning” hướng tới một khuôn mẫu tái lập cho các ứng dụng bồn nước quy mô nhỏ tương tự.",
+    "2. CƠ SỞ LÝ THUYẾT-MÔ HÌNH- PHƯƠNG PHÁP NGHIÊN CỨU",
+    "Mục này trình bày: (i) đối tượng và kiến trúc mô hình thí nghiệm; (ii) cách tham số hóa từ số liệu thực nghiệm để thiết lập mô hình toán học phục vụ mô phỏng trên MATLAB/Simulink; và (iii) khung thiết kế- tối ưu bộ điều khiển (khởi tạo Z-N, tối ưu GA/ANN) trước khi chuyển giao và tinh chỉnh ngắn (fine-tuning) trên PLC.",
+    "2.1. Tổng quan mô hình",
+    "Đối tượng nghiên cứu là hệ bồn nước đơn trong Hình 1, với biến điều khiển là tốc độ bơm (qua VFD) và biến đo là mực nước trong bồn. Cấu phần chính gồm: bồn chứa với hình học biết trước (chiều cao cực đại , tiết diện ngang đặc trưng ); đường ống-van xả (tiết diện , hệ số xả ); bơm ly tâm điều khiển bởi INVT GD20; cảm biến mức TL-136 (4-20 mA); PLC Siemens S7-1200 (khối PID_Compact); HMI tại chỗ; nguồn 24 VDC và khí cụ bảo vệ. Các cơ chế an toàn gồm liên động LL/HH, bảo vệ khô nước, ramp accel/decel trên VFD và bumpless transfer khi chuyển chế độ.",
+    "Chuỗi tín hiệu được chuẩn hóa như sau: tín hiệu AI 4-20 mA từ TL-136 được hiệu chuẩn và quy đổi sang mực nước (cm), kèm lọc nhiễu nhẹ; lệnh điều khiển OUT của PID_Compact được ánh xạ sang tần số tham chiếu của VFD qua RS-485/Modbus RTU hoặc AO 0-10 V; SP (setpoint) đặt từ HMI. Bảng 1 tổng hợp bộ tham số thực nghiệm (hình học bồn, đặc tính xả, hằng số tỉ lệ bơm, mực ban đầu…), các giá trị đã được đo, hiệu chỉnh và lấy trung bình qua nhiều lượt thử, sau đó quy đổi để tham số hóa mô hình trên MATLAB/Simulink (4,5).",
+    "Trong khuôn khổ nghiên cứu, động học của hệ được mô tả từ cân bằng khối lượng; lưu lượng xả mô phỏng theo Torricelli quanh điểm làm việc (hoặc tuyến tính hóa khi cần), lưu lượng cấp xấp xỉ tuyến tính theo lệnh với hằng số tỉ lệ bơm . Các giả thiết vận hành (nhiệt độ môi trường ổn định, chất lỏng không nén, tổn thất cục bộ gộp vào ) được áp dụng nhất quán nhằm thiết lập môi trường mô phỏng lý tưởng cho thiết kế và tối ưu điều khiển.",
+    "2.2. Mô hình hóa hệ thống",
+    "Mô hình động học suy từ phương trình cân bằng lưu lượng vào- ra, giả thiết diện tích mặt cắt bồn không đổi, tổn thất đường ống gộp về tham số xả. Tuyến tính hóa quanh điểm làm việc cho phép thu được hàm truyền bậc nhất/bậc hai tương đương để thiết kế ban đầu.",
+    "Tham số được xác định bằng: (i) đo đáp ứng bậc thang ở nhiều mốc đặt, (ii) nội suy/phi tuyến hóa theo mực nước, (iii) kiểm định chéo giữa mô phỏng và thực nghiệm. Sai số mô hình được quản trị bằng lọc số đơn giản và cập nhật tham số xả khi thay đổi độ mở van.",
+    "Bảng 1. Thông số bồn nước đơn",
+    "Nguồn: Công bố tác giả (2025)",
+    "Mô hình phi tuyến:",
+    "(1)",
+    "[cm]: mực nước trong bồn; ràng buộc .",
+    "[cm²]: tiết diện mặt cắt ngang hiệu dụng của bồn tại mức .",
+    "[đơn vị lệnh điều khiển-V/Hz]: điện áp điều khiển.",
+    ": hệ số tỉ lệ giữa lệnh  và lưu lượng cấp",
+    "[cm²]: tiết diện xả hữu hiệu.",
+    "[–]: hệ số xả (gộp tổn thất cục bộ/ma sát).",
+    ": gia tốc trọng trường.",
+    "2.3. Thuật toán PID",
+    "Bộ điều khiển tỷ lệ-tích phân-vi phân (PID, proportional-integral-derivative) là cấu trúc điều khiển vòng kín được ứng dụng rộng rãi nhất trong công nghiệp nhờ đơn giản, bền vững và dễ chuyển giao lên PLC/DCS (3,6). Thành phần tỷ lệ định hình độ nhạy theo sai lệch tức thời, tích phân loại bỏ sai lệch tĩnh, còn vi phân dự báo xu thế để giảm vọt lố và rút ngắn thời gian quá độ. PID cũng linh hoạt về triển khai thực tế: lọc đạo hàm, trọng số điểm đặt, anti-windup, giới hạn biên và ramp giúp đáp ứng mượt, an toàn cho cơ cấu chấp hành. Nhờ đó, PID phù hợp với nhiều đối tượng có động học chậm-vừa (như bồn nước), đặc biệt khi yêu cầu chính là bám điểm đặt ổn định với vọt lố nhỏ (7,8).",
+    "Trong nghiên cứu này, PID được dùng làm lõi điều khiển, trước hết mô phỏng trên MATLAB/Simulink để khởi tạo và tối ưu tham số, sau đó chuyển giao lên PLC với tinh chỉnh ngắn trên thiết bị thực-đảm bảo tiêu chí ứng dụng và ràng buộc an toàn của hệ (2,9,10).",
+    "2.3.1. PID trong mô phỏng MATLAB/Simulink",
+    "Mục tiêu là thu được bộ số  đáp ứng bám đặt nhanh, vọt lố ≈ 1%, ≈ 90–100 s và lệnh mượt cho dải điểm đặt đại diện. Mô hình quá trình dùng phương trình ở Mục 2.2 (phi tuyến Torricelli và/hoặc tuyến tính hoá quanh ). Khối điều khiển sử dụng cấu trúc PID song song với lọc đạo hàm (trên tín hiệu đo), trọng số điểm đặt khi cần giảm vọt lố và chu kỳ rời rạc tương ứng lấy mẫu thực (≈ 0,1-0,2 s).",
+    "Quy trình hiệu chỉnh: (i) khởi tạo theo Z-N để có nghiệm đủ tốt; (ii) tối ưu trong mô phỏng bằng GA (hàm mục tiêu gộp ITAE, OS, , ); (iii) tùy chọn ANN học theo để gợi ý/điều chỉnh nhanh khi thay đổi điểm làm việc. Trong suốt mô phỏng, các ràng buộc triển khai thực được phản chiếu ngay trong mô hình (giới hạn đầu ra, anti-windup, rate-limit/ramp), giúp bộ số sau cùng sát thực tế và sẵn sàng chuyển giao.",
+    "2.3.2. PID trên PLC (S7-1200, PID_Compact)",
+    "Bộ số từ mô phỏng được nạp vào PID_Compact với chuỗi tín hiệu: PV là mực nước đã hiệu chuẩn từ 4-20 mA, SP đặt từ HMI/IoT, OUT ánh xạ sang tần số tham chiếu VFD qua RS-485/Modbus RTU hoặc AO 0-10 V. Cấu hình vận hành gồm: giới hạn biên và rate-limit/ramp accel-decel, anti-windup kiểu back-calculation, bumpless transfer và tracking khi chuyển Manual ↔ Auto, lọc đạo hàm trên kênh đo, cùng liên động an toàn (LL/HH, khô nước, lỗi VFD/truyền thông).",
+    "Bước Fine-Tuning ngắn trên thiết bị được thực hiện theo kịch bản đặt-nhiễu đã dùng trong mô phỏng; điều chỉnh nhỏ theo hiện tượng quan sát: giảm  khi có tích phân dư hoặc tăng trễ do ramp, tăng nhẹ  khi bám chậm, chỉ tăng  khi cần giảm vọt lố và đã kiểm soát nhiễu. Toàn bộ SP, PV, OUT, tần số VFD được ghi trend/log để đối sánh với mô phỏng và chốt bộ số cuối.",
+    "2.4. Thuật toán GA",
+    "Để rút ngắn thời gian tinh chỉnh bộ ba  mà vẫn bảo đảm đáp ứng nhanh- ít vọt lố - ổn định trên cùng đối tượng thực, nghiên cứu sử dụng giải thuật di truyền (GA) như một công cụ hỗ trợ triển khai. GA hoạt động theo nguyên lý “tiến hoá” trên quần thể các bộ số PID ứng viên: đánh giá chất lượng đáp ứng, chọn lọc cá thể tốt, lai ghép- đột biến để tạo thế hệ mới, và lặp cho tới khi hội tụ về một bộ số đủ tốt để đưa vào vận hành. Cách tiếp cận này ưu tiên tính thực dụng: tính toán ngoại tuyến trên mô hình đã khớp, chỉ kiểm chứng ngắn trên thiết bị với vài ứng viên tốt nhất (11). Lưu đồ giải thuật Hình 2 thể hiện cách thức hoạt động thuật toán GA.",
+    "2.5. Thuật toán ANN",
+    "Trong nghiên cứu này, ANN được sử dụng như mô hình dữ liệu- hướng (data-driven) học theo bộ điều khiển PID, nhằm tái tạo hành vi điều khiển từ nguồn dữ liệu chất lượng thu thập khi hệ vận hành ổn định với PID đã tinh chỉnh (Z-N → GA, có lọc và ràng buộc an toàn). Mục đích trước mắt là mô phỏng, bám theo tín hiệu điều khiển để rút ngắn thời gian hiệu chỉnh khi điều kiện làm việc thay đổi; về lâu dài, đây là hướng phát triển cho các chiến lược điều khiển nâng cao dựa trên học máy (12,13).",
+    "Kiến trúc ANN dùng mạng truyền thẳng nhiều lớp (Input- Hidden- Output), đầu vào gồm các đặc trưng vòng kín (ví dụ  hoặc thông tin điểm làm việc), đầu ra là (hoặc ) do PID sinh ra. Dữ liệu được chuẩn hoá, chia train, validation, test, huấn luyện có early stopping để tránh quá khớp. Khi đánh giá, ANN chạy shadow mode song song PID; mọi lệnh đều qua giới hạn biên, ramp-limit, anti-windup để bảo toàn phần cứng. Kết quả cho thấy ANN bám sát đáp ứng của PID trên cùng kịch bản đặt và nhiễu, tạo nền tảng cho các mở rộng như tuner tham số hay bù phi tuyến theo vùng làm việc.",
+    "Hình 3 minh hoạ kết quả mô phỏng: đường đáp ứng do ANN học theo PID trùng khớp gần như hoàn toàn, sai lệch nhỏ và không làm tăng vọt lố, thời gian xác lập.",
+    "3. KẾT QUẢ ĐẠT ĐƯỢC",
+    "3.1. Kết quả mô phỏng",
+    "Trên mô hình bồn nước, nghiên cứu này sử dụng Z-N như bước khởi tạo chuẩn công nghiệp: đóng vòng với nhánh P-only (), tăng dần KP đến khi xuất hiện dao động bền để ghi lại Ku (khuếch đại tới hạn) và  (chu kỳ dao động). Từ cặp (), các công thức thực nghiệm Z-N được áp dụng để suy ra bộ số PID ban đầu () cho mô phỏng và triển khai sơ bộ. Cách làm này rút ngắn thời gian khởi tạo và tạo đường cơ sở định lượng cho các bước tối ưu tiếp theo (GA/ANN). Do Z-N có xu hướng cho đáp ứng nhanh nhưng vọt lố lớn, bộ số Z-N được dùng làm baseline để tối ưu bằng GA và kiểm chứng bằng ANN học theo, trên cùng kịch bản bước đặt và nhiễu.",
+    "Qua tính toán bằng Z-N thu được bộ số PID với  Hình 4 thể hiện đồ thị đáp ứng ngõ ra tương ứng với mức nước đặt 30cm và 35cm với thời gian đáp ứng trong khoảng 0-50 s. Độ vọt lố tương đối lớn 2-4%.",
+    "Kết quả dò tìm bằng thuật toán GA cho ra bộ số với  với khoảng thời gain đáp ứng mô phỏng khoảng 50 s. Hình 5 thể hiện đồ thị đáp ứng của bộ số PID từ thuật toán GA với thời gian đáp ứng khoảng 50 s, độ vọt lố rất nhỏ 0,99% ở cả hai trường hợp mức nước đặt là 30cm và 35cm.",
+    "So với đường cơ sở Z-N, phương án ANN (học theo từ bộ PID tối ưu bằng GA) cho ITAE thấp hơn và độ vọt lố giảm rõ. So với PID- GA, ANN cho đáp ứng tương đương về chất lượng (bám đặt, ) nhưng ổn định hơn khi điều kiện vận hành thay đổi nhẹ quanh điểm làm việc, nhờ khả năng nội suy theo dữ liệu đã học. Hình 6 thể hiện đồ thị đáp ứng ngõ ra theo mức nước đặt ở hai trường hợp lần lượt 30 cm và 35 cm của thuật toán ANN, thời gian đáp ứng trong khoảng 0-50 s, độ vọt lố rất nhỏ xấp xỉ 1%",
+    "3.2. Kết quả thực nghiệm",
+    "Xây dựng được giao diện điều khiển cho hệ thống với màn hình HMI và giao diện Web SCADA trực quan dễ dàng sử dụng, về cơ bản hệ thống hoạt động ở chế độ Manual và Auto, chế độ Manual dùng để chạy bơm thủ công theo giá trị đặt tần số cho biến tần điều khiển bơm, người dùng cần bật tắt chủ động, liên tục theo dõi hệ thống tránh tràn bồn, cạn đáy. Chế độ Auto theo bộ điều khiển PID được thể hiện theo lưu đồ giải thuật Hình 7.",
+    "Kết quả vận hành bộ số PID bằng Fine Tuning lập trình trên PLC S7-1200, ; với mức nước đặt là 30 cm cho ra đáp ứng tốt trong khoảng 50s và duy trì mức nước ổn định, tùy theo độ mở van xả mà hệ thống sẽ tự động điều chỉnh tần số ngõ ra để điều khiển động cơ hoạt động ổn định.",
+    "3.3. Lớp giao diện người dùng và SCADA",
+    "Sau khi mô hình hóa và tối ưu bộ số PID trong môi trường MATLAB/Simulink, các cấu hình tốt nhất được chuyển giao lên PLC để kiểm chứng thực nghiệm. Nhằm hỗ trợ quan sát, ghi log và vận hành an toàn trong suốt quá trình thử nghiệm, nghiên cứu triển khai lớp HMI tại chỗ và Web SCADA/IoT như một tầng ứng dụng mở rộng.",
+    "Lớp HMI (Hình 9) triển khai đăng nhập/phân quyền (operator/engineer/admin/supervisor), ghi nhật ký thao tác (audit) và yêu cầu ack–reset có kiểm soát cho lệnh rủi ro. Các màn hình chính gồm: Dashboard (tổng quan trạng thái chạy/dừng, mực nước, tần số bơm, điện áp-dòng-công suất, chỉ báo an toàn), Operation (Auto/Manual với bumpless transfer, Start/Stop, đặt SP, đặt ngưỡng LL/HH có hysteresis; hiển thị tức thời PV-SP-OUT và tần số VFD), Maintenance (hiệu chỉnh  của PID_Compact, giới hạn OUT, anti-windup, ramp accel/decel, chọn AO/RS-485, calib 4-20 mA, test I/O, E-Stop), cùng Alarm/Trend (phân loại LL/HH, khô nước, lỗi VFD/truyền thông, quá dòng; đồ thị PV-SP-tần số và lưu lịch sử ngày/giờ/tháng/năm phục vụ truy vết và đánh giá đáp ứng).",
+    "Web SCADA/IoT (mở rộng). Thông qua Gateway IoT (Wecon V-Box), các chức năng cốt lõi được phản chiếu lên web/app để giám sát thời gian thực và điều khiển từ xa trên thiết bị di động/PC- miễn là có Internet. Hệ thống duy trì phân quyền theo tài khoản, audit (thời gian, người dùng, IP), cảnh báo chủ động (email/app notification) và áp dụng rào chắn an toàn tại PLC (LL/HH, khô nước, lỗi VFD/truyền thông, rate-limit/ramp). Vai trò của lớp IoT trong nghiên cứu là hỗ trợ thí nghiệm và khai thác (quan sát, ghi log, cảnh báo, vận hành từ xa) mà không thay đổi trọng tâm: các thuật toán và bộ số PID được thiết kế- tối ưu trong mô phỏng rồi chuyển giao lên PLC để kiểm chứng thực nghiệm. Hình 9 thể hiện một vài lớp giao diện dành cho người dùng mà tác giả xây dựng được dựa trên mô hình hệ thống bồn nước đã làm được.",
+    "3.4. Đánh giá kết quả",
+    "Kết quả tối ưu hóa bằng GA cho bộ số PID phù hợp với mục tiêu ứng dụng (vọt lố ≈ 1%, thời gian xác lập ≈ 50-100s trên dải đặt đại diện) và tiệm cận đáp ứng thực nghiệm khi chuyển giao lên PLC. Tuy nhiên, vẫn tồn tại sai lệch giữa mô phỏng và  thực tế do các yếu tố khó mô hình hóa đầy đủ: (i) Nhiệt độ môi trường làm thay đổi độ nhớt/mật độ chất lỏng, tác động đến và đặc tuyến bơm- đường ống; (ii) Khí lẫn trong ống (air entrainment) gây độ nén hiệu dụng, trễ và suy giảm lưu lượng tức thời; (iii) Độ mở van/hệ số xả là biến số phi tuyến và biến thiên theo nhu cầu, dẫn tới thay đổi điểm làm việc; (iv) Tạp chất, fouling, ma sát đường ống, rò rỉ/độ kín và sai số- trôi lệch cảm biến 4-20 mA (calib, drift, NE43) làm dịch chuyển tham số so với mô phỏng lý tưởng. Do đó, bộ số GA cần được Fine-Tuning ngắn trên PLC để bù các sai khác tại chỗ nhưng vẫn giữ ràng buộc an toàn (giới hạn biên, anti-windup, ramp, LL/HH).",
+    "4. KẾT LUẬN VÀ ĐỀ XUẤT",
+    "Nghiên cứu này đã thiết lập một quy trình nhất quán cho bài toán điều khiển mực nước bồn đơn: tham số hóa từ số liệu thực → mô phỏng trên MATLAB/Simulink có phản chiếu ràng buộc phần cứng → khởi tạo bằng Z-N → tối ưu bằng GA/ANN → chuyển giao lên PLC S7-1200 và fine-tuning ngắn.",
+    "Vai trò của Z-N là tạo điểm xuất phát khả dụng; GA tìm được cấu hình thỏa tiêu chí bám đặt và độ mượt lệnh trong dải làm việc; ANN được dùng học theo- tuner, hỗ trợ điều chỉnh nhanh khi điều kiện vận hành thay đổi nhưng không thay thế lõi PID. Chuỗi này chứng minh rằng tối ưu trong mô phỏng, khi được ràng buộc sát phần cứng, có thể chuyển giao ổn định sang PLC với tinh chỉnh tối thiểu.",
+    "Lớp HMI/Web SCADA/IoT được triển khai như hạ tầng hỗ trợ cho quan sát, ghi log, phân quyền và vận hành từ xa, nâng cao năng lực khai thác mà không làm thay đổi trọng tâm thuật toán. Gói hiện vật (bảng tham số, mô hình Simulink, script GA/ANN, cấu hình PID_Compact) cho phép tái lập và chuyển giao dễ dàng cho các hệ bồn nước quy mô nhỏ tương tự trong đào tạo lẫn ứng dụng công nghiệp.",
+    "Tổng thể, nghiên cứu này cung cấp một khung triển khai PID thực dụng và bền vững, kết nối chặt chẽ giữa mô hình-tối ưu-thực nghiệm; cách làm này giảm rủi ro triển khai, rút ngắn thời gian hiệu chỉnh và là cơ sở vững chắc cho các mở rộng sau này mà vẫn giữ PID là lõi điều khiển đáng tin cậy.",
+    "Tài liệu tham khảo",
+    "1. \tWater level control of a small hydropower plant with a surge tank: Journal of Hydraulic Research: Vol 55, No 2.",
+    "2. \tPatel VV. Ziegler-Nichols Tuning Method: Understanding the PID Controller. Resonance. 2020 Oct 1;25(10):1385–97.",
+    "3. \tMayr C. PID Controller Design. Stab Anal Controll Des Local Model Networks. 2021;69–97.",
+    "4. \tWang L. PID control system design and automatic tuning using MATLAB/Simulink. 2020",
+    "5. \tO’Dwyer A. Handbook of PI and PID controller tuning rules. Handb PI PID Controll Tuning Rules. 2009 Jan 1;1–608.",
+    "6. \tSharma A, Sharma V, Rahi OP. PSO Tuned PID Controller for DC Motor Speed Control. Lect Notes Electr Eng. 2022;822:79–89.",
+    "7. \tBorkowski D. Water level control of a small hydropower plant with a surge tank. J Hydraul Res. 2017 Mar 4; 55(2):284–91.",
+    "8. \tJiang P. Summary of PID Control System of Liquid Level of a Single-Capacity Tank. J Phys Conf Ser. 2021 Apr 1;1865(2):022061.",
+    "9. \tThomas N, Poongodi P. Position Control of DC Motor Using Genetic Algorithm Based PID Controller.",
+    "10. \tLakkoju T, Bobbili P. Speed Control of DC Servomotor Using Chopper-Based PI Controller. 2021;11–23.",
+    "11. \tKramer O. Genetic algorithms. Stud Comput Intell. 2017 Jan 1;679:11–9.",
+    "12. \tZhang Z. Artificial Neural Network. Multivar Time Ser Anal Clim Environ Res . 2018;1–35.",
+    "13. \tOzturk M, Salman O, Koc M. Artificial neural network model for estimating the soil temperature. https://doi.org/104141/cjss10073 [Internet]. 2011;91(4):551–62."
+  ],
+  "tables": [
+    [
+      [
+        "Thông tin chung Ngày nhận bài:  Ngày nhận bài sửa:  Ngày duyệt đăng:   Từ khóa: Internet vạn vật, PID, PLC, SCADA",
+        "TÓM TẮT Trong bối cảnh Internet vạn vật (IoT) thâm nhập sâu vào điều khiển và tự động hóa, nghiên cứu này trình bày một hệ thống điều khiển- giám sát mức nước bồn chứa được xây dựng và vận hành thực tế trên thiết bị công nghiệp. Hệ thống tích hợp cảm biến mức TL-136, PLC S7-1200, biến tần GD20, HMI KTP700 và Gateway IoT V-Box Wecon để  thu thập dữ liệu thời gian thực, hỗ trợ giám sát và điều khiển từ xa. Mục tiêu trọng tâm là ứng dụng Genetic Algorithm (GA) và Artificial Neural Network (ANN) trong dò tìm bộ số của bộ PID, khắc phục nhược điểm vọt lố lớn của phương pháp Ziegler-Nichols (Z-N). Kết quả thực nghiệm bộ số của GA và ANN giúp hệ thống đáp ứng ổn định, độ vọt lố xấp xỉ 1% ở các mốc đặt đại diện 25-30 cm, thời gian xác lập 90-100 giây và bền vững trước nhiễu do thay đổi van xả. Đóng góp chính là quy trình chuyển giao có thể tái lập từ mô hình hóa- mô phỏng đến triển khai thực tế, kèm khuyến nghị tham số và hướng dẫn vận hành cho các ứng dụng quy mô nhỏ."
+      ]
+    ],
+    [
+      [
+        "Ký hiệu",
+        "Mô tả",
+        "Giá trị"
+      ],
+      [
+        "",
+        "Độ cao cực đại của bồn chứa",
+        "35 cm"
+      ],
+      [
+        "",
+        "Tiết diện ngang cực đại",
+        "1140 cm2"
+      ],
+      [
+        "",
+        "Tiết diện ngang cực tiểu",
+        "884 cm2"
+      ],
+      [
+        "",
+        "Tiết diện van xả",
+        "2.6 cm2"
+      ],
+      [
+        "",
+        "Hệ số tỷ lệ với công suất máy bơm",
+        "3.75"
+      ],
+      [
+        "",
+        "Hệ số xả",
+        "0.2"
+      ],
+      [
+        "",
+        "Mực nước ban đầu",
+        "2 cm"
+      ]
+    ],
+    [
+      [
+        "Title:  PID Optimization for a Water Tank: Internet of Things Extension for Monitoring-Control Keywords: Internet of Things, PID, PLC, SCADA.",
+        "ABSTRACT In the context of the Internet of Things (IoT) deeply permeating control and automation, this study presents a water-tank level control and monitoring system constructed and practically operated on industrial equipment. The system integrates a TL-136 level sensor, a Siemens S7-1200 PLC, a GD20 variable frequency drive (VFD), a KTP700 HMI, and a Wecon V-Box IoT Gateway for real-time data acquisition and to support remote monitoring and control. The primary objective is to apply a Genetic Algorithm (GA) and an Artificial Neural Network (ANN) to tune the PID controller parameters, thereby overcoming the high overshoot drawback of the Ziegler-Nichols (Z-N) method. Experimental results indicate that the parameters obtained from GA and ANN enable a stable system response with an overshoot of approximately 1% at representative setpoints of 25-30 cm, a settling time of 90-100 seconds, and robustness against disturbances caused by discharge valve adjustments. The main contribution is a reproducible handoff workflow- from modeling and simulation to practical deployment- accompanied by parameter recommendations and operational guidelines for small-scale applications."
+      ]
+    ]
+  ]
+}

@@ -1,0 +1,98 @@
+﻿Disk junk scan summary - 2026-07-09 20:27:51
+
+Drives:
+  C:: 283.11 GB used / 357.9 GB total, 74.79 GB free (20.9%)
+  D:: 55.81 GB used / 117.19 GB total, 61.38 GB free (52.4%)
+
+Processed: 1581584 files, 359.69 GB counted
+
+Top junk/cache/temp candidates:
+     15.13 GB  C:\shb\node_modules | Dev/build artifact
+     14.77 GB  C:\Users\ADMIN\.gemini\antigravity\scratch\smart-home-app\node_modules | Dev/build artifact
+     14.77 GB  C:\sha\node_modules | Dev/build artifact
+      9.78 GB  C:\sb\node_modules | Dev/build artifact
+      7.75 GB  C:\Users\ADMIN\.gemini\antigravity-backup\scratch\smart-home-app\node_modules | Dev/build artifact
+      7.75 GB  C:\Users\ADMIN\.gemini\antigravity-ide\scratch\smart-home-app\node_modules | Dev/build artifact
+      6.73 GB  C:\Users\ADMIN\.gradle | Dev/build artifact
+      3.16 GB  C:\Users\ADMIN\.gemini\antigravity-ide\scratch\smart-home-app\android\app\build | Dev/build artifact
+      3.16 GB  C:\Users\ADMIN\.gemini\antigravity-backup\scratch\smart-home-app\android\app\build | Dev/build artifact
+      3.07 GB  C:\Program Files\Siemens\Automation\Portal V20\Bin | Dev/build artifact
+      2.87 GB  C:\tmp | Temp
+      2.59 GB  C:\shb\android\app\build | Dev/build artifact
+      2.49 GB  C:\Users\ADMIN\development\flutter\bin | Dev/build artifact
+      1.77 GB  C:\Users\ADMIN\.cache | Cache
+      1.27 GB  C:\Users\ADMIN\AppData\Local\Android\Sdk\ndk\28.2.13676358\toolchains\llvm\prebuilt\windows-x86_64\bin | Dev/build artifact
+      1.25 GB  C:\Users\ADMIN\AppData\Local\Android\Sdk\ndk\27.1.12297006\toolchains\llvm\prebuilt\windows-x86_64\bin | Dev/build artifact
+      1.05 GB  C:\Windows\Temp | Windows temp
+      1.05 GB  C:\Program Files\Common Files\Autodesk Shared\Inventor Interoperability 2023\Bin | Dev/build artifact
+      0.99 GB  C:\Program Files (x86)\Steam\bin | Dev/build artifact
+      0.99 GB  C:\sb\android\app\build | Dev/build artifact
+      0.98 GB  C:\Users\ADMIN\AppData\Local\Android\Sdk\ndk\26.1.10909125\toolchains\llvm\prebuilt\windows-x86_64\bin | Dev/build artifact
+       0.9 GB  C:\Users\ADMIN\AppData\Local\npm-cache | Cache
+      0.67 GB  C:\Program Files\Siemens\Automation\PLCSIM_V20\resources\bin | Dev/build artifact
+      0.61 GB  C:\Users\ADMIN\.vscode\extensions\openai.chatgpt-26.623.141536-win32-x64\bin | Dev/build artifact
+      0.52 GB  C:\Users\ADMIN\.vscode\extensions\openai.chatgpt-26.609.30741-win32-x64\bin | Dev/build artifact
+
+Largest top-level folders:
+    148.57 GB  C:\Users
+     37.52 GB  C:\Windows
+     36.66 GB  D:\Riot Games
+     30.35 GB  C:\Program Files
+     20.42 GB  C:\shb
+     18.57 GB  C:\sha
+     13.66 GB  C:\sb
+     10.22 GB  C:\Program Files (x86)
+      7.82 GB  C:\ProgramData
+      7.06 GB  D:\SteamLibrary
+      6.75 GB  D:\Microsoft Office Professional Plus 2021-2024 VL v2605 Build 20026.20140 Multilingual x64
+       6.3 GB  C:\hiberfil.sys
+         6 GB  C:\pagefile.sys
+      2.87 GB  C:\tmp
+      1.88 GB  D:\backup
+      1.69 GB  D:\tổng hợp promt
+      1.54 GB  D:\AutoCAD 2023
+      0.89 GB  C:\Driver
+      0.71 GB  C:\Riot Games
+      0.13 GB  C:\$Recycle.Bin
+
+Largest individual files:
+       6.3 GB  C:\hiberfil.sys  (2026-07-09)
+         6 GB  C:\pagefile.sys  (2026-07-09)
+      4.31 GB  C:\Users\ADMIN\.android\avd\Medium_Phone.avd\userdata-qemu.img.qcow2  (2026-03-23)
+         4 GB  C:\Users\ADMIN\.android\avd\TestDevice.avd\snapshots\default_boot\ram.img  (2026-04-06)
+         4 GB  D:\SteamLibrary\steamapps\common\Journey to the Savage Planet\Towers\Content\Paks\Towers-WindowsNoEditor.pak  (2026-06-29)
+      3.19 GB  D:\Riot Games\League of Legends\Plugins\rcp-be-lol-game-data\default-assets2.wad  (2026-07-03)
+      2.78 GB  D:\Microsoft Office Professional Plus 2021-2024 VL v2605 Build 20026.20140 Multilingual x64\Office\Data\16.0.20026.20140\stream.x64.x-none.dat  (2026-06-03)
+      2.67 GB  C:\Users\ADMIN\AppData\Local\Google\Chrome\User Data\OptGuideOnDeviceModel\2025.8.21.1028\weights.bin  (1980-01-01)
+      2.49 GB  D:\Riot Games\League of Legends\Plugins\rcp-be-lol-game-data\default-assets.wad  (2026-07-03)
+      2.36 GB  D:\Riot Games\League of Legends\Game\DATA\FINAL\Maps\Shipping\Map22.wad.client  (2026-07-04)
+      2.28 GB  D:\Riot Games\League of Legends\Game\DATA\FINAL\Maps\Shipping\Map11.wad.client  (2026-07-04)
+      2.25 GB  C:\Users\ADMIN\AppData\Local\Android\Sdk\system-images\android-36.1\google_apis_playstore\x86_64\system.img  (2026-03-09)
+      2.25 GB  C:\Users\ADMIN\.android\avd\TestDevice.avd\userdata-qemu.img.qcow2  (2026-04-06)
+         2 GB  C:\Users\ADMIN\.android\avd\Medium_Phone.avd\snapshots\default_boot\ram.img  (2026-03-23)
+      1.31 GB  C:\Users\ADMIN\AppData\Local\Google\Chrome\User Data\OptGuideOnDeviceModel\2025.8.21.1028\cache.bin  (2026-04-21)
+       1.3 GB  C:\Users\ADMIN\Downloads\Pummel-Party-SteamRIP.com.rar  (2026-07-06)
+      1.08 GB  C:\Program Files (x86)\InstallShield Installation Information\{254252d5-9a26-4c38-bc17-6283e2fd9316}\SkchUpFull-2024.exe  (2026-02-24)
+      1.05 GB  D:\Riot Games\League of Legends\Game\DATA\FINAL\Maps\Shipping\Map12.wad.client  (2026-07-04)
+      1.04 GB  D:\Riot Games\League of Legends\Game\DATA\FINAL\Companions.wad.client  (2026-07-04)
+      0.98 GB  C:\sb\backend\forecast_api\.venv\Lib\site-packages\tensorflow\python\_pywrap_tensorflow_common.dll  (2026-04-23)
+
+Extension buckets worth reviewing:
+      3.42 GB  C:\ files .msi
+      1.91 GB  C:\ files .zip
+      1.52 GB  C:\ files .rar
+      1.22 GB  C:\ files .log
+      0.62 GB  C:\ files .cab
+      0.52 GB  D:\ files .rar
+      0.23 GB  D:\ files .zip
+      0.15 GB  C:\ files .dmp
+      0.15 GB  C:\ files .tmp
+      0.06 GB  C:\ files .bak
+      0.04 GB  D:\ files .cab
+      0.01 GB  D:\ files .7z
+      0.01 GB  C:\ files .old
+      0.01 GB  D:\ files .log
+         0 GB  D:\ files .bak
+         0 GB  D:\ files .old
+
+Access errors sampled: 100

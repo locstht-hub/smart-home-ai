@@ -19,6 +19,17 @@ export interface ChatResult {
     baseUrl: string;
 }
 
+export interface DeviceControlResponse {
+    ok: boolean;
+    device_id: string;
+    isOn: boolean;
+    feedback?: {
+        verified?: boolean;
+        actualState?: boolean;
+        latencyMs?: number;
+    } | null;
+}
+
 interface RequestResult<T> {
     data: T;
     baseUrl: string;
@@ -28,6 +39,7 @@ const DEFAULT_TIMEOUT = 8000;
 const DEFAULT_LOCAL_TIMEOUT = 800;
 const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
 const DEFAULT_LOCAL_API_URL = 'http://172.16.50.47:5001';
+const ALLOW_INSECURE_LAN_HTTP = __DEV__ && process.env.EXPO_PUBLIC_ALLOW_INSECURE_LAN_HTTP === 'true';
 const USER_KEY = 'currentUser';
 const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
 
@@ -110,6 +122,10 @@ export class SmartHomeApiClient {
         });
     }
 
+    async logout(): Promise<{ ok: boolean; revoked: boolean }> {
+        return this.request('/api/auth/logout', { method: 'POST' });
+    }
+
     async getPowerCurrent(): Promise<PowerCurrentResponse> {
         return this.request(this.withHomeId('/api/power/current'));
     }
@@ -138,8 +154,8 @@ export class SmartHomeApiClient {
         return response.devices;
     }
 
-    async setDeviceState(deviceId: string, isOn: boolean): Promise<void> {
-        await this.request(this.withHomeId(`/api/devices/${encodeURIComponent(deviceId)}/${isOn ? 'turn-on' : 'turn-off'}`), {
+    async setDeviceState(deviceId: string, isOn: boolean): Promise<DeviceControlResponse> {
+        return this.request<DeviceControlResponse>(this.withHomeId(`/api/devices/${encodeURIComponent(deviceId)}/${isOn ? 'turn-on' : 'turn-off'}`), {
             method: 'POST',
             body: JSON.stringify(this.config.homeId ? { homeId: this.config.homeId } : {}),
         });
@@ -355,7 +371,6 @@ export class SmartHomeApiClient {
 
             if (token) {
                 headers.Authorization = `Bearer ${token}`;
-                headers['X-API-Token'] = token;
             }
 
             const response = await fetch(`${baseUrl}${effectivePath}`, {
@@ -399,6 +414,7 @@ export class SmartHomeApiClient {
         const baseUrls = ordered
             .map((url) => url.trim().replace(/\/+$/, ''))
             .filter(Boolean)
+            .filter((url) => this.isTransportAllowed(url))
             .filter((url, index, list) => list.indexOf(url) === index);
         return options.singleBaseUrl ? baseUrls.slice(0, 1) : baseUrls;
     }
@@ -413,6 +429,11 @@ export class SmartHomeApiClient {
 
     private isLocalBaseUrl(baseUrl: string): boolean {
         return /^http:\/\/(10\.|172\.|192\.168\.|127\.0\.0\.1|localhost)/i.test(baseUrl);
+    }
+
+    private isTransportAllowed(baseUrl: string): boolean {
+        if (/^https:\/\//i.test(baseUrl)) return true;
+        return ALLOW_INSECURE_LAN_HTTP && this.isLocalBaseUrl(baseUrl);
     }
 
     private canRetryWithNextBaseUrl(error: unknown): boolean {

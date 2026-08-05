@@ -1,6 +1,7 @@
 import { ImageSourcePropType } from 'react-native';
+import { RoomImageKey } from './roomPresentation';
 
-export const roomIconImages: Record<string, ImageSourcePropType> = {
+export const roomIconImages: Record<RoomImageKey, ImageSourcePropType> = {
     living: require('../../assets/rooms/living.png'),
     kitchen: require('../../assets/rooms/kitchen.png'),
     bedroom: require('../../assets/rooms/bedroom.png'),

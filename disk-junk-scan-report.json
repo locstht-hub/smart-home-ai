@@ -1,0 +1,850 @@
+﻿{
+    "GeneratedAt":  "2026-07-09 20:27:51",
+    "Drives":  [
+                   {
+                       "Drive":  "C:",
+                       "SizeGB":  357.9,
+                       "FreeGB":  74.79,
+                       "UsedGB":  283.11,
+                       "FreePct":  20.9
+                   },
+                   {
+                       "Drive":  "D:",
+                       "SizeGB":  117.19,
+                       "FreeGB":  61.38,
+                       "UsedGB":  55.81,
+                       "FreePct":  52.4
+                   }
+               ],
+    "ProcessedFiles":  1581584,
+    "ProcessedGB":  359.69,
+    "TopLevelFolders":  [
+                            {
+                                "Path":  "C:\\Users",
+                                "SizeGB":  148.57
+                            },
+                            {
+                                "Path":  "C:\\Windows",
+                                "SizeGB":  37.52
+                            },
+                            {
+                                "Path":  "D:\\Riot Games",
+                                "SizeGB":  36.66
+                            },
+                            {
+                                "Path":  "C:\\Program Files",
+                                "SizeGB":  30.35
+                            },
+                            {
+                                "Path":  "C:\\shb",
+                                "SizeGB":  20.42
+                            },
+                            {
+                                "Path":  "C:\\sha",
+                                "SizeGB":  18.57
+                            },
+                            {
+                                "Path":  "C:\\sb",
+                                "SizeGB":  13.66
+                            },
+                            {
+                                "Path":  "C:\\Program Files (x86)",
+                                "SizeGB":  10.22
+                            },
+                            {
+                                "Path":  "C:\\ProgramData",
+                                "SizeGB":  7.82
+                            },
+                            {
+                                "Path":  "D:\\SteamLibrary",
+                                "SizeGB":  7.06
+                            },
+                            {
+                                "Path":  "D:\\Microsoft Office Professional Plus 2021-2024 VL v2605 Build 20026.20140 Multilingual x64",
+                                "SizeGB":  6.75
+                            },
+                            {
+                                "Path":  "C:\\hiberfil.sys",
+                                "SizeGB":  6.3
+                            },
+                            {
+                                "Path":  "C:\\pagefile.sys",
+                                "SizeGB":  6
+                            },
+                            {
+                                "Path":  "C:\\tmp",
+                                "SizeGB":  2.87
+                            },
+                            {
+                                "Path":  "D:\\backup",
+                                "SizeGB":  1.88
+                            },
+                            {
+                                "Path":  "D:\\tổng hợp promt",
+                                "SizeGB":  1.69
+                            },
+                            {
+                                "Path":  "D:\\AutoCAD 2023",
+                                "SizeGB":  1.54
+                            },
+                            {
+                                "Path":  "C:\\Driver",
+                                "SizeGB":  0.89
+                            },
+                            {
+                                "Path":  "C:\\Riot Games",
+                                "SizeGB":  0.71
+                            },
+                            {
+                                "Path":  "C:\\$Recycle.Bin",
+                                "SizeGB":  0.13
+                            },
+                            {
+                                "Path":  "D:\\YQARCH",
+                                "SizeGB":  0.03
+                            },
+                            {
+                                "Path":  "C:\\swapfile.sys",
+                                "SizeGB":  0.02
+                            },
+                            {
+                                "Path":  "D:\\VBOX",
+                                "SizeGB":  0.01
+                            },
+                            {
+                                "Path":  "D:\\plckhoilz",
+                                "SizeGB":  0.01
+                            },
+                            {
+                                "Path":  "D:\\inphic",
+                                "SizeGB":  0.01
+                            },
+                            {
+                                "Path":  "D:\\plccuakhoilz",
+                                "SizeGB":  0
+                            },
+                            {
+                                "Path":  "D:\\evkey",
+                                "SizeGB":  0
+                            },
+                            {
+                                "Path":  "D:\\plclorcuakhoi",
+                                "SizeGB":  0
+                            },
+                            {
+                                "Path":  "D:\\TKSERIES",
+                                "SizeGB":  0
+                            },
+                            {
+                                "Path":  "C:\\AX NF ZZ",
+                                "SizeGB":  0
+                            },
+                            {
+                                "Path":  "C:\\ai_energy_management",
+                                "SizeGB":  0
+                            },
+                            {
+                                "Path":  "C:\\Phan_tich_du_an_quan_ly_nang_luong_nha_cap_4.md",
+                                "SizeGB":  0
+                            },
+                            {
+                                "Path":  "C:\\DumpStack.log.tmp",
+                                "SizeGB":  0
+                            },
+                            {
+                                "Path":  "C:\\Dell",
+                                "SizeGB":  0
+                            },
+                            {
+                                "Path":  "C:\\Autodesk",
+                                "SizeGB":  0
+                            }
+                        ],
+    "JunkCandidates":  [
+                           {
+                               "Path":  "C:\\shb\\node_modules | Dev/build artifact",
+                               "SizeGB":  15.13
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity\\scratch\\smart-home-app\\node_modules | Dev/build artifact",
+                               "SizeGB":  14.77
+                           },
+                           {
+                               "Path":  "C:\\sha\\node_modules | Dev/build artifact",
+                               "SizeGB":  14.77
+                           },
+                           {
+                               "Path":  "C:\\sb\\node_modules | Dev/build artifact",
+                               "SizeGB":  9.78
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity-backup\\scratch\\smart-home-app\\node_modules | Dev/build artifact",
+                               "SizeGB":  7.75
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity-ide\\scratch\\smart-home-app\\node_modules | Dev/build artifact",
+                               "SizeGB":  7.75
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.gradle | Dev/build artifact",
+                               "SizeGB":  6.73
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity-ide\\scratch\\smart-home-app\\android\\app\\build | Dev/build artifact",
+                               "SizeGB":  3.16
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity-backup\\scratch\\smart-home-app\\android\\app\\build | Dev/build artifact",
+                               "SizeGB":  3.16
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Siemens\\Automation\\Portal V20\\Bin | Dev/build artifact",
+                               "SizeGB":  3.07
+                           },
+                           {
+                               "Path":  "C:\\tmp | Temp",
+                               "SizeGB":  2.87
+                           },
+                           {
+                               "Path":  "C:\\shb\\android\\app\\build | Dev/build artifact",
+                               "SizeGB":  2.59
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\development\\flutter\\bin | Dev/build artifact",
+                               "SizeGB":  2.49
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.cache | Cache",
+                               "SizeGB":  1.77
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin | Dev/build artifact",
+                               "SizeGB":  1.27
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Android\\Sdk\\ndk\\27.1.12297006\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin | Dev/build artifact",
+                               "SizeGB":  1.25
+                           },
+                           {
+                               "Path":  "C:\\Windows\\Temp | Windows temp",
+                               "SizeGB":  1.05
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Common Files\\Autodesk Shared\\Inventor Interoperability 2023\\Bin | Dev/build artifact",
+                               "SizeGB":  1.05
+                           },
+                           {
+                               "Path":  "C:\\Program Files (x86)\\Steam\\bin | Dev/build artifact",
+                               "SizeGB":  0.99
+                           },
+                           {
+                               "Path":  "C:\\sb\\android\\app\\build | Dev/build artifact",
+                               "SizeGB":  0.99
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Android\\Sdk\\ndk\\26.1.10909125\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin | Dev/build artifact",
+                               "SizeGB":  0.98
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\npm-cache | Cache",
+                               "SizeGB":  0.9
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Siemens\\Automation\\PLCSIM_V20\\resources\\bin | Dev/build artifact",
+                               "SizeGB":  0.67
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.vscode\\extensions\\openai.chatgpt-26.623.141536-win32-x64\\bin | Dev/build artifact",
+                               "SizeGB":  0.61
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.vscode\\extensions\\openai.chatgpt-26.609.30741-win32-x64\\bin | Dev/build artifact",
+                               "SizeGB":  0.52
+                           },
+                           {
+                               "Path":  "C:\\sha\\dist | Dev/build artifact",
+                               "SizeGB":  0.51
+                           },
+                           {
+                               "Path":  "C:\\sb\\dist | Dev/build artifact",
+                               "SizeGB":  0.51
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity\\scratch\\smart-home-app\\dist | Dev/build artifact",
+                               "SizeGB":  0.51
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Pub\\Cache | Cache",
+                               "SizeGB":  0.45
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Antigravity IDE\\resources\\app\\node_modules | Dev/build artifact",
+                               "SizeGB":  0.43
+                           },
+                           {
+                               "Path":  "C:\\ProgramData\\Package Cache | Installer package cache",
+                               "SizeGB":  0.43
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Cache | Cache",
+                               "SizeGB":  0.41
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cache | Cache",
+                               "SizeGB":  0.36
+                           },
+                           {
+                               "Path":  "C:\\Program Files (x86)\\Common Files\\Siemens\\bin | Dev/build artifact",
+                               "SizeGB":  0.36
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Code Cache | Cache",
+                               "SizeGB":  0.35
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\OpenAI\\Codex\\bin | Dev/build artifact",
+                               "SizeGB":  0.35
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Microsoft Office\\root\\Office16\\ADDINS\\Microsoft Power Query for Excel Integrated\\bin | Dev/build artifact",
+                               "SizeGB":  0.34
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Steam\\htmlcache\\Default\\Cache | Cache",
+                               "SizeGB":  0.33
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Roaming\\ZaloData\\Cache | Cache",
+                               "SizeGB":  0.33
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Roaming\\ZaloData\\Partitions\\zalo\\Cache | Cache",
+                               "SizeGB":  0.31
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Code Cache | Cache",
+                               "SizeGB":  0.29
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\AndroidStudio2025.3.1\\tmp | Temp",
+                               "SizeGB":  0.26
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Roaming\\ZaloData\\media\\2220356546606121273\\ZaloDownloads\\Cache | Cache",
+                               "SizeGB":  0.26
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Roaming\\discord\\Cache | Cache",
+                               "SizeGB":  0.25
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Temp | Temp",
+                               "SizeGB":  0.24
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Roaming\\RevoltG\\Cache | Cache",
+                               "SizeGB":  0.22
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\AndroidStudio2025.3.2\\caches | Cache",
+                               "SizeGB":  0.2
+                           },
+                           {
+                               "Path":  "D:\\Riot Games\\League of Legends\\Saved\\webcache\\Cache | Cache",
+                               "SizeGB":  0.2
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\Downloads\\Kimi_Agent_Smart Home AI Landing Page\\app\\node_modules | Dev/build artifact",
+                               "SizeGB":  0.19
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.vscode\\extensions\\continue.continue-2.0.0-win32-x64\\out | Dev/build artifact",
+                               "SizeGB":  0.17
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Microsoft VS Code\\6928394f91\\resources\\app\\node_modules | Dev/build artifact",
+                               "SizeGB":  0.16
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\AndroidStudio2025.3.1\\caches | Cache",
+                               "SizeGB":  0.15
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Dell\\SupportAssistAgent\\bin | Dev/build artifact",
+                               "SizeGB":  0.15
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Microsoft\\TypeScript\\5.9\\node_modules | Dev/build artifact",
+                               "SizeGB":  0.14
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Storage\\ext\\glic\\66A834677761\\Code Cache | Cache",
+                               "SizeGB":  0.14
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Packages\\SpotifyAB.SpotifyMusic_zpdnekdrzrea0\\LocalCache\\Spotify\\Browser\\Cache | Cache",
+                               "SizeGB":  0.14
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Programs\\antigravity\\resources\\bin | Dev/build artifact",
+                               "SizeGB":  0.13
+                           },
+                           {
+                               "Path":  "C:\\$Recycle.Bin | Recycle Bin",
+                               "SizeGB":  0.13
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Antigravity IDE\\resources\\app\\extensions\\antigravity\\bin | Dev/build artifact",
+                               "SizeGB":  0.12
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Android\\Android Studio\\plugins\\android-ndk\\resources\\lldb\\bin | Dev/build artifact",
+                               "SizeGB":  0.11
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.antigravity\\extensions\\devsense.intelli-php-vscode-0.12.17700-win32-x64\\out | Dev/build artifact",
+                               "SizeGB":  0.1
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Roaming\\Riot Client\\Cache | Cache",
+                               "SizeGB":  0.09
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Siemens\\Automation\\TIAAdminV3\\host\\awb\\server\\dist | Dev/build artifact",
+                               "SizeGB":  0.09
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.vscode\\extensions\\.6c9a9940-6a42-4c40-b62a-127005930105\\bin | Dev/build artifact",
+                               "SizeGB":  0.09
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.antigravity\\extensions\\meta.pyrefly-1.0.0-win32-x64\\bin | Dev/build artifact",
+                               "SizeGB":  0.09
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.vscode\\extensions\\rooveterinaryinc.roo-cline-3.54.0\\dist | Dev/build artifact",
+                               "SizeGB":  0.09
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Git\\mingw64\\bin | Dev/build artifact",
+                               "SizeGB":  0.09
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.antigravity\\extensions\\meta.pyrefly-0.63.1-win32-x64\\bin | Dev/build artifact",
+                               "SizeGB":  0.09
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity-browser-profile\\Default\\Code Cache | Cache",
+                               "SizeGB":  0.09
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Git\\usr\\bin | Dev/build artifact",
+                               "SizeGB":  0.09
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.2.10-hotspot\\bin | Dev/build artifact",
+                               "SizeGB":  0.09
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Siemens\\Automation\\TIAAdminV3\\host\\awb\\client\\dist | Dev/build artifact",
+                               "SizeGB":  0.08
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Roaming\\Antigravity\\Cache | Cache",
+                               "SizeGB":  0.08
+                           },
+                           {
+                               "Path":  "C:\\Program Files\\Siemens\\Automation\\UserManagement\\BIN | Dev/build artifact",
+                               "SizeGB":  0.08
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\LocalLow\\semiwork\\Repo\\Cache | Cache",
+                               "SizeGB":  0.08
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Packages\\Dell.SupportAssistforPCs_18ctm2993j0dg\\LocalState\\EBWebView\\Default\\Code Cache | Cache",
+                               "SizeGB":  0.08
+                           },
+                           {
+                               "Path":  "Old files in Downloads (\u003e180 days) | Review manually",
+                               "SizeGB":  0.08
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Roaming\\npm\\node_modules | Dev/build artifact",
+                               "SizeGB":  0.07
+                           },
+                           {
+                               "Path":  "C:\\Windows\\WinSxS\\Temp | Temp",
+                               "SizeGB":  0.07
+                           },
+                           {
+                               "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Antigravity IDE\\resources\\app\\out | Dev/build artifact",
+                               "SizeGB":  0.07
+                           }
+                       ],
+    "ExtensionBuckets":  [
+                             {
+                                 "Path":  "C:\\ files .msi",
+                                 "SizeGB":  3.42
+                             },
+                             {
+                                 "Path":  "C:\\ files .zip",
+                                 "SizeGB":  1.91
+                             },
+                             {
+                                 "Path":  "C:\\ files .rar",
+                                 "SizeGB":  1.52
+                             },
+                             {
+                                 "Path":  "C:\\ files .log",
+                                 "SizeGB":  1.22
+                             },
+                             {
+                                 "Path":  "C:\\ files .cab",
+                                 "SizeGB":  0.62
+                             },
+                             {
+                                 "Path":  "D:\\ files .rar",
+                                 "SizeGB":  0.52
+                             },
+                             {
+                                 "Path":  "D:\\ files .zip",
+                                 "SizeGB":  0.23
+                             },
+                             {
+                                 "Path":  "C:\\ files .dmp",
+                                 "SizeGB":  0.15
+                             },
+                             {
+                                 "Path":  "C:\\ files .tmp",
+                                 "SizeGB":  0.15
+                             },
+                             {
+                                 "Path":  "C:\\ files .bak",
+                                 "SizeGB":  0.06
+                             },
+                             {
+                                 "Path":  "D:\\ files .cab",
+                                 "SizeGB":  0.04
+                             },
+                             {
+                                 "Path":  "D:\\ files .7z",
+                                 "SizeGB":  0.01
+                             },
+                             {
+                                 "Path":  "C:\\ files .old",
+                                 "SizeGB":  0.01
+                             },
+                             {
+                                 "Path":  "D:\\ files .log",
+                                 "SizeGB":  0.01
+                             },
+                             {
+                                 "Path":  "D:\\ files .bak",
+                                 "SizeGB":  0
+                             },
+                             {
+                                 "Path":  "D:\\ files .old",
+                                 "SizeGB":  0
+                             }
+                         ],
+    "LargeFiles":  [
+                       {
+                           "Path":  "C:\\hiberfil.sys",
+                           "SizeGB":  6.3,
+                           "LastWrite":  "2026-07-09"
+                       },
+                       {
+                           "Path":  "C:\\pagefile.sys",
+                           "SizeGB":  6,
+                           "LastWrite":  "2026-07-09"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\.android\\avd\\Medium_Phone.avd\\userdata-qemu.img.qcow2",
+                           "SizeGB":  4.31,
+                           "LastWrite":  "2026-03-23"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\.android\\avd\\TestDevice.avd\\snapshots\\default_boot\\ram.img",
+                           "SizeGB":  4,
+                           "LastWrite":  "2026-04-06"
+                       },
+                       {
+                           "Path":  "D:\\SteamLibrary\\steamapps\\common\\Journey to the Savage Planet\\Towers\\Content\\Paks\\Towers-WindowsNoEditor.pak",
+                           "SizeGB":  4,
+                           "LastWrite":  "2026-06-29"
+                       },
+                       {
+                           "Path":  "D:\\Riot Games\\League of Legends\\Plugins\\rcp-be-lol-game-data\\default-assets2.wad",
+                           "SizeGB":  3.19,
+                           "LastWrite":  "2026-07-03"
+                       },
+                       {
+                           "Path":  "D:\\Microsoft Office Professional Plus 2021-2024 VL v2605 Build 20026.20140 Multilingual x64\\Office\\Data\\16.0.20026.20140\\stream.x64.x-none.dat",
+                           "SizeGB":  2.78,
+                           "LastWrite":  "2026-06-03"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\OptGuideOnDeviceModel\\2025.8.21.1028\\weights.bin",
+                           "SizeGB":  2.67,
+                           "LastWrite":  "1980-01-01"
+                       },
+                       {
+                           "Path":  "D:\\Riot Games\\League of Legends\\Plugins\\rcp-be-lol-game-data\\default-assets.wad",
+                           "SizeGB":  2.49,
+                           "LastWrite":  "2026-07-03"
+                       },
+                       {
+                           "Path":  "D:\\Riot Games\\League of Legends\\Game\\DATA\\FINAL\\Maps\\Shipping\\Map22.wad.client",
+                           "SizeGB":  2.36,
+                           "LastWrite":  "2026-07-04"
+                       },
+                       {
+                           "Path":  "D:\\Riot Games\\League of Legends\\Game\\DATA\\FINAL\\Maps\\Shipping\\Map11.wad.client",
+                           "SizeGB":  2.28,
+                           "LastWrite":  "2026-07-04"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Android\\Sdk\\system-images\\android-36.1\\google_apis_playstore\\x86_64\\system.img",
+                           "SizeGB":  2.25,
+                           "LastWrite":  "2026-03-09"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\.android\\avd\\TestDevice.avd\\userdata-qemu.img.qcow2",
+                           "SizeGB":  2.25,
+                           "LastWrite":  "2026-04-06"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\.android\\avd\\Medium_Phone.avd\\snapshots\\default_boot\\ram.img",
+                           "SizeGB":  2,
+                           "LastWrite":  "2026-03-23"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Google\\Chrome\\User Data\\OptGuideOnDeviceModel\\2025.8.21.1028\\cache.bin",
+                           "SizeGB":  1.31,
+                           "LastWrite":  "2026-04-21"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\Downloads\\Pummel-Party-SteamRIP.com.rar",
+                           "SizeGB":  1.3,
+                           "LastWrite":  "2026-07-06"
+                       },
+                       {
+                           "Path":  "C:\\Program Files (x86)\\InstallShield Installation Information\\{254252d5-9a26-4c38-bc17-6283e2fd9316}\\SkchUpFull-2024.exe",
+                           "SizeGB":  1.08,
+                           "LastWrite":  "2026-02-24"
+                       },
+                       {
+                           "Path":  "D:\\Riot Games\\League of Legends\\Game\\DATA\\FINAL\\Maps\\Shipping\\Map12.wad.client",
+                           "SizeGB":  1.05,
+                           "LastWrite":  "2026-07-04"
+                       },
+                       {
+                           "Path":  "D:\\Riot Games\\League of Legends\\Game\\DATA\\FINAL\\Companions.wad.client",
+                           "SizeGB":  1.04,
+                           "LastWrite":  "2026-07-04"
+                       },
+                       {
+                           "Path":  "C:\\sb\\backend\\forecast_api\\.venv\\Lib\\site-packages\\tensorflow\\python\\_pywrap_tensorflow_common.dll",
+                           "SizeGB":  0.98,
+                           "LastWrite":  "2026-04-23"
+                       },
+                       {
+                           "Path":  "C:\\shb\\backend\\forecast_api\\.venv\\Lib\\site-packages\\tensorflow\\python\\_pywrap_tensorflow_common.dll",
+                           "SizeGB":  0.98,
+                           "LastWrite":  "2026-04-23"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity-backup\\scratch\\smart-home-app\\backend\\forecast_api\\.venv\\Lib\\site-packages\\tensorflow\\python\\_pywrap_tensorflow_common.dll",
+                           "SizeGB":  0.98,
+                           "LastWrite":  "2026-04-23"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity\\scratch\\smart-home-app\\backend\\forecast_api\\.venv\\Lib\\site-packages\\tensorflow\\python\\_pywrap_tensorflow_common.dll",
+                           "SizeGB":  0.98,
+                           "LastWrite":  "2026-04-23"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\tensorflow\\python\\_pywrap_tensorflow_common.dll",
+                           "SizeGB":  0.98,
+                           "LastWrite":  "2026-04-17"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity-ide\\scratch\\smart-home-app\\backend\\forecast_api\\.venv\\Lib\\site-packages\\tensorflow\\python\\_pywrap_tensorflow_common.dll",
+                           "SizeGB":  0.98,
+                           "LastWrite":  "2026-04-23"
+                       },
+                       {
+                           "Path":  "C:\\sha\\backend\\forecast_api\\.venv\\Lib\\site-packages\\tensorflow\\python\\_pywrap_tensorflow_common.dll",
+                           "SizeGB":  0.98,
+                           "LastWrite":  "2026-04-23"
+                       },
+                       {
+                           "Path":  "D:\\tổng hợp promt\\Tạo nhạc AI triệu views\\VIDEO HUONG DAN.mp4",
+                           "SizeGB":  0.92,
+                           "LastWrite":  "2026-03-02"
+                       },
+                       {
+                           "Path":  "D:\\Riot Games\\League of Legends\\Game\\DATA\\FINAL\\Global.wad.client",
+                           "SizeGB":  0.91,
+                           "LastWrite":  "2026-07-04"
+                       },
+                       {
+                           "Path":  "C:\\Driver\\576.28-desktop-win10-win11-64bit-international-dch-whql.exe",
+                           "SizeGB":  0.8,
+                           "LastWrite":  "2025-05-09"
+                       },
+                       {
+                           "Path":  "D:\\SteamLibrary\\steamapps\\common\\REPO\\REPO_Data\\resources.assets.resS",
+                           "SizeGB":  0.76,
+                           "LastWrite":  "2026-07-04"
+                       },
+                       {
+                           "Path":  "C:\\ProgramData\\NVIDIA Corporation\\NVIDIA App\\UpdateFramework\\ota-artifacts\\grd\\35594b3cb7441bd6bd96f8c4c04346fd\\582.66-notebook-win10-win11-64bit-international-dch-whql-g.exe",
+                           "SizeGB":  0.7,
+                           "LastWrite":  "2026-06-29"
+                       },
+                       {
+                           "Path":  "C:\\Users\\All Users\\NVIDIA Corporation\\NVIDIA App\\UpdateFramework\\ota-artifacts\\grd\\35594b3cb7441bd6bd96f8c4c04346fd\\582.66-notebook-win10-win11-64bit-international-dch-whql-g.exe",
+                           "SizeGB":  0.7,
+                           "LastWrite":  "2026-06-29"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\.gemini\\antigravity\\scratch\\smart-home-app\\.git\\objects\\pack\\pack-b997a1943d1191ab312dca6cc517631ec3e134b8.pack",
+                           "SizeGB":  0.62,
+                           "LastWrite":  "2026-05-31"
+                       },
+                       {
+                           "Path":  "C:\\sha\\.git\\objects\\pack\\pack-b997a1943d1191ab312dca6cc517631ec3e134b8.pack",
+                           "SizeGB":  0.62,
+                           "LastWrite":  "2026-05-31"
+                       },
+                       {
+                           "Path":  "D:\\Riot Games\\League of Legends\\Game\\DATA\\FINAL\\Maps\\Shipping\\Map21.wad.client",
+                           "SizeGB":  0.59,
+                           "LastWrite":  "2026-07-04"
+                       },
+                       {
+                           "Path":  "D:\\Riot Games\\League of Legends\\Game\\DATA\\FINAL\\Maps\\Shipping\\Map30.wad.client",
+                           "SizeGB":  0.58,
+                           "LastWrite":  "2026-07-04"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\Documents\\Acade 2025\\AeData\\en-US\\Catalogs\\default_cat.mdb",
+                           "SizeGB":  0.51,
+                           "LastWrite":  "2026-03-11"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\Documents\\Acade 2023\\AeData\\en-US\\Catalogs\\default_cat.mdb",
+                           "SizeGB":  0.51,
+                           "LastWrite":  "2026-03-11"
+                       },
+                       {
+                           "Path":  "C:\\Users\\ADMIN\\.android\\avd\\Medium_Phone.avd\\sdcard.img",
+                           "SizeGB":  0.5,
+                           "LastWrite":  "2026-03-09"
+                       }
+                   ],
+    "AccessErrorsSample":  [
+                               "DIR: C:\\Windows\\WUModels :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\WUModels\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\WUModels :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\WUModels\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\SysWOW64\\Tasks :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\Tasks\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\SysWOW64\\Tasks :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\Tasks\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\SysWOW64\\sru :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\sru\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\SysWOW64\\sru :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\sru\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\SysWOW64\\Recovery\\Settings :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\Recovery\\Settings\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\SysWOW64\\Recovery\\Settings :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\Recovery\\Settings\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\SysWOW64\\NetworkList :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\NetworkList\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\SysWOW64\\NetworkList :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\NetworkList\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\SysWOW64\\Msdtc :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\Msdtc\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\SysWOW64\\Msdtc :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\Msdtc\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\SysWOW64\\Configuration :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\Configuration\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\SysWOW64\\Configuration :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\Configuration\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\SysWOW64\\config :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\config\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\SysWOW64\\config :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\config\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\SysWOW64\\Com\\dmp :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\Com\\dmp\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\SysWOW64\\Com\\dmp :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SysWOW64\\Com\\dmp\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\SystemTemp :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SystemTemp\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\SystemTemp :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\SystemTemp\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\WebThreatDefSvc :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\WebThreatDefSvc\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\WebThreatDefSvc :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\WebThreatDefSvc\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\WDI :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\WDI\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\WDI :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\WDI\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\wbem\\MOF :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\wbem\\MOF\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\wbem\\MOF :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\wbem\\MOF\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\Tasks_Migrated :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\Tasks_Migrated\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\Tasks_Migrated :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\Tasks_Migrated\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\Tasks :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\Tasks\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\Tasks :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\Tasks\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\sru :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\sru\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\sru :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\sru\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\spool\\SERVERS :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\spool\\SERVERS\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\spool\\SERVERS :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\spool\\SERVERS\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\spool\\PRINTERS :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\spool\\PRINTERS\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\spool\\PRINTERS :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\spool\\PRINTERS\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\SleepStudy :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\SleepStudy\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\SleepStudy :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\SleepStudy\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\RsFx :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\RsFx\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\RsFx :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\RsFx\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\Recovery\\Settings :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\Recovery\\Settings\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\Recovery\\Settings :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\Recovery\\Settings\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\networklist :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\networklist\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\networklist :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\networklist\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\msmq :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\msmq\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\msmq :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\msmq\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\MsDtc :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\MsDtc\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\MsDtc :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\MsDtc\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\LogFiles\\WMI :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\LogFiles\\WMI\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\LogFiles\\WMI :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\LogFiles\\WMI\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\LogFiles\\Firewall :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\LogFiles\\Firewall\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\LogFiles\\Firewall :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\LogFiles\\Firewall\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\ias :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\ias\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\ias :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\ias\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\DriverState :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\DriverState\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\DriverState :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\DriverState\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\drivers\\DriverData :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\drivers\\DriverData\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\drivers\\DriverData :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\drivers\\DriverData\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\Configuration :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\Configuration\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\Configuration :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\Configuration\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\config :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\config\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\config :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\config\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\Com\\dmp :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\Com\\dmp\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\Com\\dmp :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\Com\\dmp\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\appmgmt\\S-1-5-18 :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\appmgmt\\S-1-5-18\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\appmgmt\\S-1-5-18 :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\appmgmt\\S-1-5-18\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\System32\\appmgmt\\MACHINE :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\appmgmt\\MACHINE\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\System32\\appmgmt\\MACHINE :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\System32\\appmgmt\\MACHINE\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\ServiceState :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ServiceState\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\ServiceState :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ServiceState\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\ServiceProfiles\\SQLTELEMETRY$WINCC :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ServiceProfiles\\SQLTELEMETRY$WINCC\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\ServiceProfiles\\SQLTELEMETRY$WINCC :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ServiceProfiles\\SQLTELEMETRY$WINCC\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\ServiceProfiles\\NetworkService :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ServiceProfiles\\NetworkService\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\ServiceProfiles\\NetworkService :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ServiceProfiles\\NetworkService\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\ServiceProfiles\\MSSQL$WINCC :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ServiceProfiles\\MSSQL$WINCC\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\ServiceProfiles\\MSSQL$WINCC :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ServiceProfiles\\MSSQL$WINCC\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\ServiceProfiles\\LocalService :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ServiceProfiles\\LocalService\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\ServiceProfiles\\LocalService :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ServiceProfiles\\LocalService\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\security\\cap :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\security\\cap\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\security\\cap :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\security\\cap\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\security\\audit :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\security\\audit\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\security\\audit :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\security\\audit\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\Resources\\Themes\\aero\\VSCache :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\Resources\\Themes\\aero\\VSCache\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\Resources\\Themes\\aero\\VSCache :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\Resources\\Themes\\aero\\VSCache\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\Provisioning\\Autopilot :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\Provisioning\\Autopilot\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\Provisioning\\Autopilot :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\Provisioning\\Autopilot\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\Prefetch :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\Prefetch\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\Prefetch :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\Prefetch\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\PLA\\Templates :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\PLA\\Templates\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\PLA\\Templates :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\PLA\\Templates\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\PLA\\Rules :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\PLA\\Rules\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\PLA\\Rules :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\PLA\\Rules\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\PLA\\Reports :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\PLA\\Reports\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\PLA\\Reports :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\PLA\\Reports\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\ModemLogs :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ModemLogs\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\ModemLogs :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\ModemLogs\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\Microsoft\\Windows\\Models\\StartMenuProviderRanking :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\Microsoft\\Windows\\Models\\StartMenuProviderRanking\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\Microsoft\\Windows\\Models\\StartMenuProviderRanking :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\Microsoft\\Windows\\Models\\StartMenuProviderRanking\u0027 is denied.\"",
+                               "DIR: C:\\Windows\\Logs\\Telephony :: Exception calling \"EnumerateDirectories\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\Logs\\Telephony\u0027 is denied.\"",
+                               "FILES: C:\\Windows\\Logs\\Telephony :: Exception calling \"EnumerateFiles\" with \"1\" argument(s): \"Access to the path \u0027C:\\Windows\\Logs\\Telephony\u0027 is denied.\""
+                           ]
+}

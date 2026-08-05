@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SmartHomeApiClient } from '../services/smartHome/client';
+import { getSessionToken, setSessionToken } from '../services/auth/tokenStorage';
 import { SmartHomeServerConfig, SmartHomeServerStatus, SystemStatusResponse } from '../types/smartHomeServer';
 
 interface SmartHomeServerContextType {
@@ -20,7 +21,9 @@ const SmartHomeServerContext = createContext<SmartHomeServerContextType>({} as S
 const STORAGE_KEY = 'smartHomeServerConfig';
 export const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
 export const DEFAULT_LOCAL_API_URL = 'http://172.16.50.47:5001';
-export const DEFAULT_FORECAST_API_URL = 'http://172.16.50.47:5000';
+export const DEFAULT_LOCAL_FORECAST_API_URL = 'http://172.16.50.47:5000';
+export const DEFAULT_FORECAST_API_URL = process.env.EXPO_PUBLIC_FORECAST_API_URL?.trim()
+    || (__DEV__ ? DEFAULT_LOCAL_FORECAST_API_URL : '');
 
 const defaultConfig: SmartHomeServerConfig = {
     apiBaseUrl: CLOUD_API_URL,
@@ -56,7 +59,16 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
             try {
                 const saved = await AsyncStorage.getItem(STORAGE_KEY);
                 if (saved) {
-                    setConfig(normalizeConfig(JSON.parse(saved)));
+                    const parsed = JSON.parse(saved) as SmartHomeServerConfig;
+                    const legacyToken = parsed.apiToken?.trim() || '';
+                    const secureToken = await getSessionToken();
+                    const nextConfig = normalizeConfig({ ...parsed, apiToken: secureToken || legacyToken });
+                    if (legacyToken && !secureToken) {
+                        await setSessionToken(legacyToken);
+                    }
+                    const { apiToken: _removedToken, ...safeStoredConfig } = nextConfig;
+                    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(safeStoredConfig));
+                    setConfig(nextConfig);
                 }
             } catch (storageError) {
                 console.error('Error loading Smart Home server config', storageError);
@@ -130,7 +142,9 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
     const saveConfig = useCallback(async (nextConfig: SmartHomeServerConfig) => {
         const normalized = normalizeConfig(nextConfig);
         setConfig(normalized);
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+        await setSessionToken(normalized.apiToken || '');
+        const { apiToken: _removedToken, ...safeStoredConfig } = normalized;
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(safeStoredConfig));
     }, []);
 
     return (

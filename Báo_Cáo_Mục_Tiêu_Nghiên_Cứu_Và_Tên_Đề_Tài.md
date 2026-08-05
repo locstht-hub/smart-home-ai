@@ -16,22 +16,22 @@
 
 1. **Thách thức về quản lý năng lượng hộ gia đình:** Trong bối cảnh giá điện gia tăng và xu hướng chuyển dịch năng lượng xanh, việc tối ưu hóa mức tiêu thụ điện trong hộ gia đình (HEMS - Home Energy Management System) trở thành nhu cầu cấp thiết. Các hệ thống Smart Home hiện nay đa phần chỉ dừng lại ở mức điều khiển bật/tắt thiết bị đơn thuần mà thiếu đi tính năng giám sát công suất tức thời và dự báo nhu cầu tiêu thụ.
 2. **Yêu cầu về độ tin cậy chuẩn công nghiệp:** Việc áp dụng bộ điều khiển lập trình được (PLC - Programmable Logic Controller) Siemens S7-1200 kết hợp với đồng hồ đo điện đa năng công nghiệp MFM384 đảm bảo độ tin cậy, tính ổn định cao và khả năng chống nhiễu vượt trội so với các vi điều khiển phổ thông.
-3. **Ứng dụng Trí tuệ nhân tạo (AI):** Sự kết hợp giữa hạ tầng điều khiển cứng (PLC/IoT) và các thuật toán học máy (Machine Learning) cho phép dự đoán xu hướng tiêu thụ điện năng 24h tiếp theo, từ đó đưa ra các cảnh báo vượt hạn mức điện năng tháng (Quota) và hỗ trợ cơ chế đề xuất sa thải phụ tải phi thiết yếu có điều kiện khi tiệm cận hạn mức điện năng tháng.
+3. **Ứng dụng Trí tuệ nhân tạo (AI):** Sự kết hợp giữa hạ tầng điều khiển PLC/IoT và mô hình học máy cho phép nghiên cứu dự báo xu hướng tiêu thụ điện năng 24 giờ tiếp theo. Kết quả dự báo chỉ đóng vai trò tham khảo và hỗ trợ cảnh báo/khuyến nghị; mô hình AI không trực tiếp ra lệnh đóng cắt thiết bị.
 
 ---
 
 ## 🎯 3. MỤC TIÊU NGHIÊN CỨU (RESEARCH OBJECTIVES)
 
 ### 3.1. Mục tiêu tổng quát (General Objective)
-Xây dựng thành công một giải pháp tổng thể HEMS khép kín bao gồm: Tủ điện điều khiển và đo lường công nghiệp (PLC S7-1200, MFM384), Backend API Server trung gian, Cơ sở dữ liệu đám mây (Supabase Postgres), Mô hình AI dự báo phụ tải và Ứng dụng di động (React Native/Expo) giám sát thời gian thực.
+Nghiên cứu, thiết kế và hiện thực prototype phần mềm cho một giải pháp HEMS gồm PLC S7-1200/MFM384, Flask Backend, cơ sở dữ liệu, mô hình dự báo phụ tải và ứng dụng React Native/Expo. Phần tích hợp phần cứng, độ trễ end-to-end và dữ liệu đo tại Cần Thơ chỉ được công nhận sau khi hoàn thành ca thử thực nghiệm và lưu bằng chứng thô.
 
 ### 3.2. Mục tiêu cụ thể (Specific Objectives)
-1. **Nghiên cứu & Thiết kế hạ tầng Phần cứng Công nghiệp:** Đấu nối hoàn chỉnh sơ đồ động lực và điều khiển; cấu hình đồng hồ MFM384 truyền thông nối tiếp RS485 Modbus RTU về PLC S7-1200 để thu thập thời gian thực 4 đại lượng điện năng nòng cốt: Điện áp ($V$), Dòng điện ($I$), Công suất tức thời ($kW$) và Điện năng lũy kế ($kWh$).
-2. **Lập trình Bộ điều khiển PLC Siemens S7-1200:** Lập trình khối Data Block (`DB7` cho lệnh Command và `DB1` cho phản hồi Status) trên phần mềm TIA Portal V17/V18. Thiết lập cơ chế tạo xung điều khiển (Pulse Command 200ms) và cơ chế phản hồi khép kín (Closed-loop State Feedback) giúp hỗ trợ đồng bộ trạng thái theo phản hồi thực tế từ PLC giữa nút bấm vật lý tại tủ điện và ứng dụng di động.
-3. **Xây dựng Kiến trúc Phần mềm Backend & Cơ sở dữ liệu Đám mây:** Xây dựng Flask Backend API trung tâm đóng vai trò làm API Gateway an toàn, phân quyền người dùng đa tầng (`system_admin`, `owner`, `member`) theo từng mã định danh hộ gia đình (`home_id`). Tích hợp thư viện `python-snap7` để khởi tạo kết nối giao thức S7 Protocol TCP/IP tới PLC. Triển khai cơ sở dữ liệu tập trung Supabase PostgreSQL và xuất bản API công khai qua Cloudflare Tunnel.
-4. **Nghiên cứu & Tích hợp Thuật toán Trí tuệ nhân tạo (AI & Machine Learning):** Xây dựng và tối ưu hóa các thuật toán Học máy (XGBoost, Random Forest) trên tập dữ liệu chuỗi thời gian tiêu chuẩn quốc tế UCI (hơn 2 triệu dòng dữ liệu) để dự báo chính xác phụ tải điện năng 24 giờ tiếp theo, được đánh giá bằng các chỉ số MAE, RMSE, MAPE và R². Thiết lập thuật toán đề xuất sa thải phụ tải có điều kiện đối với các tải phi thiết yếu đã cấu hình trước để hỗ trợ tối ưu hóa điện năng tiêu thụ.
-5. **Xây dựng Ứng dụng Di động & Giao diện Quản trị:** Phát triển ứng dụng di động đa nền tảng (Android/iOS) bằng React Native/Expo cung cấp giao diện trực quan cho người dùng giám sát chỉ số điện năng, theo dõi biểu đồ dự báo AI, thiết lập hạn mức Quota và điều khiển thiết bị từ xa qua 4G/Wi-Fi với độ trễ đáp ứng yêu cầu thử nghiệm trong phạm vi mô hình.
-6. **Thực nghiệm & Kiểm thử Hệ thống Đa kịch bản:** Thực hiện đo đạc và phân tích định lượng độ trễ truyền thông (Latency Test) trong mạng LAN và mạng 4G; Tiến hành 3 kịch bản thực nghiệm tải thực tế tại hiện trường (SC-01 Vắng nhà, SC-02 Sinh hoạt bình thường, SC-03 Giờ cao điểm) để đánh giá khả năng hoạt động của hệ thống qua kịch bản thực nghiệm.
+1. **Nghiên cứu và thiết kế hạ tầng phần cứng công nghiệp:** Hoàn thiện sơ đồ động lực/điều khiển và kế hoạch cấu hình MFM384 truyền thông RS485 Modbus RTU với PLC S7-1200 để thu thập $V$, $I$, $kW$ và $kWh$. Kết quả đo thật phải được xác nhận bằng log thực nghiệm.
+2. **Lập trình PLC Siemens S7-1200:** Thiết kế ánh xạ lệnh và feedback trạng thái độc lập, đồng bộ thao tác tại tủ điện với ứng dụng. Các địa chỉ Data Block, độ rộng xung và logic an toàn phải được đối chiếu trực tiếp với TIA Portal trước khi công bố là đã vận hành phần cứng.
+3. **Xây dựng Backend và cơ sở dữ liệu:** Flask Backend làm lớp xác thực, phân quyền `system_admin`/`owner`/`member` theo `home_id`, ghi audit log và tuần tự hóa I/O PLC. Hệ thống hỗ trợ SQLite và PostgreSQL/Supabase theo cấu hình; ứng dụng không truy cập trực tiếp database hoặc PLC.
+4. **Nghiên cứu dự báo phụ tải:** Đánh giá XGBoost, Random Forest và các baseline trên phần dữ liệu UCI được pipeline chuẩn xử lý gồm 507.970 dòng thô, 8.761 dòng theo giờ và 8.401 mẫu supervised. Kết quả XGBoost hiện tại (MAE 0,4855 kW; RMSE 0,6475 kW; MAPE 66,24%; R² 0,2219) là benchmark công khai ban đầu, chưa đại diện cho dữ liệu MFM384 tại Cần Thơ.
+5. **Xây dựng ứng dụng di động và giao diện quản trị:** Phát triển ứng dụng React Native/Expo để giám sát, quản lý phòng/thiết bị, quota, dự báo và điều khiển qua backend; bổ sung xác thực phiên, nhãn trợ năng, trạng thái chờ/thành công/lỗi và xử lý bàn phím cho đăng nhập/chat.
+6. **Thực nghiệm đa kịch bản:** Chuẩn bị công cụ thu thập/phân tích latency và kế hoạch SC-01/SC-02/SC-03. Đây là công việc đang chờ chạy với PLC/MFM384 và tải thật; không trình bày như kết quả đã hoàn thành trước khi có raw log và đủ số lần lặp.
 
 ---
 
@@ -45,13 +45,13 @@ Xây dựng thành công một giải pháp tổng thể HEMS khép kín bao g�
 
 ## 🌟 5. ĐÓNG GÓP VÀ Ý NGHĨA CỦA ĐỀ TÀI (EXPECTED CONTRIBUTIONS)
 
-- **Ý nghĩa khoa học:** Chứng minh tính hiệu quả của việc kết hợp hạ tầng điều khiển công nghiệp (PLC) với các kỹ thuật Trí tuệ nhân tạo (Machine Learning) trong bài toán quản lý năng lượng hộ gia đình.
-- **Ý nghĩa thực tiễn:** Tạo ra một sản phẩm prototype hoàn chỉnh, có khả năng thương mại hóa hoặc ứng dụng thực tế trong các mô hình căn hộ/nhà thông minh hiện đại, góp phần nâng cao ý thức tiết kiệm điện và bảo vệ lưới điện.
+- **Ý nghĩa khoa học:** Xây dựng một khung tích hợp và đánh giá có kiểm soát giữa PLC, backend/app và dự báo phụ tải, đồng thời tách rõ bằng chứng benchmark công khai, kiểm thử phần mềm và thực nghiệm phần cứng.
+- **Ý nghĩa thực tiễn:** Tạo prototype có thể tiếp tục kiểm thử trong phòng lab. Khả năng thương mại hóa hoặc vận hành tải thật chỉ được xem xét sau khi hoàn tất an toàn điện, thử nghiệm phần cứng, release signing và đánh giá bảo mật/độ tin cậy.
 
 ---
 
 ## 📚 6. DANH MỤC TÀI LIỆU THAM KHẢO (REFERENCES)
-*Xem chi tiết tóm tắt và đóng góp của từng tài liệu tại [DANH_MUC_TAI_LIEU_THAM_KHAO.md](file:///c:/Users/ADMIN/.gemini/antigravity/scratch/smart-home-app/DANH_MUC_TAI_LIEU_THAM_KHAO.md)*
+*Xem chi tiết tóm tắt và đóng góp của từng tài liệu tại `Danh_Mục_Tài_Liệu_Tham_Khảo.md`.*
 
 1. **Gomes I, Bot K, Ruano MG, et al.** Recent Techniques Used in Home Energy Management Systems: A Review. *Energies*. 2022;15(8):2866.
 2. **Meng C, Wang J, Zhang Y, et al.** Multi-objective optimization strategy for home energy management system including PV and battery energy storage. *Energy Reports*. 2022;8:13638-13651.

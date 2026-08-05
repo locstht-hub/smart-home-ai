@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useSmartHomeServer } from './SmartHomeServerContext';
 import { AnomalyAlert, Insight, ModelInfo, PredictionPoint } from '../types/forecast';
-import { FlaskForecastProvider } from '../services/forecast/flaskForecastProvider';
+import { FlaskForecastProvider, isForecastUrlAllowed } from '../services/forecast/flaskForecastProvider';
 import { mockAnomalies, mockInsights, mockModelInfo, mockPredictions } from '../services/forecast/mockFallback';
 
 import { PowerReading } from '../types/smartHomeServer';
@@ -37,7 +37,9 @@ export const ForecastProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const flaskProvider = useMemo(() => {
         const apiUrl = config.forecastApiUrl?.trim();
-        return apiUrl ? new FlaskForecastProvider(apiUrl, config.forecastModel || 'xgboost') : null;
+        return apiUrl && isForecastUrlAllowed(apiUrl)
+            ? new FlaskForecastProvider(apiUrl, config.forecastModel || 'xgboost')
+            : null;
     }, [config.forecastApiUrl, config.forecastModel]);
 
     const applyMockFallback = useCallback(() => {

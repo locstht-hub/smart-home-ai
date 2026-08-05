@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "testedAtUtc": "2026-07-22T12:40:35.230418+00:00",
+  "commitSha": "fdbfece5a785f0d4671af78d246683f26c9b22d2",
+  "workingTreeDirty": true,
+  "runtime": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.10",
+    "node": "v24.14.0",
+    "npm": "11.9.0",
+    "libraries": {
+      "numpy": "2.3.3",
+      "pandas": "2.3.2",
+      "scikit-learn": "1.7.2",
+      "xgboost": "3.0.4",
+      "tensorflow": "2.21.0"
+    }
+  },
+  "suites": [
+    {
+      "suite": "verify",
+      "command": "npm run verify",
+      "passed": 48,
+      "total": 52,
+      "status": "failed",
+      "exitCode": 1,
+      "elapsedSeconds": 560.982,
+      "logPath": "research/results/software_evidence/verify.log",
+      "logSha256": "c199eec55c8afd3fc0a4b3faf23309d4ef8bb35dc0e1cd7df22e633be825695e"
+    },
+    {
+      "suite": "backend",
+      "command": "npm run test:backend",
+      "passed": 16,
+      "total": 16,
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedSeconds": 142.465,
+      "logPath": "research/results/software_evidence/backend.log",
+      "logSha256": "96974ad21ebc305b7cb2c3041e74c4144a0788216da2b12506a4806e634b6cc1"
+    },
+    {
+      "suite": "forecast",
+      "command": "npm run test:forecast",
+      "passed": 9,
+      "total": 9,
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedSeconds": 92.414,
+      "logPath": "research/results/software_evidence/forecast.log",
+      "logSha256": "7ec647bb8045ac8dbfe2c631948addb2cdd29df456f2358e558c92063e364ba6"
+    },
+    {
+      "suite": "research",
+      "command": "npm run test:research",
+      "passed": 7,
+      "total": 7,
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedSeconds": 38.367,
+      "logPath": "research/results/software_evidence/research.log",
+      "logSha256": "850174f12fb72ab0c202b4265d5b5e9560aefdc7728b530885b2cc3cad8fedc0"
+    },
+    {
+      "suite": "frontend_contract",
+      "command": "npm run test:frontend-contract",
+      "passed": 16,
+      "total": 20,
+      "status": "failed",
+      "exitCode": 1,
+      "elapsedSeconds": 7.812,
+      "logPath": "research/results/software_evidence/frontend_contract.log",
+      "logSha256": "3d3c22fc3fcbb97b58bfd6a0bee447ffbfc04c8d17cc68d88cd2cc465963e6d2"
+    },
+    {
+      "suite": "admin_audit",
+      "command": "npm run test:admin-audit",
+      "passed": 5,
+      "total": 5,
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedSeconds": 10.465,
+      "logPath": "research/results/software_evidence/admin_audit.log",
+      "logSha256": "21626e5269478723023113b2388cf3d643e7bb7b2dd70214a5b7b107e46dbf1e"
+    },
+    {
+      "suite": "room_presentation",
+      "command": "npm run test:room-presentation",
+      "passed": 3,
+      "total": 3,
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedSeconds": 12.782,
+      "logPath": "research/results/software_evidence/room_presentation.log",
+      "logSha256": "fda15ce80fc621ee558ea5b3142fae1ea3a96ea4540de6d1feb1199029d1dbb8"
+    }
+  ],
+  "claimPermissions": {
+    "authorizationAndHomeScope": true,
+    "telemetryCredentialIsolation": true,
+    "plcFeedbackAndFailClosed": true,
+    "forecastArtifactContract": true,
+    "applicationStateContract": false,
+    "fullRepositoryVerification": false
+  }
+}

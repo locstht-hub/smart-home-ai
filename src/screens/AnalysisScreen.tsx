@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -121,9 +122,15 @@ const generateReportHTML = (
 };
 
 const getSourceLabel = (source: string) => {
-    if (source === 'real_history') return 'Mô hình AI – sử dụng dữ liệu đo thực tế';
-    if (source === 'sample') return 'Dữ liệu dự báo mẫu – chưa đủ dữ liệu thực tế';
-    return 'Dữ liệu mô phỏng – Forecast API không khả dụng';
+    if (source === 'real_history') return 'Mô hình AI – sử dụng dữ liệu đo có timestamp';
+    if (source === 'sample') return 'Dữ liệu mẫu – chưa đủ dữ liệu đo';
+    return 'Mô phỏng – Forecast API không khả dụng';
+};
+
+const getSourceBadgeLabel = (source: string, hasPlcProvenance: boolean) => {
+    if (source === 'real_history') return hasPlcProvenance ? 'PLC/MFM384 thực' : 'Dữ liệu đo có timestamp';
+    if (source === 'sample') return 'Dữ liệu mẫu';
+    return 'Mô phỏng';
 };
 
 export default function AnalysisScreen() {
@@ -189,6 +196,17 @@ export default function AnalysisScreen() {
         };
     }, [powerHistory]);
 
+    const hasPlcProvenance = useMemo(() => (
+        powerHistory.length > 0
+        && powerHistory.every(reading => (
+            reading.source === 'plc-s7-1200'
+            && Boolean(reading.timestamp)
+            && !Number.isNaN(new Date(reading.timestamp).getTime())
+        ))
+    ), [powerHistory]);
+
+    const sourceBadgeLabel = getSourceBadgeLabel(forecastSource, hasPlcProvenance);
+
     const historyChartData = useMemo(() => {
         const sampled = powerHistory.slice(0, 12).reverse();
         const labels = sampled.map((reading, index) => index % 2 === 0 ? formatReadingTime(reading.timestamp) : '');
@@ -218,17 +236,13 @@ export default function AnalysisScreen() {
     const lineChartData = useMemo(() => {
         const labels = predictions.map(pred => pred.time.replace('Trong ', '+').replace(' giờ', 'h'));
         const forecastSeries = predictions.map(pred => pred.predictedKw);
-        const actualSeries = predictions.map((pred, index) => index === 0 ? totalPowerKw : Number(((pred.predictedKw + totalPowerKw) / 2).toFixed(1)));
 
         return {
-            labels,
-            datasets: [
-                { data: actualSeries, color: () => '#0f766e', strokeWidth: 2 },
-                { data: forecastSeries, color: () => '#d97706', strokeWidth: 2 },
-            ],
-            legend: ['Hiện tại', 'Dự báo'],
+            labels: labels.length ? labels : ['--'],
+            datasets: [{ data: forecastSeries.length ? forecastSeries : [0], color: () => '#d97706', strokeWidth: 2 }],
+            legend: ['Dự báo'],
         };
-    }, [predictions, totalPowerKw]);
+    }, [predictions]);
 
     const handleExportPDF = async () => {
         setIsExporting(true);
@@ -286,9 +300,9 @@ export default function AnalysisScreen() {
     };
 
     const severityConfig = {
-        critical: { icon: '🔴', label: 'Nghiêm trọng', bg: Colors.red[50], border: Colors.red[200], text: Colors.red[600] },
-        warning: { icon: '🟡', label: 'Cảnh báo', bg: Colors.amber[50], border: Colors.amber[200], text: Colors.amber[700] },
-        info: { icon: '🔵', label: 'Thông tin', bg: '#e0f2ef', border: '#b8ded7', text: '#0f766e' },
+        critical: { icon: 'alert-circle' as const, label: 'Nghiêm trọng', bg: Colors.red[50], border: Colors.red[200], text: Colors.red[600] },
+        warning: { icon: 'warning' as const, label: 'Cảnh báo', bg: Colors.amber[50], border: Colors.amber[200], text: Colors.amber[700] },
+        info: { icon: 'information-circle' as const, label: 'Thông tin', bg: '#e0f2ef', border: '#b8ded7', text: '#0f766e' },
     };
 
     return (
@@ -297,6 +311,10 @@ export default function AnalysisScreen() {
             <Text style={styles.pageSubtitle}>
                 {isLoading ? 'Đang cập nhật từ server riêng...' : getSourceLabel(forecastSource)}
             </Text>
+            <View style={styles.sourceBadge} accessibilityLabel={`Nguồn dữ liệu: ${sourceBadgeLabel}`}>
+                <Ionicons name="server-outline" size={14} color="#0f766e" />
+                <Text style={styles.sourceBadgeText}>{sourceBadgeLabel}</Text>
+            </View>
 
             {error && (
                 <View style={styles.errorBanner}>
@@ -304,9 +322,9 @@ export default function AnalysisScreen() {
                 </View>
             )}
 
-            <TouchableOpacity onPress={handleExportPDF} disabled={isExporting} activeOpacity={0.7}>
+            <TouchableOpacity onPress={handleExportPDF} disabled={isExporting} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="Xuất báo cáo PDF" accessibilityState={{ disabled: isExporting, busy: isExporting }}>
                 <LinearGradient colors={['#0f766e', '#115e59']} style={styles.exportBtn}>
-                    <Text style={{ fontSize: 18 }}>📄</Text>
+                    <Ionicons name="document-text-outline" size={20} color="#ffffff" />
                     <View style={{ flex: 1 }}>
                         <Text style={styles.exportBtnTitle}>{isExporting ? 'Đang tạo báo cáo...' : 'Xuất báo cáo PDF'}</Text>
                         <Text style={styles.exportBtnSub}>Lấy từ forecast provider đang hoạt động</Text>
@@ -341,7 +359,7 @@ export default function AnalysisScreen() {
 
             <View style={styles.metricsRow}>
                 <View style={styles.metricCard}>
-                    <Text style={{ fontSize: 14 }}>⚡</Text>
+                    <Ionicons name="flash-outline" size={17} color="#0f766e" />
                     <Text style={styles.metricSub}>Dự báo gần nhất</Text>
                     <Text style={styles.metricValue}>
                         {predictions[0]?.predictedKw.toFixed(1) || '0.0'} <Text style={styles.metricUnit}>kW</Text>
@@ -349,7 +367,7 @@ export default function AnalysisScreen() {
                     <Text style={styles.metricChange}>{formatConfidence(predictions[0]?.confidence)} tin cậy</Text>
                 </View>
                 <View style={styles.metricCard}>
-                    <Text style={{ fontSize: 14 }}>💰</Text>
+                    <Ionicons name="wallet-outline" size={17} color="#0f766e" />
                     <Text style={styles.metricSub}>Chi phí ước tính</Text>
                     <Text style={styles.metricValue}>
                         {Math.round((predictions.reduce((sum, item) => sum + item.predictedKw, 0) * 3000) / 1000)}K <Text style={styles.metricUnit}>đ</Text>
@@ -360,7 +378,7 @@ export default function AnalysisScreen() {
 
             <View style={styles.chartCard}>
                 <View style={styles.predHeader}>
-                    <Text style={styles.chartTitle}>Phụ tải điện năng</Text>
+                    <Text style={styles.chartTitle}>Đường dự báo phụ tải</Text>
                     <TouchableOpacity onPress={handleRefreshAll}>
                         <Text style={styles.predUpdate}>Làm mới</Text>
                     </TouchableOpacity>
@@ -385,7 +403,7 @@ export default function AnalysisScreen() {
 
             <View style={styles.chartCard}>
                 <View style={styles.predHeader}>
-                    <Text style={styles.chartTitle}>Lịch sử điện năng thật</Text>
+                    <Text style={styles.chartTitle}>Lịch sử điện năng từ API</Text>
                     <TouchableOpacity onPress={loadPowerHistory} disabled={isHistoryLoading}>
                         <Text style={styles.predUpdate}>{isHistoryLoading ? 'Đang tải...' : 'Đọc lại'}</Text>
                     </TouchableOpacity>
@@ -493,7 +511,7 @@ export default function AnalysisScreen() {
                         >
                             <View style={styles.anomalyCardTop}>
                                 <View style={styles.anomalyCardLeft}>
-                                    <Text style={{ fontSize: 16 }}>{config.icon}</Text>
+                                    <Ionicons name={config.icon} size={18} color={config.text} />
                                     <View>
                                         <Text style={styles.anomalyDevice}>{alert.deviceName} - {alert.roomName}</Text>
                                         <Text style={[styles.anomalySeverity, { color: config.text }]}>{config.label}</Text>
@@ -527,7 +545,7 @@ export default function AnalysisScreen() {
                 {predictions.map((pred, index) => (
                     <View key={`${pred.time}-${index}`} style={styles.predItem}>
                         <View style={styles.predLeft}>
-                            <View style={styles.predIcon}><Text>🕐</Text></View>
+                            <View style={styles.predIcon}><Ionicons name="time-outline" size={19} color="#0f766e" /></View>
                             <View>
                                 <Text style={styles.predTime}>{pred.time}</Text>
                                 <View style={styles.predConfRow}>
@@ -548,7 +566,7 @@ export default function AnalysisScreen() {
             <Text style={[styles.chartTitle, { marginTop: 16 }]}>Gợi ý tiết kiệm</Text>
             {insights.map((insight) => (
                 <View key={insight.id} style={[styles.insightCard, { borderColor: Colors.amber[200], backgroundColor: Colors.amber[50] }]}>
-                    <Text style={{ fontSize: 16 }}>💡</Text>
+                    <Ionicons name="bulb-outline" size={19} color={Colors.amber[700]} />
                     <View style={{ flex: 1 }}>
                         <View style={styles.insightHeader}>
                             <Text style={styles.insightTitle}>{insight.title}</Text>
@@ -587,7 +605,7 @@ export default function AnalysisScreen() {
                     onPress={() => { void handleRetrain(); }}
                     disabled={isRetraining}
                 >
-                    <Text style={styles.retrainBtnIcon}>🔄</Text>
+                    <Ionicons name="sync-outline" size={20} color="#5eead4" />
                     <View style={{ flex: 1 }}>
                         <Text style={styles.retrainBtnText}>{isRetraining ? 'Đang gửi tín hiệu...' : 'Tái huấn luyện (Retrain)'}</Text>
                         <Text style={styles.retrainBtnSub}>Mô phỏng quy trình tái huấn luyện</Text>
@@ -608,13 +626,13 @@ export default function AnalysisScreen() {
                             return (
                                 <>
                                     <View style={styles.modalHeader}>
-                                        <Text style={{ fontSize: 24 }}>{config.icon}</Text>
+                                        <Ionicons name={config.icon} size={26} color={config.text} />
                                         <View style={{ flex: 1 }}>
                                             <Text style={styles.modalTitle}>{showAnomalyDetail.deviceName}</Text>
                                             <Text style={styles.modalSubtitle}>{showAnomalyDetail.roomName}</Text>
                                         </View>
-                                        <TouchableOpacity onPress={() => setShowAnomalyDetail(null)}>
-                                            <Text style={{ fontSize: 22, color: Colors.slate[400] }}>✕</Text>
+                                        <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowAnomalyDetail(null)} accessibilityRole="button" accessibilityLabel="Đóng chi tiết cảnh báo">
+                                            <Ionicons name="close" size={22} color={Colors.slate[500]} />
                                         </TouchableOpacity>
                                     </View>
 
@@ -659,7 +677,9 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#edf3f0' },
     content: { padding: 16, paddingBottom: 30 },
     pageTitle: { fontSize: 28, fontWeight: '900', color: '#13251f', marginTop: 8, letterSpacing: -0.4 },
-    pageSubtitle: { fontSize: 13, color: '#61736c', marginBottom: 14, fontWeight: '600' },
+    pageSubtitle: { fontSize: 13, color: '#61736c', marginBottom: 8, fontWeight: '600' },
+    sourceBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#e0f2ef', borderWidth: 1, borderColor: '#b8ded7', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 14 },
+    sourceBadgeText: { color: '#0f766e', fontSize: 11, fontWeight: '800' },
     errorBanner: { backgroundColor: '#fff4f2', borderWidth: 1, borderColor: '#fecaca', borderRadius: 16, padding: 12, marginBottom: 14 },
     errorBannerText: { fontSize: 13, color: Colors.red[600], lineHeight: 18, fontWeight: '600' },
     exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 16, marginBottom: 14, shadowColor: '#173a31', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 3 },
@@ -737,12 +757,12 @@ const styles = StyleSheet.create({
     modelLabel: { fontSize: 12, color: Colors.slate[400], marginBottom: 2 },
     modelValue2: { fontSize: 14, fontWeight: '500', color: '#fff' },
     retrainBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(59, 130, 246, 0.2)', borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.4)', borderRadius: 12, padding: 12, marginTop: 16 },
-    retrainBtnIcon: { fontSize: 18 },
     retrainBtnText: { fontSize: 13, fontWeight: '800', color: '#5eead4' },
     retrainBtnSub: { fontSize: 11, color: Colors.slate[400], marginTop: 2 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.56)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#f8fbf9', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%', shadowColor: '#10251f', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: -10 }, elevation: 5 },
     modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+    modalCloseButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: '#edf3f0' },
     modalTitle: { fontSize: 18, fontWeight: '700', color: Colors.slate[800] },
     modalSubtitle: { fontSize: 13, color: Colors.slate[500] },
     modalSeverityBadge: { borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 14 },
