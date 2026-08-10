@@ -161,6 +161,12 @@ test('chat requests have enough time for the configured AI provider', () => {
   assert.match(client, /options\.timeoutMs\s*\?\?/);
 });
 
+test('web loads Ionicons from the public font path used by production hosting', () => {
+  const app = read('App.tsx');
+  assert.match(app, /useFonts/);
+  assert.match(app, /ionicons:\s*\{\s*uri:\s*'\/fonts\/Ionicons\.ttf'/);
+});
+
 test('Expo web dashboard has a desktop shell, web chatbot and Pages fallback', () => {
   const navigator = read('src/navigation/AppNavigator.web.tsx');
   const chat = read('src/screens/ChatScreen.web.tsx');
@@ -173,7 +179,7 @@ test('Expo web dashboard has a desktop shell, web chatbot and Pages fallback', (
   assert.match(navigator, /MemberManagement/);
   assert.match(chat, /client\.chatWithTiming/);
   assert.equal(packageJson.scripts.web, 'expo start --web --port 8090');
-  assert.equal(packageJson.scripts['build:web'], 'expo export --platform web');
+  assert.equal(packageJson.scripts['build:web'], 'node scripts/prepare-web-assets.mjs && expo export --platform web');
   assert.equal(appJson.expo.web.output, 'single');
   assert.match(redirects, /^\/\* \/index\.html 200/m);
 });
