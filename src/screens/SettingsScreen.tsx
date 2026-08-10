@@ -8,9 +8,12 @@ import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { Colors } from '../constants/colors';
 import { AppTheme } from '../constants/theme';
 import { buildPlcMappingSummary } from '../constants/plcMapping';
+import { useConfirmDialog } from '../components/ConfirmDialog';
 
-export default function SettingsScreen() {
-    const navigation = useNavigation<any>();
+export default function SettingsScreen({ navigation: providedNavigation }: { navigation?: any } = {}) {
+    const { confirm, confirmDialog } = useConfirmDialog();
+    const stackNavigation = useNavigation<any>();
+    const navigation = providedNavigation || stackNavigation;
     const { user, logout, changePassword } = useAuth();
     const { config, status, error, systemStatus, saveConfig, testConnection, refreshSystemStatus } = useSmartHomeServer();
     const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
@@ -96,15 +99,13 @@ export default function SettingsScreen() {
     };
 
     const handleLogout = () => {
-        if (Platform.OS === 'web') {
-            void performLogout();
-            return;
-        }
-
-        Alert.alert('Đăng xuất', 'Bạn có chắc muốn đăng xuất?', [
-            { text: 'Hủy', style: 'cancel' },
-            { text: 'Đăng xuất', style: 'destructive', onPress: () => void performLogout() },
-        ]);
+        confirm({
+            title: 'Đăng xuất',
+            message: 'Bạn có chắc muốn đăng xuất khỏi phiên hiện tại?',
+            confirmLabel: 'Đăng xuất',
+            destructive: true,
+            onConfirm: performLogout,
+        });
     };
 
     const handleSaveServer = async () => {
@@ -289,13 +290,15 @@ export default function SettingsScreen() {
             <Text style={styles.copyright}>Server riêng + PLC S7-1200 + MFM384</Text>
             <View style={{ height: 30 }} />
 
+            {confirmDialog}
+
             <Modal visible={showPasswordModal} transparent animationType="slide">
                 <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Đổi mật khẩu</Text>
-                        <TextInput style={styles.modalInput} placeholder="Mật khẩu hiện tại" value={currentPw} onChangeText={setCurrentPw} secureTextEntry placeholderTextColor={Colors.slate[400]} />
-                        <TextInput style={styles.modalInput} placeholder="Mật khẩu mới" value={newPw} onChangeText={setNewPw} secureTextEntry placeholderTextColor={Colors.slate[400]} />
-                        <TextInput style={styles.modalInput} placeholder="Xác nhận mật khẩu mới" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry placeholderTextColor={Colors.slate[400]} />
+                        <TextInput {...({ name: 'current-password' } as any)} style={styles.modalInput} placeholder="Mật khẩu hiện tại" value={currentPw} onChangeText={setCurrentPw} secureTextEntry autoComplete="current-password" textContentType="password" placeholderTextColor={Colors.slate[400]} />
+                        <TextInput {...({ name: 'new-password' } as any)} style={styles.modalInput} placeholder="Mật khẩu mới" value={newPw} onChangeText={setNewPw} secureTextEntry autoComplete="new-password" textContentType="newPassword" placeholderTextColor={Colors.slate[400]} />
+                        <TextInput {...({ name: 'confirm-new-password' } as any)} style={styles.modalInput} placeholder="Xác nhận mật khẩu mới" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry autoComplete="new-password" textContentType="newPassword" placeholderTextColor={Colors.slate[400]} />
                         <View style={styles.modalBtnRow}>
                             <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowPasswordModal(false)}>
                                 <Text style={styles.modalCancelText}>Hủy</Text>

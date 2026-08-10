@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { SmartHomeApiClient } from '../services/smartHome/client';
+import { normalizeSavedLocalApiUrl, resolveDefaultLocalApiUrl } from '../services/smartHome/endpoints';
 import { getSessionToken, setSessionToken } from '../services/auth/tokenStorage';
 import { SmartHomeServerConfig, SmartHomeServerStatus, SystemStatusResponse } from '../types/smartHomeServer';
 
@@ -20,7 +22,10 @@ const SmartHomeServerContext = createContext<SmartHomeServerContextType>({} as S
 
 const STORAGE_KEY = 'smartHomeServerConfig';
 export const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
-export const DEFAULT_LOCAL_API_URL = 'http://172.16.50.47:5001';
+export const DEFAULT_LOCAL_API_URL = resolveDefaultLocalApiUrl(
+    Platform.OS,
+    process.env.EXPO_PUBLIC_LOCAL_API_URL,
+);
 export const DEFAULT_LOCAL_FORECAST_API_URL = 'http://172.16.50.47:5000';
 export const DEFAULT_FORECAST_API_URL = process.env.EXPO_PUBLIC_FORECAST_API_URL?.trim()
     || (__DEV__ ? DEFAULT_LOCAL_FORECAST_API_URL : '');
@@ -37,7 +42,11 @@ const defaultConfig: SmartHomeServerConfig = {
 
 const normalizeConfig = (nextConfig: SmartHomeServerConfig): SmartHomeServerConfig => ({
     apiBaseUrl: nextConfig.apiBaseUrl?.trim() || CLOUD_API_URL,
-    localApiBaseUrl: nextConfig.localApiBaseUrl?.trim() || DEFAULT_LOCAL_API_URL,
+    localApiBaseUrl: normalizeSavedLocalApiUrl(
+        Platform.OS,
+        nextConfig.localApiBaseUrl,
+        DEFAULT_LOCAL_API_URL,
+    ),
     preferLocalApi: nextConfig.preferLocalApi !== false,
     apiToken: nextConfig.apiToken?.trim() || '',
     homeId: nextConfig.homeId?.trim() || '',

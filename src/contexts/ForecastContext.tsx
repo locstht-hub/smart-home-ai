@@ -59,6 +59,10 @@ export const ForecastProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setError(null);
 
         try {
+            if (!config.apiToken) {
+                applyMockFallback();
+                return;
+            }
             let history: PowerReading[] | undefined;
             if (client && client.isReady()) {
                 try {
@@ -87,13 +91,16 @@ export const ForecastProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
             applyMockFallback();
         } catch (providerError) {
-            const message = providerError instanceof Error ? providerError.message : 'Không thể đọc forecast provider';
+            const rawMessage = providerError instanceof Error ? providerError.message : '';
+            const message = /failed to fetch|abort|network/i.test(rawMessage)
+                ? 'Không thể kết nối Forecast API; đang dùng dữ liệu mô phỏng dự phòng.'
+                : rawMessage || 'Không thể đọc forecast provider';
             setError(message);
             applyMockFallback();
         } finally {
             setIsLoading(false);
         }
-    }, [applyMockFallback, client, flaskProvider]);
+    }, [applyMockFallback, client, config.apiToken, flaskProvider]);
 
     useEffect(() => {
         refresh().catch(() => undefined);

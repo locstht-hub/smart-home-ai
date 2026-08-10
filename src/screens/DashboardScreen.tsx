@@ -10,11 +10,13 @@ import { Colors } from '../constants/colors';
 import { AppTheme } from '../constants/theme';
 import { roomIconImages } from '../constants/roomAssets';
 import { getRoomPresentation } from '../constants/roomPresentation';
+import { useConfirmDialog } from '../components/ConfirmDialog';
 
 const POWER_REFRESH_MS = 30000;
 export default function DashboardScreen({ navigation }: any) {
+    const { confirm, confirmDialog } = useConfirmDialog();
     const { user } = useAuth();
-    const { rooms, getTotalPower, getActiveDeviceCount, turnAllOff, applyScene, serverError, isHomeSuspended, isServerControlled } = useData();
+    const { rooms, getTotalPower, getActiveDeviceCount, turnAllOff, applyScene, serverError, isHomeSuspended, isServerControlled, canControlDevices } = useData();
     const { client, isConfigured, config, systemStatus } = useSmartHomeServer();
     const [now, setNow] = useState(new Date());
     const [powerCurrent, setPowerCurrent] = useState<PowerCurrentResponse | null>(null);
@@ -22,8 +24,10 @@ export default function DashboardScreen({ navigation }: any) {
     const [isQuotaModalVisible, setIsQuotaModalVisible] = useState(false);
     const [quotaInput, setQuotaInput] = useState('');
     const [isSubmittingQuota, setIsSubmittingQuota] = useState(false);
+    const [focusedQuickAction, setFocusedQuickAction] = useState<'all-off' | 'sleep' | 'away' | null>(null);
 
     const isOwner = user?.serverRole === 'owner';
+    const controlsDisabled = isHomeSuspended || !canControlDevices;
 
     const pulseAnim = useRef(new Animated.Value(0.4)).current;
 
@@ -402,40 +406,46 @@ export default function DashboardScreen({ navigation }: any) {
 
             <Text style={styles.sectionTitle}>Thao tác nhanh</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActions}>
-                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.red[200], backgroundColor: Colors.red[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} accessibilityRole="button" accessibilityLabel="Tắt tất cả thiết bị" onPress={async () => {
-                    const success = await turnAllOff();
-                    if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị. Kiểm tra PLC/server rồi thử lại.');
+                <TouchableOpacity disabled={controlsDisabled} style={[styles.actionBtn, { borderColor: Colors.red[200], backgroundColor: Colors.red[50], flexDirection: 'row', alignItems: 'center', gap: 6 }, controlsDisabled && styles.actionBtnDisabled, focusedQuickAction === 'all-off' && styles.focusRing]} accessibilityRole="button" accessibilityLabel="Tắt tất cả thiết bị" accessibilityState={{ disabled: controlsDisabled }} onFocus={() => setFocusedQuickAction('all-off')} onBlur={() => setFocusedQuickAction(null)} onPress={() => {
+                    confirm({
+                        title: 'Tắt tất cả thiết bị',
+                        message: 'Gửi lệnh tắt toàn bộ thiết bị trong nhà? Trạng thái chỉ được cập nhật sau khi backend phản hồi.',
+                        confirmLabel: 'Tắt tất cả',
+                        destructive: true,
+                        onConfirm: async () => {
+                            const success = await turnAllOff();
+                            if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị. Kiểm tra PLC/server rồi thử lại.');
+                        },
+                    });
                 }}>
                     <Ionicons name="power-outline" size={18} color={Colors.red[600]} />
                     <Text style={{ color: Colors.red[600], fontWeight: '500', fontSize: 13 }}>Tắt tất cả</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.blue[200], backgroundColor: Colors.blue[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} accessibilityRole="button" accessibilityLabel="Bật chế độ đêm" onPress={() => {
-                    Alert.alert('Chế độ đêm', 'Tắt các thiết bị đèn/quạt trong hệ thống?', [
-                        { text: 'Hủy', style: 'cancel' },
-                        {
-                            text: 'Bật',
-                            onPress: async () => {
-                                const success = await applyScene('sleep');
-                                Alert.alert(success ? 'Thành công' : 'Lỗi', success ? 'Đã bật chế độ đêm' : 'Chưa thể bật chế độ đêm. Kiểm tra PLC/server rồi thử lại.');
-                            },
+                <TouchableOpacity disabled={controlsDisabled} style={[styles.actionBtn, { borderColor: Colors.blue[200], backgroundColor: Colors.blue[50], flexDirection: 'row', alignItems: 'center', gap: 6 }, controlsDisabled && styles.actionBtnDisabled, focusedQuickAction === 'sleep' && styles.focusRing]} accessibilityRole="button" accessibilityLabel="Bật chế độ đêm" accessibilityState={{ disabled: controlsDisabled }} onFocus={() => setFocusedQuickAction('sleep')} onBlur={() => setFocusedQuickAction(null)} onPress={() => {
+                    confirm({
+                        title: 'Chế độ đêm',
+                        message: 'Tắt các thiết bị đèn và quạt theo kịch bản ngủ?',
+                        confirmLabel: 'Kích hoạt',
+                        onConfirm: async () => {
+                            const success = await applyScene('sleep');
+                            if (!success) Alert.alert('Lỗi', 'Chưa thể bật chế độ đêm. Kiểm tra PLC/server rồi thử lại.');
                         },
-                    ]);
+                    });
                 }}>
                     <Ionicons name="moon-outline" size={18} color={Colors.blue[600]} />
                     <Text style={{ color: Colors.blue[600], fontWeight: '500', fontSize: 13 }}>Chế độ đêm</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, { borderColor: Colors.amber[200], backgroundColor: Colors.amber[50], flexDirection: 'row', alignItems: 'center', gap: 6 }]} accessibilityRole="button" accessibilityLabel="Bật chế độ vắng nhà" onPress={() => {
-                    Alert.alert('Chế độ vắng nhà', 'Tắt tất cả thiết bị trong nhà?', [
-                        { text: 'Hủy', style: 'cancel' },
-                        {
-                            text: 'Tắt tất cả',
-                            style: 'destructive',
-                            onPress: async () => {
-                                const success = await turnAllOff();
-                                Alert.alert(success ? 'Thành công' : 'Lỗi', success ? 'Đã tắt tất cả thiết bị' : 'Chưa thể tắt tất cả thiết bị. Kiểm tra PLC/server rồi thử lại.');
-                            },
+                <TouchableOpacity disabled={controlsDisabled} style={[styles.actionBtn, { borderColor: Colors.amber[200], backgroundColor: Colors.amber[50], flexDirection: 'row', alignItems: 'center', gap: 6 }, controlsDisabled && styles.actionBtnDisabled, focusedQuickAction === 'away' && styles.focusRing]} accessibilityRole="button" accessibilityLabel="Bật chế độ vắng nhà" accessibilityState={{ disabled: controlsDisabled }} onFocus={() => setFocusedQuickAction('away')} onBlur={() => setFocusedQuickAction(null)} onPress={() => {
+                    confirm({
+                        title: 'Chế độ vắng nhà',
+                        message: 'Tắt toàn bộ thiết bị trong nhà để chuyển sang chế độ vắng nhà?',
+                        confirmLabel: 'Tắt tất cả',
+                        destructive: true,
+                        onConfirm: async () => {
+                            const success = await turnAllOff();
+                            if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị. Kiểm tra PLC/server rồi thử lại.');
                         },
-                    ]);
+                    });
                 }}>
                     <Ionicons name="home-outline" size={18} color={Colors.amber[600]} />
                     <Text style={{ color: Colors.amber[600], fontWeight: '500', fontSize: 13 }}>Vắng nhà</Text>
@@ -482,6 +492,7 @@ export default function DashboardScreen({ navigation }: any) {
             </LinearGradient>
 
             <View style={{ height: 20 }} />
+            {confirmDialog}
         </ScrollView>
     );
 }
@@ -531,6 +542,8 @@ const styles = StyleSheet.create({
     seeAll: { fontSize: 13, fontWeight: '800', color: '#0f766e' },
     quickActions: { marginBottom: 20 },
     actionBtn: { minHeight: 44, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, marginRight: 10, shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 1 },
+    focusRing: { outlineWidth: 2, outlineStyle: 'solid', outlineColor: '#0f766e', outlineOffset: 2 } as any,
+    actionBtnDisabled: { opacity: 0.42 },
     roomCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fbf9', borderRadius: 18, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#dce7e1', shadowColor: '#173a31', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
     roomCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     roomIcon: { width: 48, height: 48, borderRadius: 13, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: '#e7eee9' },

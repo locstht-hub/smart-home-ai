@@ -1,6 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { Device } from '../../constants/data';
 import { CreateManualDevicePayload, CreateManualRoomPayload, CreateMemberPayload, HomeActivityLog, HomeMember, HomeQuota, LoginResponse, ManualDevice, ManualRoom, PowerCurrentResponse, PowerHistoryResponse, PowerReading, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
+import { resolveDefaultLocalApiUrl } from './endpoints';
+import { resolveRequestTimeout } from './requestPolicy';
+import { describeApiFailure, describeHttpFailure, isAmbiguousMutationFailure } from './errors';
 
 interface DevicesResponse {
     devices: Record<string, Device[]>;
@@ -35,10 +39,18 @@ interface RequestResult<T> {
     baseUrl: string;
 }
 
+interface RequestOptions {
+    preferCloudFirst?: boolean;
+    singleBaseUrl?: boolean;
+    timeoutMs?: number;
+}
+
 const DEFAULT_TIMEOUT = 8000;
-const DEFAULT_LOCAL_TIMEOUT = 800;
 const CLOUD_API_URL = 'https://api.smarthomeai.id.vn';
-const DEFAULT_LOCAL_API_URL = 'http://172.16.50.47:5001';
+const DEFAULT_LOCAL_API_URL = resolveDefaultLocalApiUrl(
+    Platform.OS,
+    process.env.EXPO_PUBLIC_LOCAL_API_URL,
+);
 const ALLOW_INSECURE_LAN_HTTP = __DEV__ && process.env.EXPO_PUBLIC_ALLOW_INSECURE_LAN_HTTP === 'true';
 const USER_KEY = 'currentUser';
 const SERVER_CONFIG_KEY = 'smartHomeServerConfig';
@@ -181,11 +193,19 @@ export class SmartHomeApiClient {
     }
 
     async createHomeMember(homeId: string, data: CreateMemberPayload): Promise<HomeMember> {
-        const response = await this.request<{ ok: boolean; member: HomeMember }>(`/api/homes/${encodeURIComponent(homeId)}/members`, {
-            method: 'POST',
-            body: JSON.stringify(data),
-        });
-        return response.member;
+        try {
+            const response = await this.request<{ ok: boolean; member: HomeMember }>(`/api/homes/${encodeURIComponent(homeId)}/members`, {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+            return response.member;
+        } catch (error) {
+            if (isAmbiguousMutationFailure(error)) {
+                const existing = (await this.getHomeMembers(homeId)).find(member => member.username.trim().toLocaleLowerCase() === data.username.trim().toLocaleLowerCase());
+                if (existing) return existing;
+            }
+            throw error;
+        }
     }
 
     async suspendHomeMember(homeId: string, userId: string): Promise<void> {
@@ -239,11 +259,19 @@ export class SmartHomeApiClient {
     }
 
     async createManualRoom(homeId: string, data: CreateManualRoomPayload): Promise<ManualRoom> {
-        const response = await this.request<{ ok: boolean; room: ManualRoom }>(`/api/homes/${encodeURIComponent(homeId)}/rooms`, {
-            method: 'POST',
-            body: JSON.stringify(data),
-        });
-        return response.room;
+        try {
+            const response = await this.request<{ ok: boolean; room: ManualRoom }>(`/api/homes/${encodeURIComponent(homeId)}/rooms`, {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+            return response.room;
+        } catch (error) {
+            if (isAmbiguousMutationFailure(error)) {
+                const existing = (await this.getManualRooms(homeId)).find(room => room.name.trim().toLocaleLowerCase() === data.name.trim().toLocaleLowerCase());
+                if (existing) return existing;
+            }
+            throw error;
+        }
     }
 
     async deleteManualRoom(homeId: string, roomId: string): Promise<void> {
@@ -261,11 +289,19 @@ export class SmartHomeApiClient {
     }
 
     async createManualDevice(homeId: string, data: CreateManualDevicePayload): Promise<ManualDevice> {
-        const response = await this.request<{ ok: boolean; device: ManualDevice }>(`/api/homes/${encodeURIComponent(homeId)}/devices`, {
-            method: 'POST',
-            body: JSON.stringify(data),
-        });
-        return response.device;
+        try {
+            const response = await this.request<{ ok: boolean; device: ManualDevice }>(`/api/homes/${encodeURIComponent(homeId)}/devices`, {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+            return response.device;
+        } catch (error) {
+            if (isAmbiguousMutationFailure(error)) {
+                const existing = (await this.getManualDevices(homeId, data.roomId || undefined)).find(device => device.name.trim().toLocaleLowerCase() === data.name.trim().toLocaleLowerCase());
+                if (existing) return existing;
+            }
+            throw error;
+        }
     }
 
     async deleteManualDevice(homeId: string, deviceId: string): Promise<void> {
@@ -285,7 +321,10 @@ export class SmartHomeApiClient {
         const result = await this.requestWithEndpoint<ChatResponse>('/api/assistant/chat', {
             method: 'POST',
             body: JSON.stringify({ text, ...(this.config.homeId ? { homeId: this.config.homeId } : {}) }),
-        }, { preferCloudFirst: this.config.preferLocalApi !== true });
+        }, {
+            preferCloudFirst: this.config.preferLocalApi !== true,
+            timeoutMs: 25_000,
+        });
         const response = result.data;
         return {
             reply: polishChatReply(response.reply || response.text || response.message || 'Server đã nhận lệnh của bạn.'),
@@ -308,7 +347,7 @@ export class SmartHomeApiClient {
     private async request<T>(
         path: string,
         init: RequestInit = {},
-        options: { preferCloudFirst?: boolean; singleBaseUrl?: boolean } = {},
+        options: RequestOptions = {},
     ): Promise<T> {
         const result = await this.requestWithEndpoint<T>(path, init, options);
         return result.data;
@@ -317,10 +356,14 @@ export class SmartHomeApiClient {
     private async requestWithEndpoint<T>(
         path: string,
         init: RequestInit = {},
-        options: { preferCloudFirst?: boolean; singleBaseUrl?: boolean } = {},
+        options: RequestOptions = {},
     ): Promise<RequestResult<T>> {
         const savedConfig = await this.readSavedServerConfig();
-        const baseUrls = this.resolveBaseUrls(savedConfig, options);
+        const resolvedBaseUrls = this.resolveBaseUrls(savedConfig, options);
+        const method = (init.method || 'GET').toUpperCase();
+        const baseUrls = method === 'GET' || method === 'HEAD'
+            ? resolvedBaseUrls
+            : resolvedBaseUrls.slice(0, 1);
 
         if (!baseUrls.length) {
             throw new Error('Server API chưa được cấu hình.');
@@ -334,7 +377,7 @@ export class SmartHomeApiClient {
                     path,
                     init,
                     savedConfig,
-                    this.getTimeoutForBaseUrl(baseUrl, index),
+                    options.timeoutMs ?? resolveRequestTimeout(path, init.method || 'GET', this.config.timeout || DEFAULT_TIMEOUT),
                 );
                 return { data, baseUrl };
             } catch (error) {
@@ -387,16 +430,14 @@ export class SmartHomeApiClient {
                 } catch {
                     parsedError = body;
                 }
-                if (response.status === 401) {
-                    throw new Error('Phiên đăng nhập hoặc API token không hợp lệ.');
-                }
-                if (response.status === 403 && parsedError === 'Home is suspended') {
-                    throw new Error('Nhà đang bị tạm khóa');
-                }
-                throw new Error(parsedError || `Server API trả về mã ${response.status}`);
+                throw new Error(describeHttpFailure(response.status, parsedError, path));
             }
 
             return response.json() as Promise<T>;
+        } catch (error) {
+            const message = describeApiFailure(error);
+            if (error instanceof Error && message === error.message) throw error;
+            throw new Error(message);
         } finally {
             clearTimeout(timer);
         }
@@ -404,7 +445,7 @@ export class SmartHomeApiClient {
 
     private resolveBaseUrls(
         savedConfig: SmartHomeServerConfig | null,
-        options: { preferCloudFirst?: boolean; singleBaseUrl?: boolean } = {},
+        options: RequestOptions = {},
     ): string[] {
         const cloudUrl = this.config.apiBaseUrl?.trim() || savedConfig?.apiBaseUrl?.trim() || CLOUD_API_URL;
         const localUrl = this.config.localApiBaseUrl?.trim() || savedConfig?.localApiBaseUrl?.trim() || DEFAULT_LOCAL_API_URL;
@@ -419,14 +460,6 @@ export class SmartHomeApiClient {
         return options.singleBaseUrl ? baseUrls.slice(0, 1) : baseUrls;
     }
 
-    private getTimeoutForBaseUrl(baseUrl: string, index: number): number {
-        const configuredTimeout = this.config.timeout || DEFAULT_TIMEOUT;
-        if (index === 0 && this.isLocalBaseUrl(baseUrl)) {
-            return Math.min(configuredTimeout, DEFAULT_LOCAL_TIMEOUT);
-        }
-        return configuredTimeout;
-    }
-
     private isLocalBaseUrl(baseUrl: string): boolean {
         return /^http:\/\/(10\.|172\.|192\.168\.|127\.0\.0\.1|localhost)/i.test(baseUrl);
     }
@@ -439,7 +472,7 @@ export class SmartHomeApiClient {
     private canRetryWithNextBaseUrl(error: unknown): boolean {
         if (!(error instanceof Error)) return true;
         return error.name === 'AbortError'
-            || /network request failed/i.test(error.message)
+            || /network request failed|quá thời gian chờ/i.test(error.message)
             || /khong the ket noi|không thể kết nối/i.test(error.message);
     }
 

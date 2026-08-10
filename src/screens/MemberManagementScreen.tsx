@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { Colors } from '../constants/colors';
 import { HomeActivityLog, HomeMember } from '../types/smartHomeServer';
+import { useConfirmDialog } from '../components/ConfirmDialog';
+import { describeApiFailure } from '../services/smartHome/errors';
 
 const ROLE_LABELS: Record<string, string> = {
     owner: 'Chủ nhà',
@@ -24,7 +26,8 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
     suspended: { bg: Colors.red[100], text: Colors.red[600] },
 };
 
-export default function MemberManagementScreen({ navigation }: { navigation: any }) {
+export default function MemberManagementScreen({ navigation, embedded = false }: { navigation: any; embedded?: boolean }) {
+    const { confirm, confirmDialog } = useConfirmDialog();
     const { user } = useAuth();
     const { client } = useSmartHomeServer();
     const [members, setMembers] = useState<HomeMember[]>([]);
@@ -118,59 +121,53 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
     };
 
     const handleSuspend = (member: HomeMember) => {
-        Alert.alert(
-            'Tạm khóa thành viên',
-            `Bạn có chắc muốn tạm khóa "${member.name}"? Thành viên sẽ không thể đăng nhập và điều khiển thiết bị.`,
-            [
-                { text: 'Hủy', style: 'cancel' },
-                {
-                    text: 'Tạm khóa',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await client.suspendHomeMember(homeId!, member.id);
-                            Alert.alert('Thành công', `Đã tạm khóa "${member.name}".`);
-                            void fetchMembers();
-                        } catch (error) {
-                            Alert.alert('Lỗi', 'Không thể tạm khóa thành viên.');
-                        }
-                    },
-                },
-            ],
-        );
+        confirm({
+            title: 'Tạm khóa thành viên',
+            message: `Tạm khóa "${member.name}"? Thành viên sẽ không thể đăng nhập hoặc điều khiển thiết bị.`,
+            confirmLabel: 'Tạm khóa',
+            destructive: true,
+            onConfirm: async () => {
+                try {
+                    await client.suspendHomeMember(homeId!, member.id);
+                    await fetchMembers();
+                } catch (error) {
+                    Alert.alert('Lỗi', describeApiFailure(error));
+                }
+            },
+        });
     };
 
-    const handleActivate = async (member: HomeMember) => {
-        try {
-            await client.activateHomeMember(homeId!, member.id);
-            Alert.alert('Thành công', `Đã kích hoạt lại "${member.name}".`);
-            void fetchMembers();
-        } catch (error) {
-            Alert.alert('Lỗi', 'Không thể kích hoạt thành viên.');
-        }
+    const handleActivate = (member: HomeMember) => {
+        confirm({
+            title: 'Kích hoạt thành viên',
+            message: `Cho phép "${member.name}" đăng nhập và sử dụng lại các quyền đã cấp?`,
+            confirmLabel: 'Kích hoạt',
+            onConfirm: async () => {
+                try {
+                    await client.activateHomeMember(homeId!, member.id);
+                    await fetchMembers();
+                } catch (error) {
+                    Alert.alert('Lỗi', describeApiFailure(error));
+                }
+            },
+        });
     };
 
     const handleDelete = (member: HomeMember) => {
-        Alert.alert(
-            'Xóa thành viên',
-            `Bạn có chắc muốn xóa "${member.name}" khỏi nhà? Hành động này không thể hoàn tác.`,
-            [
-                { text: 'Hủy', style: 'cancel' },
-                {
-                    text: 'Xóa',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await client.deleteHomeMember(homeId!, member.id);
-                            Alert.alert('Thành công', `Đã xóa "${member.name}" khỏi nhà.`);
-                            void fetchMembers();
-                        } catch (error) {
-                            Alert.alert('Lỗi', 'Không thể xóa thành viên.');
-                        }
-                    },
-                },
-            ],
-        );
+        confirm({
+            title: 'Xóa thành viên',
+            message: `Xóa "${member.name}" khỏi nhà? Hành động này không thể hoàn tác.`,
+            confirmLabel: 'Xóa thành viên',
+            destructive: true,
+            onConfirm: async () => {
+                try {
+                    await client.deleteHomeMember(homeId!, member.id);
+                    await fetchMembers();
+                } catch (error) {
+                    Alert.alert('Lỗi', describeApiFailure(error));
+                }
+            },
+        });
     };
 
     const handleResetPassword = async () => {
@@ -287,21 +284,21 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                 {!isOwner ? (
                     <View style={styles.actionRow}>
                         {item.status === 'active' ? (
-                            <TouchableOpacity style={[styles.actionBtn, styles.suspendBtn]} onPress={() => handleSuspend(item)}>
+                            <TouchableOpacity style={[styles.actionBtn, styles.suspendBtn]} onPress={() => handleSuspend(item)} accessibilityRole="button" accessibilityLabel={`Tạm khóa ${item.name}`}>
                                 <Text style={styles.suspendBtnText}>Tạm khóa</Text>
                             </TouchableOpacity>
                         ) : (
-                            <TouchableOpacity style={[styles.actionBtn, styles.activateBtn]} onPress={() => { void handleActivate(item); }}>
+                            <TouchableOpacity style={[styles.actionBtn, styles.activateBtn]} onPress={() => handleActivate(item)} accessibilityRole="button" accessibilityLabel={`Kích hoạt ${item.name}`}>
                                 <Text style={styles.activateBtnText}>Kích hoạt</Text>
                             </TouchableOpacity>
                         )}
-                        <TouchableOpacity style={[styles.actionBtn, styles.passwordBtn]} onPress={() => {
+                        <TouchableOpacity style={[styles.actionBtn, styles.passwordBtn]} accessibilityRole="button" accessibilityLabel={`Đổi mật khẩu cho ${item.name}`} onPress={() => {
                             setResetPasswordMember(item);
                             setResetPassword('');
                         }}>
                             <Text style={styles.passwordBtnText}>Mật khẩu</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.actionBtn, styles.deleteBtn]} onPress={() => handleDelete(item)}>
+                        <TouchableOpacity style={[styles.actionBtn, styles.deleteBtn]} onPress={() => handleDelete(item)} accessibilityRole="button" accessibilityLabel={`Xóa ${item.name}`}>
                             <Text style={styles.deleteBtnText}>Xóa</Text>
                         </TouchableOpacity>
                     </View>
@@ -328,14 +325,22 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
 
     return (
         <View style={styles.container}>
-            <LinearGradient colors={['#10251f', '#173a31', '#0f172a']} style={styles.header}>
+            {!embedded ? <LinearGradient colors={['#10251f', '#173a31', '#0f172a']} style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Quay lại">
                     <Ionicons name="chevron-back" size={20} color="#ffffff" />
                     <Text style={styles.backBtnText}>Quay lại</Text>
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{homeName}</Text>
                 <Text style={styles.headerSub}>{memberCount} thành viên ({nonOwnerCount} thành viên con)</Text>
-            </LinearGradient>
+            </LinearGradient> : (
+                <View style={styles.embeddedSummary}>
+                    <View>
+                        <Text style={styles.embeddedTitle}>{homeName}</Text>
+                        <Text style={styles.embeddedSub}>{memberCount} thành viên · {nonOwnerCount} tài khoản con</Text>
+                    </View>
+                    <Ionicons name="people-outline" size={24} color="#0f766e" />
+                </View>
+            )}
 
             <FlatList
                 data={members}
@@ -388,36 +393,48 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                         <Text style={styles.modalHint}>Tạo tài khoản con trong nhà để thành viên đăng nhập và sử dụng app.</Text>
 
                         <TextInput
+                            {...({ name: 'member-full-name' } as any)}
                             style={styles.modalInput}
                             placeholder="Họ tên"
                             value={newName}
                             onChangeText={setNewName}
                             autoCorrect={false}
+                            autoComplete="name"
+                            textContentType="name"
                             placeholderTextColor={Colors.slate[400]}
                         />
                         <TextInput
+                            {...({ name: 'member-username' } as any)}
                             style={styles.modalInput}
                             placeholder="Tên đăng nhập"
                             value={newUsername}
                             onChangeText={setNewUsername}
                             autoCorrect={false}
                             autoCapitalize="none"
+                            autoComplete="username"
+                            textContentType="username"
                             placeholderTextColor={Colors.slate[400]}
                         />
                         <TextInput
+                            {...({ name: 'member-phone' } as any)}
                             style={styles.modalInput}
                             placeholder="Số điện thoại (tùy chọn)"
                             value={newPhone}
                             onChangeText={setNewPhone}
                             keyboardType="phone-pad"
+                            autoComplete="tel"
+                            textContentType="telephoneNumber"
                             placeholderTextColor={Colors.slate[400]}
                         />
                         <TextInput
+                            {...({ name: 'member-new-password' } as any)}
                             style={styles.modalInput}
                             placeholder="Mật khẩu (ít nhất 12 ký tự)"
                             value={newPassword}
                             onChangeText={setNewPassword}
                             secureTextEntry
+                            autoComplete="new-password"
+                            textContentType="newPassword"
                             placeholderTextColor={Colors.slate[400]}
                         />
 
@@ -426,6 +443,9 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                             <TouchableOpacity
                                 style={[styles.roleOption, newRole === 'member' && styles.roleOptionActive]}
                                 onPress={() => { setNewRole('member'); setNewCanManageDevices(true); }}
+                                accessibilityRole="radio"
+                                accessibilityLabel="Vai trò thành viên"
+                                accessibilityState={{ selected: newRole === 'member' }}
                             >
                                 <Text style={[styles.roleOptionText, newRole === 'member' && styles.roleOptionTextActive]}>Thành viên</Text>
                                 <Text style={styles.roleOptionHint}>Điều khiển thiết bị</Text>
@@ -433,6 +453,9 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                             <TouchableOpacity
                                 style={[styles.roleOption, newRole === 'viewer' && styles.roleOptionActive]}
                                 onPress={() => { setNewRole('viewer'); setNewCanManageDevices(false); }}
+                                accessibilityRole="radio"
+                                accessibilityLabel="Vai trò chỉ xem"
+                                accessibilityState={{ selected: newRole === 'viewer' }}
                             >
                                 <Text style={[styles.roleOptionText, newRole === 'viewer' && styles.roleOptionTextActive]}>Chỉ xem</Text>
                                 <Text style={styles.roleOptionHint}>Không điều khiển</Text>
@@ -449,10 +472,10 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                         ) : null}
 
                         <View style={styles.modalBtnRow}>
-                            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setShowAddModal(false); resetForm(); }}>
+                            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setShowAddModal(false); resetForm(); }} accessibilityRole="button" accessibilityLabel="Hủy thêm thành viên">
                                 <Text style={styles.modalCancelText}>Hủy</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.modalSaveBtn} onPress={() => { void handleAddMember(); }} disabled={submitting}>
+                            <TouchableOpacity style={styles.modalSaveBtn} onPress={() => { void handleAddMember(); }} disabled={submitting} accessibilityRole="button" accessibilityLabel="Lưu thành viên mới" accessibilityState={{ disabled: submitting, busy: submitting }}>
                                 {submitting ? (
                                     <ActivityIndicator size="small" color="#fff" />
                                 ) : (
@@ -472,11 +495,14 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                             Mật khẩu mới sẽ áp dụng cho tài khoản {resetPasswordMember?.username}. Phiên đăng nhập cũ của thành viên sẽ bị đăng xuất.
                         </Text>
                         <TextInput
+                            {...({ name: 'member-reset-password' } as any)}
                             style={styles.modalInput}
                             placeholder="Mật khẩu mới (ít nhất 12 ký tự)"
                             value={resetPassword}
                             onChangeText={setResetPassword}
                             secureTextEntry
+                            autoComplete="new-password"
+                            textContentType="newPassword"
                             placeholderTextColor={Colors.slate[400]}
                         />
                         <View style={styles.modalBtnRow}>
@@ -497,6 +523,7 @@ export default function MemberManagementScreen({ navigation }: { navigation: any
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
+            {confirmDialog}
         </View>
     );
 }
@@ -514,7 +541,10 @@ const styles = StyleSheet.create({
     headerSub: { fontSize: 13, color: 'rgba(236,253,245,0.72)', marginTop: 4, fontWeight: '600' },
 
     // List
-    listContent: { padding: 16, paddingBottom: 100 },
+    listContent: { width: '100%', maxWidth: 1000, alignSelf: 'center', padding: 16, paddingBottom: 24 },
+    embeddedSummary: { marginHorizontal: 16, marginTop: 16, padding: 18, borderRadius: 18, backgroundColor: '#f8fbf9', borderWidth: 1, borderColor: '#dce7e1', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    embeddedTitle: { color: '#13251f', fontSize: 20, fontWeight: '700' },
+    embeddedSub: { marginTop: 4, color: '#61736c', fontSize: 13 },
 
     // Member card
     memberCard: {
@@ -611,10 +641,11 @@ const styles = StyleSheet.create({
 
     // FAB
     fab: {
-        position: 'absolute',
-        bottom: 24,
-        right: 20,
-        left: 20,
+        alignSelf: 'flex-end',
+        marginHorizontal: 16,
+        marginBottom: 16,
+        paddingHorizontal: 22,
+        minWidth: 220,
         backgroundColor: '#0f766e',
         borderRadius: 16,
         paddingVertical: 16,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Modal, Platform, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { LineChart, PieChart } from 'react-native-chart-kit';
@@ -11,8 +11,7 @@ import { useData } from '../contexts/DataContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
 import { AnomalyAlert } from '../types/forecast';
 import { PowerReading } from '../types/smartHomeServer';
-
-const screenWidth = Dimensions.get('window').width - 64;
+import { useConfirmDialog } from '../components/ConfirmDialog';
 
 const formatCurrency = (value: number) => value.toLocaleString('vi-VN');
 const normalizeConfidence = (value?: number) => {
@@ -134,6 +133,8 @@ const getSourceBadgeLabel = (source: string, hasPlcProvenance: boolean) => {
 };
 
 export default function AnalysisScreen() {
+    const { width } = useWindowDimensions();
+    const { confirm, confirmDialog } = useConfirmDialog();
     const { predictions, anomalies, insights, modelInfo, isLoading, error, forecastSource, historyHourlyRows, refresh, triggerRetrain } = useForecast();
     const { rooms, getTotalPower, getActiveDeviceCount } = useData();
     const { client, isConfigured } = useSmartHomeServer();
@@ -143,6 +144,8 @@ export default function AnalysisScreen() {
     const [powerHistory, setPowerHistory] = useState<PowerReading[]>([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState<string | null>(null);
+    const [chartContainerWidth, setChartContainerWidth] = useState(0);
+    const chartWidth = Math.max(260, Math.floor((chartContainerWidth || width - 32) - 32));
 
     const totalPowerKw = Number((getTotalPower() / 1000).toFixed(1));
     const activeCount = getActiveDeviceCount();
@@ -254,6 +257,17 @@ export default function AnalysisScreen() {
                 modelInfo.name,
                 getSourceLabel(forecastSource),
             );
+            if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                const reportWindow = window.open('', '_blank', 'noopener,noreferrer');
+                if (!reportWindow) throw new Error('Trình duyệt đã chặn cửa sổ xuất báo cáo.');
+                reportWindow.document.open();
+                reportWindow.document.write(html);
+                reportWindow.document.close();
+                reportWindow.document.title = `bao-cao-phu-tai-${new Date().toISOString().slice(0, 10)}`;
+                reportWindow.focus();
+                window.setTimeout(() => reportWindow.print(), 250);
+                return;
+            }
             const { uri } = await Print.printToFileAsync({ html, base64: false });
             await Sharing.shareAsync(uri, {
                 UTI: '.pdf',
@@ -276,27 +290,20 @@ export default function AnalysisScreen() {
             return;
         }
 
-        Alert.alert(
-            'Bắt đầu Tái huấn luyện',
-            'Hệ thống sẽ tải dữ liệu 30 ngày gần nhất từ server riêng và chạy luồng Online Learning ngầm ở máy chủ biên (Edge Device). Vui lòng xác nhận?',
-            [
-                { text: 'Hủy', style: 'cancel' },
-                {
-                    text: 'Kích hoạt',
-                    style: 'default',
-                    onPress: async () => {
-                        setIsRetraining(true);
-                        const success = await triggerRetrain();
-                        setIsRetraining(false);
-                        if (success) {
-                            Alert.alert('Thành công', 'Đã gửi tín hiệu Tái huấn luyện xuống máy chủ Edge thành công. Mô hình đang tự động cập nhật cấu trúc dưới nền!');
-                        } else {
-                            Alert.alert('Lỗi', 'Không thể kích hoạt luồng tái huấn luyện.');
-                        }
-                    },
-                },
-            ]
-        );
+        confirm({
+            title: 'Bắt đầu tái huấn luyện',
+            message: 'Hệ thống sẽ dùng dữ liệu gần nhất và chạy luồng cập nhật mô hình ở chế độ mô phỏng trên máy chủ biên.',
+            confirmLabel: 'Kích hoạt',
+            onConfirm: async () => {
+                setIsRetraining(true);
+                try {
+                    const success = await triggerRetrain();
+                    if (!success) Alert.alert('Lỗi', 'Không thể kích hoạt luồng tái huấn luyện.');
+                } finally {
+                    setIsRetraining(false);
+                }
+            },
+        });
     };
 
     const severityConfig = {
@@ -376,7 +383,7 @@ export default function AnalysisScreen() {
                 </View>
             </View>
 
-            <View style={styles.chartCard}>
+            <View style={styles.chartCard} onLayout={(event) => setChartContainerWidth(event.nativeEvent.layout.width)}>
                 <View style={styles.predHeader}>
                     <Text style={styles.chartTitle}>Đường dự báo phụ tải</Text>
                     <TouchableOpacity onPress={handleRefreshAll}>
@@ -385,7 +392,7 @@ export default function AnalysisScreen() {
                 </View>
                 <LineChart
                     data={lineChartData}
-                    width={screenWidth}
+                    width={chartWidth}
                     height={200}
                     yAxisSuffix=" kW"
                     chartConfig={{
@@ -442,7 +449,7 @@ export default function AnalysisScreen() {
 
                         <LineChart
                             data={historyChartData}
-                            width={screenWidth}
+                            width={chartWidth}
                             height={190}
                             yAxisSuffix=" kW"
                             chartConfig={{
@@ -481,7 +488,7 @@ export default function AnalysisScreen() {
                 <Text style={styles.chartTitle}>Phân bổ tiêu thụ theo phòng</Text>
                 <PieChart
                     data={pieData}
-                    width={screenWidth}
+                    width={chartWidth}
                     height={180}
                     chartConfig={{ color: () => '#000' }}
                     accessor="value"
@@ -669,6 +676,7 @@ export default function AnalysisScreen() {
                     </View>
                 </View>
             </Modal>
+            {confirmDialog}
         </ScrollView>
     );
 }

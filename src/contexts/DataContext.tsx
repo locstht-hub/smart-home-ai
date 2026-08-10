@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { useSmartHomeServer } from './SmartHomeServerContext';
 import { buildFallbackHouseDevices, HouseDevices, normalizeServerDevices } from '../services/smartHome/mappers';
 import { ManualDevice } from '../types/smartHomeServer';
+import { canControlDevices as resolveCanControlDevices } from '../web/dashboardPolicy';
 
 interface ComputedRoom {
     id: string;
@@ -34,10 +35,12 @@ interface DataContextType {
     isServerControlled: boolean;
     serverError: string | null;
     isHomeSuspended: boolean;
+    canControlDevices: boolean;
     canManageInventory: boolean;
     isManualInventory: boolean;
     refresh: () => Promise<void>;
     addRoom: (name: string) => Promise<{ success: boolean; error?: string }>;
+    deleteRoom: (roomId: string) => Promise<{ success: boolean; error?: string }>;
     toggleDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<DeviceControlResult>;
     addDevice: (roomId: string, device: Omit<Device, 'id' | 'ownerId'>, targetUserId?: string) => Promise<{ success: boolean; error?: string }>;
     deleteDevice: (roomId: string, deviceId: string, targetUserId?: string) => Promise<{ success: boolean; error?: string }>;
@@ -117,7 +120,7 @@ const buildManualHouseDevices = (manualDevices: ManualDevice[]): HouseDevices =>
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
-    const { client, isConfigured } = useSmartHomeServer();
+    const { client, config, isConfigured } = useSmartHomeServer();
     const [devices, setDevices] = useState<HouseDevices>(buildFallbackHouseDevices());
     const [roomDefinitions, setRoomDefinitions] = useState<RoomDefinition[]>(
         defaultRooms.map(room => ({ id: room.id, name: room.name, source: 'default' })),
@@ -127,6 +130,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isServerControlled, setIsServerControlled] = useState(false);
     const [isManualInventory, setIsManualInventory] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
+    const canControlDevices = resolveCanControlDevices({
+        role: user?.role === 'admin' ? 'owner' : user?.serverRole,
+        canManageDevices: user?.role === 'admin' || user?.canManageDevices,
+    });
     const canManageInventory = Boolean(user?.role === 'admin' || user?.canManageDevices);
 
     useEffect(() => {
@@ -177,6 +184,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [user?.id, user?.name]);
 
     const refresh = useCallback(async () => {
+        if (!user || !config.apiToken) {
+            setIsServerControlled(false);
+            setIsManualInventory(false);
+            setServerError(null);
+            return;
+        }
         if (!isConfigured) {
             setIsServerControlled(false);
             setIsManualInventory(false);
@@ -227,10 +240,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsServerControlled(true);
             setServerError(error instanceof Error ? error.message : 'Không thể tải dữ liệu server');
         }
-    }, [client, isConfigured, user?.homeId]);
+    }, [client, config.apiToken, isConfigured, user]);
 
     useEffect(() => {
-        if (!hasLoadedStorage) return;
+        if (!hasLoadedStorage || !user || !config.apiToken) return;
         refresh().catch(() => undefined);
 
         const interval = setInterval(() => {
@@ -238,7 +251,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, SERVER_DEVICES_REFRESH_MS);
 
         return () => clearInterval(interval);
-    }, [hasLoadedStorage, refresh]);
+    }, [config.apiToken, hasLoadedStorage, refresh, user]);
 
     const rooms = useMemo(() => getRoomsForHouse(devices, roomDefinitions), [devices, roomDefinitions]);
 
@@ -276,7 +289,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [addLog, client, isConfigured, refresh, rooms.length, updateLocalHouse, user?.homeId]);
 
+    const deleteRoom = useCallback(async (roomId: string): Promise<{ success: boolean; error?: string }> => {
+        const room = rooms.find(item => item.id === roomId);
+        if (!room) return { success: false, error: 'Không tìm thấy phòng.' };
+        if ((devices[roomId] || []).length > 0) {
+            return { success: false, error: 'Phòng vẫn còn thiết bị. Hãy xóa hoặc chuyển hết thiết bị trước.' };
+        }
+
+        try {
+            if (isConfigured && user?.homeId) {
+                await client.deleteManualRoom(user.homeId, roomId);
+                await refresh();
+            } else {
+                setRoomDefinitions(current => current.filter(item => item.id !== roomId));
+                updateLocalHouse(house => {
+                    const next = { ...house };
+                    delete next[roomId];
+                    return next;
+                });
+            }
+            addLog('Xóa phòng', undefined, room.name);
+            return { success: true };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Không thể xóa phòng.';
+            setServerError(message);
+            return { success: false, error: message };
+        }
+    }, [addLog, client, devices, isConfigured, refresh, rooms, updateLocalHouse, user?.homeId]);
+
     const toggleDevice = useCallback(async (roomId: string, deviceId: string): Promise<DeviceControlResult> => {
+        if (!canControlDevices) {
+            return {
+                success: false,
+                error: 'Forbidden by role',
+                message: 'Bạn không có quyền điều khiển thiết bị này.',
+                source: isServerControlled ? 'server-acknowledged' : 'local-demo',
+            };
+        }
         const currentDevice = (devices[roomId] || []).find(device => device.id === deviceId);
         if (!currentDevice) {
             return {
@@ -347,7 +396,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 source: isConfigured && isServerControlled ? 'server-acknowledged' : 'local-demo',
             };
         }
-    }, [addLog, client, devices, getRoomName, isConfigured, isServerControlled, refresh, updateLocalHouse]);
+    }, [addLog, canControlDevices, client, devices, getRoomName, isConfigured, isServerControlled, refresh, updateLocalHouse]);
 
     const addDevice = useCallback(async (roomId: string, device: Omit<Device, 'id' | 'ownerId'>): Promise<{ success: boolean; error?: string }> => {
         if (isConfigured && user?.homeId && (isManualInventory || isServerControlled)) {
@@ -423,6 +472,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [addLog, client, devices, getRoomName, isConfigured, isServerControlled, refresh, updateLocalHouse, user?.homeId]);
 
     const setAllDevicesState = useCallback(async (roomId: string | null, nextState: boolean): Promise<boolean> => {
+        if (!canControlDevices) return false;
         const targetDevices = roomId ? devices[roomId] || [] : Object.values(devices).flat();
 
         try {
@@ -458,7 +508,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setServerError(error instanceof Error ? error.message : 'Không thể điều khiển thiết bị');
             return false;
         }
-    }, [client, devices, isConfigured, isManualInventory, isServerControlled, refresh, updateLocalHouse]);
+    }, [canControlDevices, client, devices, isConfigured, isManualInventory, isServerControlled, refresh, updateLocalHouse]);
 
     const turnAllOff = useCallback(async () => {
         const success = await setAllDevicesState(null, false);
@@ -479,6 +529,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [addLog, getRoomName, setAllDevicesState]);
 
     const applyScene = useCallback(async (scene: 'morning' | 'work' | 'weekend' | 'sleep') => {
+        if (!canControlDevices) {
+            addLog('Từ chối kích hoạt cảnh do quyền truy cập');
+            return false;
+        }
         let success = false;
 
         try {
@@ -520,7 +574,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         addLog(`${success ? 'Kích hoạt cảnh' : 'Lỗi kích hoạt cảnh'}: ${sceneNames[scene]}`);
         return success;
-    }, [addLog, client, isConfigured, isServerControlled, refresh, setAllDevicesState, updateLocalHouse]);
+    }, [addLog, canControlDevices, client, isConfigured, isServerControlled, refresh, setAllDevicesState, updateLocalHouse]);
 
     const getTotalPower = useCallback(() => {
         return Object.values(devices).reduce((total, roomDevices) => {
@@ -554,10 +608,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isServerControlled,
             serverError,
             isHomeSuspended: serverError === 'Nhà đang bị tạm khóa',
+            canControlDevices,
             canManageInventory,
             isManualInventory,
             refresh,
             addRoom,
+            deleteRoom,
             toggleDevice,
             addDevice,
             deleteDevice,

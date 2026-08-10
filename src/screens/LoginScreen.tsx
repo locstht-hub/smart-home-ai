@@ -58,6 +58,7 @@ export default function LoginScreen({ navigation }: any) {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Username hoặc SĐT</Text>
                         <TextInput
+                            {...({ name: 'username' } as any)}
                             style={[styles.input, focusedField === 'username' && styles.inputFocused]}
                             placeholder="Nhập username hoặc số điện thoại"
                             value={username}
@@ -81,6 +82,7 @@ export default function LoginScreen({ navigation }: any) {
                         <Text style={styles.label}>Mật khẩu</Text>
                         <View style={[styles.passwordField, focusedField === 'password' && styles.inputFocused]}>
                             <TextInput
+                                {...({ name: 'password' } as any)}
                                 ref={passwordInputRef}
                                 style={styles.passwordInput}
                                 placeholder="Nhập mật khẩu"

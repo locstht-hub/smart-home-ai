@@ -105,6 +105,57 @@ class SecurityControlsTest(unittest.TestCase):
     def auth_headers(self, token: str) -> dict[str, str]:
         return {"Authorization": f"Bearer {token}"}
 
+    def test_repeated_room_creation_is_idempotent_by_normalized_name(self) -> None:
+        payload = {"name": "  Phòng QA timeout  ", "type": "room"}
+        first = self.client.post(
+            "/api/homes/home-demo-001/rooms",
+            json=payload,
+            headers=self.auth_headers(self.owner_token),
+        )
+        second = self.client.post(
+            "/api/homes/home-demo-001/rooms",
+            json={"name": "phòng qa TIMEOUT", "type": "room"},
+            headers=self.auth_headers(self.owner_token),
+        )
+
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(first.get_json()["room"]["id"], second.get_json()["room"]["id"])
+        rooms = self.client.get(
+            "/api/homes/home-demo-001/rooms",
+            headers=self.auth_headers(self.owner_token),
+        ).get_json()["rooms"]
+        self.assertEqual(sum(room["name"].strip().casefold() == "phòng qa timeout" for room in rooms), 1)
+
+    def test_repeated_device_creation_is_idempotent_within_room(self) -> None:
+        room = self.client.post(
+            "/api/homes/home-demo-001/rooms",
+            json={"name": "Phòng thiết bị QA", "type": "room"},
+            headers=self.auth_headers(self.owner_token),
+        ).get_json()["room"]
+        payload = {
+            "roomId": room["id"],
+            "name": "Đèn kiểm thử",
+            "type": "light",
+            "status": "off",
+            "ratedPowerW": 20,
+            "isControllable": False,
+        }
+        first = self.client.post(
+            "/api/homes/home-demo-001/devices",
+            json=payload,
+            headers=self.auth_headers(self.owner_token),
+        )
+        second = self.client.post(
+            "/api/homes/home-demo-001/devices",
+            json={**payload, "name": "  đèn KIỂM THỬ "},
+            headers=self.auth_headers(self.owner_token),
+        )
+
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(first.get_json()["device"]["id"], second.get_json()["device"]["id"])
+
     def test_cors_allows_configured_admin_origin_only(self) -> None:
         allowed = self.client.options(
             "/api/auth/login",

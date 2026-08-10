@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { User, defaultAdmin, defaultApprovedUser } from '../constants/data';
 import { SmartHomeApiClient } from '../services/smartHome/client';
+import { describeLoginFailure } from '../services/auth/loginErrors';
+import { getSessionToken } from '../services/auth/tokenStorage';
+import { shouldRestoreStoredUser } from '../services/auth/sessionPolicy';
 import { useSmartHomeServer } from './SmartHomeServerContext';
 
 interface AuthContextType {
@@ -94,6 +98,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (savedCurrentUser) {
                 const parsedCurrent = JSON.parse(savedCurrentUser) as User;
+                const sessionToken = await getSessionToken();
+                if (!shouldRestoreStoredUser(parsedCurrent, sessionToken, Platform.OS)) {
+                    await AsyncStorage.removeItem('currentUser');
+                    setUser(null);
+                    return;
+                }
                 const latestCurrent = parsedCurrent.serverRole || parsedCurrent.serverToken
                     ? parsedCurrent
                     : normalized.find((item) => item.id === parsedCurrent.id) || null;
@@ -162,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             return await loginWithServer(phone, password);
         } catch (serverError) {
-            const message = serverError instanceof Error ? serverError.message : 'Không thể đăng nhập server';
+            const message = describeLoginFailure(serverError);
             if (!ALLOW_LOCAL_DEMO_AUTH) {
                 return { success: false, message };
             }

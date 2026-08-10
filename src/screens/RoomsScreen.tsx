@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Image, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../contexts/DataContext';
@@ -8,6 +8,7 @@ import { Colors } from '../constants/colors';
 import { roomIconImages } from '../constants/roomAssets';
 import { getRoomPresentation } from '../constants/roomPresentation';
 import { AppTheme } from '../constants/theme';
+import { useConfirmDialog } from '../components/ConfirmDialog';
 
 const deviceIcons = {
     light: 'bulb-outline',
@@ -22,8 +23,11 @@ type DeviceControlUiState = {
 };
 
 export default function RoomsScreen({ route }: any) {
+    const { width } = useWindowDimensions();
+    const isWideLayout = width >= 720;
+    const { confirm, confirmDialog } = useConfirmDialog();
     const { user } = useAuth();
-    const { rooms, getUserDevices, toggleDevice, addDevice, deleteDevice, addRoom, turnAllOn, turnAllOffRoom, applyScene, isServerControlled, isHomeSuspended, serverError, canManageInventory, isManualInventory } = useData();
+    const { rooms, getUserDevices, toggleDevice, addDevice, deleteDevice, addRoom, deleteRoom, turnAllOn, turnAllOffRoom, applyScene, isServerControlled, isHomeSuspended, serverError, canControlDevices, canManageInventory, isManualInventory } = useData();
     const [selectedRoom, setSelectedRoom] = useState<string | null>(route?.params?.roomId || null);
     const [showAddRoom, setShowAddRoom] = useState(false);
     const [showAddDevice, setShowAddDevice] = useState(false);
@@ -31,6 +35,7 @@ export default function RoomsScreen({ route }: any) {
     const [newDeviceName, setNewDeviceName] = useState('');
     const [newDeviceType, setNewDeviceType] = useState<'light' | 'fan' | 'ac' | 'outlet'>('light');
     const [newDevicePower, setNewDevicePower] = useState('');
+    const [isSavingInventory, setIsSavingInventory] = useState(false);
     const [deviceControlStates, setDeviceControlStates] = useState<Record<string, DeviceControlUiState>>({});
 
     useEffect(() => {
@@ -66,7 +71,7 @@ export default function RoomsScreen({ route }: any) {
         const activeDevices = roomDevices.filter(device => device.isOn).length;
         const totalPower = roomDevices.filter(device => device.isOn).reduce((sum, device) => sum + device.power, 0);
         const visual = getRoomPresentation(room);
-        const controlsDisabled = isHomeSuspended || isManualInventory;
+        const controlsDisabled = isHomeSuspended || isManualInventory || !canControlDevices;
 
         return (
             <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -123,6 +128,13 @@ export default function RoomsScreen({ route }: any) {
                     </View>
                 )}
 
+                {!isHomeSuspended && !canControlDevices && (
+                    <View style={styles.permissionBanner} accessibilityRole="alert">
+                        <Ionicons name="lock-closed-outline" size={18} color="#9a6700" />
+                        <Text style={styles.permissionBannerText}>Tài khoản của bạn chỉ được xem trạng thái; lệnh điều khiển đã bị khóa.</Text>
+                    </View>
+                )}
+
                 <View style={styles.allBtnRow}>
                     <TouchableOpacity
                         disabled={controlsDisabled}
@@ -130,9 +142,16 @@ export default function RoomsScreen({ route }: any) {
                         accessibilityRole="button"
                         accessibilityLabel="Bật tất cả thiết bị trong phòng"
                         accessibilityState={{ disabled: controlsDisabled }}
-                        onPress={async () => {
-                            const success = await turnAllOn(selectedRoom);
-                            if (!success) Alert.alert('Lỗi', 'Chưa thể bật tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
+                        onPress={() => {
+                            confirm({
+                                title: 'Bật tất cả thiết bị',
+                                message: `Gửi lệnh bật tất cả thiết bị có thể điều khiển trong ${room.name}?`,
+                                confirmLabel: 'Bật tất cả',
+                                onConfirm: async () => {
+                                    const success = await turnAllOn(selectedRoom);
+                                    if (!success) Alert.alert('Lỗi', 'Chưa thể bật tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
+                                },
+                            });
                         }}
                     >
                         <Ionicons name="flash-outline" size={18} color="#ffffff" />
@@ -144,9 +163,17 @@ export default function RoomsScreen({ route }: any) {
                         accessibilityRole="button"
                         accessibilityLabel="Tắt tất cả thiết bị trong phòng"
                         accessibilityState={{ disabled: controlsDisabled }}
-                        onPress={async () => {
-                            const success = await turnAllOffRoom(selectedRoom);
-                            if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
+                        onPress={() => {
+                            confirm({
+                                title: 'Tắt tất cả thiết bị',
+                                message: `Gửi lệnh tắt tất cả thiết bị có thể điều khiển trong ${room.name}?`,
+                                confirmLabel: 'Tắt tất cả',
+                                destructive: true,
+                                onConfirm: async () => {
+                                    const success = await turnAllOffRoom(selectedRoom);
+                                    if (!success) Alert.alert('Lỗi', 'Chưa thể tắt tất cả thiết bị trong phòng. Kiểm tra PLC/server rồi thử lại.');
+                                },
+                            });
                         }}
                     >
                         <Ionicons name="power-outline" size={18} color={Colors.slate[700]} />
@@ -165,7 +192,7 @@ export default function RoomsScreen({ route }: any) {
                     roomDevices.map(device => {
                         const controlState = deviceControlStates[device.id];
                         const isControlPending = controlState?.status === 'pending';
-                        const isControlDisabled = isHomeSuspended || device.source === 'manual' || isControlPending;
+                        const isControlDisabled = isHomeSuspended || !canControlDevices || device.source === 'manual' || isControlPending;
                         return (
                         <View key={device.id} style={[styles.deviceCard, device.isOn && styles.deviceCardActive]}>
                             <View style={styles.deviceLeft}>
@@ -206,10 +233,16 @@ export default function RoomsScreen({ route }: any) {
                                         accessibilityRole="button"
                                         accessibilityLabel={`Xóa thiết bị ${device.name}`}
                                         onPress={() => {
-                                            Alert.alert('Xóa thiết bị', `Xóa "${device.name}" khỏi ${room.name}?`, [
-                                                { text: 'Hủy', style: 'cancel' },
-                                                { text: 'Xóa', style: 'destructive', onPress: async () => { const result = await deleteDevice(selectedRoom, device.id); if (!result.success) Alert.alert('Lỗi', result.error || 'Không thể xóa thiết bị'); } },
-                                            ]);
+                                            confirm({
+                                                title: 'Xóa thiết bị',
+                                                message: `Xóa "${device.name}" khỏi ${room.name}? Thiết bị sẽ bị gỡ khỏi danh mục thủ công.`,
+                                                confirmLabel: 'Xóa thiết bị',
+                                                destructive: true,
+                                                onConfirm: async () => {
+                                                    const result = await deleteDevice(selectedRoom, device.id);
+                                                    if (!result.success) Alert.alert('Lỗi', result.error || 'Không thể xóa thiết bị');
+                                                },
+                                            });
                                         }}
                                     >
                                         <Text style={styles.deleteDeviceText}>Xóa</Text>
@@ -253,7 +286,7 @@ export default function RoomsScreen({ route }: any) {
                                     { type: 'ac' as const, label: 'Máy lạnh', icon: 'snow-outline' as const },
                                     { type: 'outlet' as const, label: 'Ổ cắm', icon: 'power-outline' as const },
                                 ].map(item => (
-                                    <TouchableOpacity key={item.type} style={[styles.typeBtn, newDeviceType === item.type && styles.typeBtnActive]} onPress={() => setNewDeviceType(item.type)}>
+                                    <TouchableOpacity key={item.type} style={[styles.typeBtn, newDeviceType === item.type && styles.typeBtnActive]} onPress={() => setNewDeviceType(item.type)} accessibilityRole="radio" accessibilityLabel={`Loại thiết bị ${item.label}`} accessibilityState={{ selected: newDeviceType === item.type }}>
                                         <Ionicons name={item.icon} size={18} color={newDeviceType === item.type ? AppTheme.colors.brand : AppTheme.colors.inkMuted} />
                                         <Text style={[styles.typeBtnText, newDeviceType === item.type && styles.typeBtnTextActive]}>{item.label}</Text>
                                     </TouchableOpacity>
@@ -263,30 +296,39 @@ export default function RoomsScreen({ route }: any) {
                             <TextInput style={styles.modalInput} placeholder="Công suất (W)" value={newDevicePower} onChangeText={setNewDevicePower} keyboardType="numeric" placeholderTextColor={Colors.slate[400]} />
 
                             <View style={styles.modalBtnRow}>
-                                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowAddDevice(false)}>
+                                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowAddDevice(false)} accessibilityRole="button" accessibilityLabel="Hủy thêm thiết bị">
                                     <Text style={styles.modalCancelText}>Hủy</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    style={styles.modalSaveBtn}
+                                    style={[styles.modalSaveBtn, isSavingInventory && styles.disabledBtn]}
+                                    disabled={isSavingInventory}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Lưu thiết bị mới"
+                                    accessibilityState={{ disabled: isSavingInventory, busy: isSavingInventory }}
                                     onPress={async () => {
+                                        if (isSavingInventory) return;
                                         if (!newDeviceName.trim() || !newDevicePower.trim()) {
                                             Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
                                             return;
                                         }
-                                        const result = await addDevice(selectedRoom, {
-                                            name: newDeviceName.trim(),
-                                            type: newDeviceType,
-                                            isOn: false,
-                                            power: parseInt(newDevicePower, 10) || 0,
-                                        });
-                                        if (!result.success) {
-                                            Alert.alert('Lỗi', result.error || 'Không thể thêm thiết bị');
-                                            return;
+                                        setIsSavingInventory(true);
+                                        try {
+                                            const result = await addDevice(selectedRoom, {
+                                                name: newDeviceName.trim(),
+                                                type: newDeviceType,
+                                                isOn: false,
+                                                power: parseInt(newDevicePower, 10) || 0,
+                                            });
+                                            if (!result.success) {
+                                                Alert.alert('Lỗi', result.error || 'Không thể thêm thiết bị');
+                                                return;
+                                            }
+                                            setNewDeviceName('');
+                                            setNewDevicePower('');
+                                            setShowAddDevice(false);
+                                        } finally {
+                                            setIsSavingInventory(false);
                                         }
-                                        setNewDeviceName('');
-                                        setNewDevicePower('');
-                                        setShowAddDevice(false);
-                                        Alert.alert('Thành công', 'Đã thêm thiết bị mới');
                                     }}
                                 >
                                     <Text style={styles.modalSaveText}>Thêm</Text>
@@ -297,6 +339,7 @@ export default function RoomsScreen({ route }: any) {
                 </Modal>
 
                 <View style={{ height: 30 }} />
+                {confirmDialog}
             </ScrollView>
         );
     }
@@ -346,13 +389,13 @@ export default function RoomsScreen({ route }: any) {
                     return (
                         <TouchableOpacity
                             key={room.id}
-                            style={[styles.roomCard, isActive && styles.roomCardActive]}
+                            style={[styles.roomCard, isWideLayout && styles.roomCardWide, isActive && styles.roomCardActive]}
                             onPress={() => setSelectedRoom(room.id)}
                             accessibilityRole="button"
                             accessibilityLabel={`Mở ${room.name}, ${room.active} trên ${room.devices} thiết bị đang hoạt động`}
                         >
                             {isActive && <View style={styles.roomActiveDot} />}
-                            <View style={[styles.roomCardIcon, isActive && styles.roomCardIconActive]}>
+                            <View style={[styles.roomCardIcon, isWideLayout && styles.roomCardIconWide, isActive && styles.roomCardIconActive]}>
                                 {visual.imageKey ? (
                                     <Image
                                         source={roomIconImages[visual.imageKey]}
@@ -383,6 +426,34 @@ export default function RoomsScreen({ route }: any) {
                                     <Text style={styles.roomCardStat}>{room.devices} thiết bị</Text>
                                 </View>
                             </View>
+                            {canManageInventory ? (
+                                <TouchableOpacity
+                                    style={[styles.deleteRoomBtn, room.devices > 0 && styles.deleteRoomBtnDisabled]}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Xóa phòng ${room.name}`}
+                                    accessibilityHint={room.devices > 0 ? 'Cần xóa hoặc chuyển hết thiết bị trước' : 'Mở hộp thoại xác nhận xóa phòng'}
+                                    onPress={(event) => {
+                                        event.stopPropagation();
+                                        if (room.devices > 0) {
+                                            Alert.alert('Chưa thể xóa phòng', 'Phòng vẫn còn thiết bị. Hãy xóa hoặc chuyển hết thiết bị trước.');
+                                            return;
+                                        }
+                                        confirm({
+                                            title: 'Xóa phòng',
+                                            message: `Xóa phòng "${room.name}"? Hành động này không thể hoàn tác.`,
+                                            confirmLabel: 'Xóa phòng',
+                                            destructive: true,
+                                            onConfirm: async () => {
+                                                const result = await deleteRoom(room.id);
+                                                if (!result.success) Alert.alert('Lỗi', result.error || 'Không thể xóa phòng.');
+                                            },
+                                        });
+                                    }}
+                                >
+                                    <Ionicons name="trash-outline" size={14} color={room.devices > 0 ? '#94a3b8' : Colors.red[600]} />
+                                    <Text style={[styles.deleteRoomText, room.devices > 0 && styles.deleteRoomTextDisabled]}>Xóa phòng</Text>
+                                </TouchableOpacity>
+                            ) : null}
                         </TouchableOpacity>
                     );
                 })}
@@ -400,22 +471,18 @@ export default function RoomsScreen({ route }: any) {
                         key={index}
                         accessibilityRole="button"
                         accessibilityLabel={`Kích hoạt cảnh ${item.label}`}
-                        accessibilityState={{ disabled: isHomeSuspended }}
-                        disabled={isHomeSuspended}
+                        accessibilityState={{ disabled: isHomeSuspended || !canControlDevices }}
+                        disabled={isHomeSuspended || !canControlDevices}
                         onPress={() => {
-                            Alert.alert('Kích hoạt cảnh', `Bật chế độ ${item.label}?`, [
-                                { text: 'Hủy', style: 'cancel' },
-                                {
-                                    text: 'Bật',
-                                    onPress: async () => {
-                                        const success = await applyScene(item.scene);
-                                        Alert.alert(
-                                            success ? 'Thành công' : 'Lỗi',
-                                            success ? `Đã kích hoạt cảnh ${item.label}` : `Chưa thể kích hoạt cảnh ${item.label}. Kiểm tra PLC/server rồi thử lại.`,
-                                        );
-                                    },
+                            confirm({
+                                title: 'Kích hoạt cảnh',
+                                message: `Bật chế độ ${item.label}? Hệ thống sẽ gửi các lệnh điều khiển tương ứng đến backend.`,
+                                confirmLabel: 'Kích hoạt',
+                                onConfirm: async () => {
+                                    const success = await applyScene(item.scene);
+                                    if (!success) Alert.alert('Lỗi', `Chưa thể kích hoạt cảnh ${item.label}. Kiểm tra PLC/server rồi thử lại.`);
                                 },
-                            ]);
+                            });
                         }}
                     >
                         <LinearGradient colors={item.colors as [string, string]} style={styles.sceneBtn}>
@@ -457,19 +524,29 @@ export default function RoomsScreen({ route }: any) {
                         <Text style={styles.modalTitle}>Thêm phòng</Text>
                         <TextInput style={styles.modalInput} placeholder="Tên phòng" value={newRoomName} onChangeText={setNewRoomName} placeholderTextColor={Colors.slate[400]} />
                         <View style={styles.modalBtnRow}>
-                            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowAddRoom(false)}>
+                            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowAddRoom(false)} accessibilityRole="button" accessibilityLabel="Hủy thêm phòng">
                                 <Text style={styles.modalCancelText}>Hủy</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={styles.modalSaveBtn}
+                                style={[styles.modalSaveBtn, isSavingInventory && styles.disabledBtn]}
+                                disabled={isSavingInventory}
+                                accessibilityRole="button"
+                                accessibilityLabel="Lưu phòng mới"
+                                accessibilityState={{ disabled: isSavingInventory, busy: isSavingInventory }}
                                 onPress={async () => {
-                                    const result = await addRoom(newRoomName);
-                                    if (!result.success) {
-                                        Alert.alert('Lỗi', result.error || 'Không thể thêm phòng');
-                                        return;
+                                    if (isSavingInventory) return;
+                                    setIsSavingInventory(true);
+                                    try {
+                                        const result = await addRoom(newRoomName);
+                                        if (!result.success) {
+                                            Alert.alert('Lỗi', result.error || 'Không thể thêm phòng');
+                                            return;
+                                        }
+                                        setNewRoomName('');
+                                        setShowAddRoom(false);
+                                    } finally {
+                                        setIsSavingInventory(false);
                                     }
-                                    setNewRoomName('');
-                                    setShowAddRoom(false);
                                 }}
                             >
                                 <Text style={styles.modalSaveText}>Thêm</Text>
@@ -480,6 +557,7 @@ export default function RoomsScreen({ route }: any) {
             </Modal>
 
             <View style={{ height: 20 }} />
+            {confirmDialog}
         </ScrollView>
     );
 }
@@ -492,15 +570,21 @@ const styles = StyleSheet.create({
     addRoomBtn: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: AppTheme.colors.brand, marginBottom: 14 },
     addRoomBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
     roomGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    roomCard: { width: '48%' as any, minHeight: 178, backgroundColor: AppTheme.colors.surface, borderRadius: 18, padding: 14, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, position: 'relative', borderWidth: 1, borderColor: AppTheme.colors.border },
+    roomCard: { width: '100%' as any, minHeight: 168, backgroundColor: AppTheme.colors.surface, borderRadius: 18, padding: 14, shadowColor: '#173a31', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 2, position: 'relative', borderWidth: 1, borderColor: AppTheme.colors.border },
+    roomCardWide: { width: '48%' as any, minHeight: 196, padding: 16 },
     roomCardActive: { borderColor: '#34d399', backgroundColor: '#f3fbf6', shadowOpacity: 0.1 },
     roomActiveDot: { position: 'absolute', top: 12, right: 12, width: 9, height: 9, borderRadius: 5, backgroundColor: Colors.green[500], borderWidth: 2, borderColor: '#f8fbf9' },
     roomCardIcon: { width: 58, height: 58, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 12, overflow: 'hidden', backgroundColor: '#e7eee9' },
+    roomCardIconWide: { width: 78, height: 78, borderRadius: 18 },
     roomCardIconActive: { borderWidth: 2, borderColor: '#34d399' },
     roomCardIconImage: { width: '100%', height: '100%', borderRadius: 14 },
     roomCardName: { fontSize: 15, fontWeight: '800', color: AppTheme.colors.ink },
     roomCardSub: { fontSize: 12, color: AppTheme.colors.inkMuted, marginTop: 3, marginBottom: 10, fontWeight: '600' },
     roomCardStats: { gap: 5, marginTop: 'auto' },
+    deleteRoomBtn: { marginTop: 12, minHeight: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 10, borderWidth: 1, borderColor: '#fecaca', backgroundColor: '#fff7f5' },
+    deleteRoomBtnDisabled: { borderColor: '#dce7e1', backgroundColor: '#edf3f0' },
+    deleteRoomText: { color: Colors.red[600], fontSize: 11, fontWeight: '600' },
+    deleteRoomTextDisabled: { color: '#94a3b8' },
     inlineStat: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     roomCardStat: { fontSize: 11, color: AppTheme.colors.inkMuted, fontWeight: '700', fontVariant: ['tabular-nums'] },
     sceneBtn: { minWidth: 118, paddingHorizontal: 16, paddingVertical: 13, borderRadius: 14, marginRight: 10, shadowColor: '#173a31', shadowOpacity: 0.09, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
@@ -574,5 +658,7 @@ const styles = StyleSheet.create({
     lockedBanner: { backgroundColor: '#fff4f2', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#fecaca', marginBottom: 14 },
     lockedTitle: { fontSize: 14, fontWeight: '800', color: Colors.red[600], marginBottom: 4 },
     lockedText: { fontSize: 13, color: Colors.red[600], lineHeight: 18 },
+    permissionBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, marginBottom: 12, borderRadius: 14, borderWidth: 1, borderColor: '#f4d38a', backgroundColor: '#fffbeb' },
+    permissionBannerText: { flex: 1, color: '#7a4f01', fontSize: 12, lineHeight: 18, fontWeight: '700' },
     disabledBtn: { opacity: 0.45 },
 });

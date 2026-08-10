@@ -1511,6 +1511,18 @@ def create_app() -> Flask:
         if not name:
             return jsonify({"ok": False, "error": "name is required"}), 400
 
+        normalized_name = name.casefold()
+        existing_room = next(
+            (
+                room
+                for room in auth_store.list_rooms(home_id)
+                if str(room.get("name") or "").strip().casefold() == normalized_name
+            ),
+            None,
+        )
+        if existing_room is not None:
+            return jsonify({"ok": True, "room": existing_room, "deduplicated": True}), 200
+
         metadata = payload.get("metadata") or {}
         if not isinstance(metadata, dict):
             return jsonify({"ok": False, "error": "metadata must be an object"}), 400
@@ -1628,6 +1640,19 @@ def create_app() -> Flask:
         parsed = parse_device_payload(request_payload())
         if isinstance(parsed, tuple):
             return parsed[1]
+
+        normalized_name = str(parsed["name"]).strip().casefold()
+        existing_device = next(
+            (
+                device
+                for device in auth_store.list_manual_devices(home_id, parsed.get("roomId"))
+                if str(device.get("name") or "").strip().casefold() == normalized_name
+                and device.get("roomId") == parsed.get("roomId")
+            ),
+            None,
+        )
+        if existing_device is not None:
+            return jsonify({"ok": True, "device": existing_device, "deduplicated": True}), 200
 
         try:
             device = auth_store.create_manual_device(
