@@ -471,6 +471,49 @@ class SecurityControlsTest(unittest.TestCase):
         self.assertEqual(body["failed"], 1)
         self.assertEqual(len(body["results"]), 2)
 
+    def test_emergency_stop_and_reset_flow(self) -> None:
+        login = self.client.post(
+            "/api/auth/login",
+            json={"username": "owner", "password": "test-owner-password"},
+        )
+        token = login.get_json()["token"]
+        headers = self.auth_headers(token)
+
+        # 1. Trigger emergency stop
+        stop_res = self.client.post("/api/system/emergency-stop?homeId=home-demo-001", headers=headers)
+        self.assertEqual(stop_res.status_code, 200)
+        self.assertTrue(stop_res.get_json()["emergencyStop"])
+
+        # 2. Check system status reports emergencyStop = True
+        status_res = self.client.get("/api/system/status", headers=headers)
+        self.assertEqual(status_res.status_code, 200)
+        self.assertTrue(status_res.get_json()["emergencyStop"])
+
+        # 3. Attempting to turn on a device is blocked with 403 / emergency_stop_active
+        turn_on_res = self.client.post("/api/devices/test-light/turn-on?homeId=home-demo-001", headers=headers)
+        self.assertEqual(turn_on_res.status_code, 403)
+        self.assertEqual(turn_on_res.get_json()["reason"], "emergency_stop_active")
+
+        # 4. Attempting to apply a scene with active devices is blocked
+        scene_res = self.client.post("/api/scenes/morning?homeId=home-demo-001", headers=headers)
+        self.assertEqual(scene_res.status_code, 403)
+        self.assertEqual(scene_res.get_json()["reason"], "emergency_stop_active")
+
+        # 5. Trigger emergency reset
+        reset_res = self.client.post("/api/system/emergency-reset?homeId=home-demo-001", headers=headers)
+        self.assertEqual(reset_res.status_code, 200)
+        self.assertFalse(reset_res.get_json()["emergencyStop"])
+
+        # 6. Check system status reports emergencyStop = False
+        status_res_after = self.client.get("/api/system/status", headers=headers)
+        self.assertEqual(status_res_after.status_code, 200)
+        self.assertFalse(status_res_after.get_json()["emergencyStop"])
+
+        # 7. Device can be turned on normally now
+        turn_on_after = self.client.post("/api/devices/test-light/turn-on?homeId=home-demo-001", headers=headers)
+        self.assertEqual(turn_on_after.status_code, 200)
+        self.assertTrue(turn_on_after.get_json()["ok"])
+
 
 class CollectorRetryStateTest(unittest.TestCase):
     def test_warning_or_exception_uses_bounded_backoff(self) -> None:

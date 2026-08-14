@@ -55,8 +55,7 @@ export interface SystemStatusResponse {
     plcHost?: string;
     plcRack?: number;
     plcSlot?: number;
-    databasePath?: string;
-    statePath?: string;
+    emergencyStop?: boolean;
     serverTime: string;
     powerCollector?: {
         enabled: boolean;
@@ -69,6 +68,13 @@ export interface SystemStatusResponse {
         lastReadingCount: number;
         totalReadings: number;
     };
+}
+
+export interface EmergencyStopResponse {
+    ok: boolean;
+    emergencyStop: boolean;
+    affected?: number;
+    message: string;
 }
 
 export interface ServerHome {

@@ -49,6 +49,11 @@
     "feedbackTimeoutMs": 2500,
     "feedbackPollMs": 100
   },
+  "emergencyStop": {
+    "commandTag": "DB7.DBX2.0",
+    "resetTag": "DB7.DBX2.1",
+    "statusTag": "DB1.DBX2.0"
+  },
   "powerTags": {
     "voltage": { "name": "V1N", "address": 200, "type": "Real", "scale": 1.0, "min": 0, "max": 300 },
     "current": { "name": "I1N", "address": 212, "type": "Real", "scale": 1.0, "min": 0, "max": 100 },

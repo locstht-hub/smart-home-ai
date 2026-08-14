@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useSmartHomeServer } from '../contexts/SmartHomeServerContext';
+import { useData } from '../contexts/DataContext';
 import DashboardScreen from '../screens/DashboardScreen';
 import RoomsScreen from '../screens/RoomsScreen';
 import AnalysisScreen from '../screens/AnalysisScreen';
@@ -79,6 +80,8 @@ function WebDashboardShell({ navigation }: { navigation: any }) {
     const { width } = useWindowDimensions();
     const { user } = useAuth();
     const { status, systemStatus } = useSmartHomeServer();
+    const { isEmergencyStopped, triggerEmergencyStop, triggerEmergencyReset, canControlDevices } = useData();
+    const { confirm, confirmDialog } = useConfirmDialog();
     const [activeSection, setActiveSection] = useState<UserSection>('Dashboard');
     const [focusedControl, setFocusedControl] = useState<UserSection | 'Members' | null>(null);
     const isDesktop = width >= 980;
@@ -160,11 +163,15 @@ function WebDashboardShell({ navigation }: { navigation: any }) {
                             <Text style={styles.brandCaption}>Energy Control Center</Text>
                         </View>
                     </View>
-                    <View style={styles.sidebarStatus}>
-                        <View style={[styles.statusDot, status === 'connected' && styles.statusDotOnline]} />
+                    <View style={[styles.sidebarStatus, isEmergencyStopped && styles.sidebarStatusEmergency]}>
+                        <View style={[styles.statusDot, isEmergencyStopped ? styles.statusDotEmergency : (status === 'connected' ? styles.statusDotOnline : undefined)]} />
                         <View>
-                            <Text style={styles.statusTitle}>{status === 'connected' ? 'Hệ thống trực tuyến' : 'Đang chờ kết nối'}</Text>
-                            <Text style={styles.statusCaption}>{sourceLabel}</Text>
+                            <Text style={[styles.statusTitle, isEmergencyStopped && styles.statusTitleEmergency]}>
+                                {isEmergencyStopped ? 'DỪNG KHẨN CẤP' : (status === 'connected' ? 'Hệ thống trực tuyến' : 'Đang chờ kết nối')}
+                            </Text>
+                            <Text style={styles.statusCaption}>
+                                {isEmergencyStopped ? 'Toàn bộ phụ tải đã ngắt' : sourceLabel}
+                            </Text>
                         </View>
                     </View>
                     <View style={styles.sidebarNav} accessibilityRole="tablist">{navList}</View>
@@ -196,9 +203,49 @@ function WebDashboardShell({ navigation }: { navigation: any }) {
                         <Text style={styles.topbarEyebrow}>WEB DASHBOARD</Text>
                         <Text style={styles.topbarTitle}>{activeSection === 'Members' ? 'Quản lý thành viên' : dashboardNavItems.find(item => item.key === activeSection)?.label}</Text>
                     </View>
-                    <View style={styles.topbarStatus}>
-                        <View style={[styles.statusDot, status === 'connected' && styles.statusDotOnline]} />
-                        <Text style={styles.topbarStatusText}>{sourceLabel}</Text>
+                    <View style={styles.topbarRight}>
+                        {isEmergencyStopped ? (
+                            <TouchableOpacity
+                                style={styles.topbarEstopActive}
+                                accessibilityRole="button"
+                                accessibilityLabel="Khôi phục hệ thống từ dừng khẩn cấp"
+                                onPress={() => confirm({
+                                    title: 'Khôi phục hệ thống',
+                                    message: 'Xác nhận khôi phục hệ thống từ trạng thái Dừng Khẩn Cấp (E-Stop)? Các thiết bị sẽ có thể được điều khiển trở lại.',
+                                    confirmLabel: 'Khôi phục hệ thống',
+                                    onConfirm: async () => {
+                                        const res = await triggerEmergencyReset();
+                                        if (!res.success) window.alert(res.message || 'Không thể khôi phục hệ thống');
+                                    }
+                                })}
+                            >
+                                <Ionicons name="refresh-circle" size={18} color="#ffffff" />
+                                <Text style={styles.topbarEstopActiveText}>E-STOP ĐANG BẬT (KHÔI PHỤC)</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.topbarEstopNormal}
+                                accessibilityRole="button"
+                                accessibilityLabel="Dừng khẩn cấp toàn bộ hệ thống"
+                                onPress={() => confirm({
+                                    title: '🛑 DỪNG KHẨN CẤP (EMERGENCY STOP)',
+                                    message: 'CẢNH BÁO: Gửi lệnh ưu tiên cao nhất ngắt TOÀN BỘ phụ tải và khóa hệ thống để xử lý sự cố? Hành động này sẽ được ghi vào nhật ký kiểm toán.',
+                                    confirmLabel: 'DỪNG KHẨN CẤP',
+                                    destructive: true,
+                                    onConfirm: async () => {
+                                        const res = await triggerEmergencyStop();
+                                        if (!res.success) window.alert(res.message || 'Không thể dừng khẩn cấp');
+                                    }
+                                })}
+                            >
+                                <Ionicons name="alert-circle" size={16} color="#dc2626" />
+                                <Text style={styles.topbarEstopNormalText}>Dừng khẩn cấp</Text>
+                            </TouchableOpacity>
+                        )}
+                        <View style={styles.topbarStatus}>
+                            <View style={[styles.statusDot, status === 'connected' && styles.statusDotOnline]} />
+                            <Text style={styles.topbarStatusText}>{sourceLabel}</Text>
+                        </View>
                     </View>
                 </View>
 
@@ -212,6 +259,7 @@ function WebDashboardShell({ navigation }: { navigation: any }) {
                     <View style={styles.screenCanvas}>{activeScreen}</View>
                 </View>
             </View>
+            {confirmDialog}
         </View>
     );
 }
@@ -256,9 +304,12 @@ const styles = StyleSheet.create({
     brandName: { color: AppTheme.colors.ink, fontSize: 17, fontWeight: '900', letterSpacing: -0.3 },
     brandCaption: { color: AppTheme.colors.inkMuted, fontSize: 10, fontWeight: '700', marginTop: 2, letterSpacing: 0.4 },
     sidebarStatus: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, marginBottom: 18, borderRadius: 15, backgroundColor: AppTheme.colors.surfaceMuted, borderWidth: 1, borderColor: AppTheme.colors.border },
+    sidebarStatusEmergency: { backgroundColor: '#fef2f2', borderColor: '#fca5a5' },
     statusDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#f59e0b' },
     statusDotOnline: { backgroundColor: '#10b981' },
+    statusDotEmergency: { backgroundColor: '#ef4444' },
     statusTitle: { color: AppTheme.colors.ink, fontSize: 12, fontWeight: '800' },
+    statusTitleEmergency: { color: '#b91c1c' },
     statusCaption: { color: AppTheme.colors.inkMuted, fontSize: 10, marginTop: 2 },
     sidebarNav: { gap: 7 },
     navItem: { minHeight: 62, flexDirection: 'row', alignItems: 'center', padding: 9, borderRadius: 16, borderWidth: 1, borderColor: 'transparent' },
@@ -286,6 +337,11 @@ const styles = StyleSheet.create({
     topbar: { minHeight: 78, paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(248,251,249,0.96)', borderBottomWidth: 1, borderBottomColor: AppTheme.colors.border },
     topbarEyebrow: { color: '#0f766e', fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
     topbarTitle: { color: AppTheme.colors.ink, fontSize: 22, fontWeight: '900', marginTop: 3, letterSpacing: -0.4 },
+    topbarRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    topbarEstopNormal: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fecaca', cursor: 'pointer' as any },
+    topbarEstopNormalText: { color: '#dc2626', fontSize: 12, fontWeight: '800' },
+    topbarEstopActive: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#dc2626', borderWidth: 1, borderColor: '#b91c1c', cursor: 'pointer' as any },
+    topbarEstopActiveText: { color: '#ffffff', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
     topbarStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, backgroundColor: '#edf3f0' },
     topbarStatusText: { color: '#50645c', fontSize: 11, fontWeight: '800' },
     mobileNavScroller: { flexGrow: 0, flexShrink: 0, height: 68, maxHeight: 68, minHeight: 68, backgroundColor: AppTheme.colors.canvas },

@@ -227,11 +227,30 @@ def validate_plc_memory_layout(config: dict[str, Any], devices: list[dict[str, A
                     )
                 seen_command_bits[physical_key] = label
 
+    emergency_cfg = dict(config.get("emergencyStop", {}))
+    for field in ("statusTag", "commandTag", "resetTag"):
+        if field in emergency_cfg and emergency_cfg[field]:
+            parsed = parse_plc_bit_tag(str(emergency_cfg[field]))
+            label = f"emergencyStop.{field}"
+            bit_tags.append((label, field, parsed))
+            physical_key = bit_tag_key(parsed)
+            bit_key = (*physical_key, field)
+            if bit_key in seen_bits:
+                raise ValueError(f"PLC memory conflict: {label} duplicates {seen_bits[bit_key]} at {bit_tag_address(parsed)}")
+            seen_bits[bit_key] = label
+            if field in {"commandTag", "resetTag"}:
+                previous_command = seen_command_bits.get(physical_key)
+                if previous_command:
+                    raise ValueError(
+                        f"PLC memory conflict: {label} duplicates command bit {previous_command} at {bit_tag_address(parsed)}"
+                    )
+                seen_command_bits[physical_key] = label
+
     status_bits = {bit_tag_key(parsed): label for label, field, parsed in bit_tags if field == "statusTag"}
     command_bits = {
         bit_tag_key(parsed): label
         for label, field, parsed in bit_tags
-        if field in {"commandTag", "onCommandTag", "offCommandTag"}
+        if field in {"commandTag", "onCommandTag", "offCommandTag", "resetTag"}
     }
     for bit_key, status_label in status_bits.items():
         command_label = command_bits.get(bit_key)
@@ -459,6 +478,18 @@ class S7Client:
             finally:
                 client.disconnect()
 
+    def write_pulse_tag(self, tag: str) -> None:
+        if not tag:
+            return
+        with self._io_lock:
+            client = self._client()
+            try:
+                self.write_plc_bit(client, str(tag), True)
+                time.sleep(self.command_pulse_ms / 1000.0)
+                self.write_plc_bit(client, str(tag), False)
+            finally:
+                client.disconnect()
+
 
 def create_app() -> Flask:
     config = load_config()
@@ -513,6 +544,7 @@ def create_app() -> Flask:
         "totalReadings": 0,
     }
     collector_status_lock = threading.Lock()
+    emergency_stop_state: dict[str, bool] = {"active": False}
     state_store = StateStore(devices)
     s7 = S7Client(config)
     configured_db_path = Path(str(config.get("database", {}).get("path", AUTH_DB_PATH)))
@@ -1232,6 +1264,7 @@ def create_app() -> Flask:
             "effectiveMode": effective_mode,
             "powerSource": power_source,
             "plcConfigured": plc_should_be_used(),
+            "emergencyStop": bool(emergency_stop_state.get("active", False)),
             "serverTime": datetime.now(timezone.utc).isoformat(),
             "authUser": current_user,
             "powerCollector": {
@@ -1263,6 +1296,78 @@ def create_app() -> Flask:
                 }
             )
         return jsonify(response)
+
+    @app.post("/api/system/emergency-stop")
+    def trigger_emergency_stop() -> Any:
+        access = require_active_home_access(manage_devices=True)
+        if not isinstance(access, dict):
+            return access
+
+        emergency_stop_state["active"] = True
+        emergency_cfg = dict(config.get("emergencyStop", {}))
+        cmd_tag = emergency_cfg.get("commandTag")
+        if cmd_tag and plc_should_be_used():
+            try:
+                s7.write_pulse_tag(str(cmd_tag))
+            except Exception:
+                pass
+
+        affected_count = 0
+        for device in devices:
+            device_id = str(device["id"])
+            try:
+                if plc_should_be_used():
+                    s7.write_device_command(device, False)
+            except Exception:
+                pass
+            state_store.set_state(device_id, False)
+            affected_count += 1
+
+        audit(
+            "system.emergency_stop",
+            actor=access.get("user"),
+            target_type="system",
+            target_id="emergency_stop",
+            target_name="Emergency Stop",
+            home_id=access_home_id(access),
+            metadata={"affectedDevices": affected_count, "mode": mode},
+        )
+        return jsonify({
+            "ok": True,
+            "emergencyStop": True,
+            "affected": affected_count,
+            "message": "Dừng khẩn cấp thành công. Toàn bộ thiết bị đã ngắt an toàn."
+        })
+
+    @app.post("/api/system/emergency-reset")
+    def trigger_emergency_reset() -> Any:
+        access = require_active_home_access(manage_devices=True)
+        if not isinstance(access, dict):
+            return access
+
+        emergency_stop_state["active"] = False
+        emergency_cfg = dict(config.get("emergencyStop", {}))
+        reset_tag = emergency_cfg.get("resetTag")
+        if reset_tag and plc_should_be_used():
+            try:
+                s7.write_pulse_tag(str(reset_tag))
+            except Exception:
+                pass
+
+        audit(
+            "system.emergency_reset",
+            actor=access.get("user"),
+            target_type="system",
+            target_id="emergency_reset",
+            target_name="Emergency Reset",
+            home_id=access_home_id(access),
+            metadata={"mode": mode},
+        )
+        return jsonify({
+            "ok": True,
+            "emergencyStop": False,
+            "message": "Đã khôi phục hệ thống từ trạng thái dừng khẩn cấp."
+        })
 
     @app.get("/api/power/collector/status")
     def power_collector_status() -> Any:
@@ -2194,12 +2299,29 @@ def create_app() -> Flask:
 
         result = execute_device_command(access, device, is_on)
         if not result["ok"]:
-            status = 403 if result.get("reason") in {"quota_exceeded", "device_scope_denied"} else 500
+            status = 403 if result.get("reason") in {"quota_exceeded", "device_scope_denied", "emergency_stop_active"} else 500
             return jsonify(result), status
         return jsonify(result)
 
     def execute_device_command(access: dict[str, Any], device: dict[str, Any], is_on: bool) -> dict[str, Any]:
         device_id = str(device["id"])
+        if is_on and emergency_stop_state.get("active"):
+            audit(
+                "device.control_blocked_emergency_stop",
+                actor=access.get("user"),
+                target_type="device",
+                target_id=device_id,
+                target_name=str(device.get("name", device_id)),
+                home_id=access_home_id(access),
+                metadata={"requestedState": is_on, "reason": "emergency_stop_active"},
+            )
+            return {
+                "ok": False,
+                "error": "Hệ thống đang dừng khẩn cấp (E-Stop). Vui lòng khôi phục hệ thống trước khi bật thiết bị.",
+                "reason": "emergency_stop_active",
+                "device_id": device_id,
+                "isOn": is_on,
+            }
         if not physical_device_access_allowed(access, device):
             audit(
                 "device.control_blocked_scope",
@@ -2263,7 +2385,7 @@ def create_app() -> Flask:
         if not result["ok"]:
             if result.get("reason") == "unknown_scene":
                 status = 400
-            elif result.get("reason") in {"quota_exceeded", "device_scope_denied"}:
+            elif result.get("reason") in {"quota_exceeded", "device_scope_denied", "emergency_stop_active"}:
                 status = 403
             elif result.get("reason") == "partial_failure":
                 status = 409
@@ -2295,6 +2417,23 @@ def create_app() -> Flask:
             target = {str(item["id"]): True for item in devices}
         else:
             return {"ok": False, "error": f"Unknown scene: {scene}", "reason": "unknown_scene", "scene": scene}
+
+        if emergency_stop_state.get("active") and any(target.values()):
+            audit(
+                "scene.blocked_emergency_stop",
+                actor=access.get("user"),
+                target_type="scene",
+                target_id=scene,
+                target_name=scene,
+                home_id=access_home_id(access),
+                metadata={"scene": scene, "reason": "emergency_stop_active"},
+            )
+            return {
+                "ok": False,
+                "error": "Hệ thống đang dừng khẩn cấp (E-Stop). Vui lòng khôi phục hệ thống trước khi kích hoạt cảnh.",
+                "reason": "emergency_stop_active",
+                "scene": scene,
+            }
 
         results: list[dict[str, Any]] = []
         for device_id, is_on in target.items():

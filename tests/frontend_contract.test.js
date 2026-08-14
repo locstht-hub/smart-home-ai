@@ -286,3 +286,17 @@ test('project mobile hero keeps actions and component chips compact', () => {
   assert.match(projectCss, /@media \(max-width: 640px\)[\s\S]*?\.hero-actions\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(projectCss, /@media \(max-width: 640px\)[\s\S]*?\.hero-strip\s*\{[\s\S]*?flex-wrap:\s*nowrap/);
 });
+
+test('project site offers accessible QR entry points for the app and web dashboard', () => {
+  const projectHtml = read('project-site/index.html');
+  const projectCss = read('project-site/styles.css');
+
+  assert.match(projectHtml, /id="experience"/);
+  assert.match(projectHtml, /assets\/app-download-qr\.png/);
+  assert.match(projectHtml, /assets\/web-dashboard-qr\.png/);
+  assert.match(projectHtml, /href="https:\/\/dashboard\.smarthomeai\.id\.vn\/"/);
+  assert.match(projectHtml, /alt="Mã QR mở Web Dashboard Smart Home AI"/);
+  assert.match(projectCss, /\.experience-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.ok(fs.existsSync(path.join(root, 'project-site/assets/app-download-qr.png')));
+  assert.ok(fs.existsSync(path.join(root, 'project-site/assets/web-dashboard-qr.png')));
+});

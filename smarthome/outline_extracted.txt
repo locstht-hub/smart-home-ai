@@ -1,0 +1,41 @@
+[Normal] DÀN Ý CHI TIẾT BÀI BÁO KHOA HỌC (GỬI TẠP CHÍ KHCN CẦN THƠ - CTJST)
+[Normal] Dàn ý này thiết lập khung sườn chi tiết cho bài báo HEMS của bạn theo quy chuẩn CTJST. Dàn ý tích hợp sẵn các vị trí dẫn chiếu tài liệu [1] - [12] và định hướng viết nghiêng hẳn về chuyên ngành Điện - Tự động hóa.
+[Normal] 1. ĐẶT VẤN ĐỀ
+[Normal] Giới thiệu bối cảnh chuyển dịch năng lượng và chương trình quản lý nhu cầu điện (Demand Response) của Smart Grid.
+[Normal] •  Lập luận về hạn chế của các hệ thống smart home dân dụng thông thường (xiaomi, tuya) dễ gây nhiễu chập chờn, dính tiếp điểm và độ bền bỉ kém.
+[Normal] •  Đề xuất giải pháp: Ứng dụng phần cứng tiêu chuẩn công nghiệp (PLC Siemens S7-1200 và Selec MFM384) để nâng cao độ tin cậy kết hợp mô hình AI dự báo phụ tải ngắn hạn chủ động.
+[Normal] •  Trích dẫn dẫn chiếu tài liệu: [1], [2], [3].
+[Normal] 2. CƠ SỞ LÝ THUYẾT / MÔ HÌNH / PHƯƠNG PHÁP NGHIÊN CỨU
+[Normal] 2.1. Kiến trúc hệ thống HEMS Edge-Cloud đề xuất
+[Normal] Trình bày sơ đồ kiến trúc tổng thể 3 lớp (Perception - Edge Control - Cloud Application).
+[Normal] •  Mô tả vai trò lớp biên (Edge): PLC S7-1200 giao tiếp Modbus RTU với MFM384 và thực thi logic tại chỗ.
+[Normal] •  Mô tả vai trò lớp đám mây: Flask API, Supabase Cloud và Forecast Server chạy mô hình AI.
+[Normal] •  Dẫn chiếu tài liệu: [1], [12].
+[Normal] 2.2. Lập trình điều khiển PLC S7-1200 và kết nối Modbus RTU
+[Normal] Mô tả thiết kế phần cứng và sơ đồ nguyên lý tủ điện điều khiển.
+[Normal] •  Cách đấu nối Modbus RTU RS485 giữa Selec MFM384 và module CM 1241.
+[Normal] •  Lập trình TIA Portal: Quy hoạch các khối Data Block DB7 (Command) và DB1 (Status). Sử dụng xung điều khiển 200ms để tránh ghi đè dữ liệu.
+[Normal] •  Dẫn chiếu tài liệu: [4], [5], [12].
+[Normal] 2.3. Lớp phần mềm Backend, cơ sở dữ liệu Cloud và phân quyền vận hành an toàn (Bổ sung: Thiết kế tích hợp SMS Gateway, cơ sở dữ liệu bảng sms_logs lưu lịch sử gửi tin nhắn và phân quyền cảnh báo an toàn 1 chiều)
+[Normal] Mô tả thiết kế API Gateway, CSDL Supabase PostgreSQL.
+[Normal] •  Cơ chế phân tách đa hộ gia đình bằng khoá ngoại home_id và xác thực JWT.
+[Normal] •  Phân quyền 3 mức: system_admin (quản trị), owner (chủ hộ), member (thành viên).
+[Normal] •  Lập luận chuyên ngành Điện: Phân quyền giúp bảo vệ an toàn tiếp điểm đóng cắt của thiết bị, hỗ trợ quy trình khóa an toàn bảo trì (Lockout/Tagout) và lưu nhật ký sự cố điện (Audit logs).
+[Normal] •  Dẫn chiếu tài liệu: [6], [7].
+[Normal] 2.4. Thuật toán AI dự báo và giải thuật sa thải phụ tải chủ động (Bổ sung: Kỹ thuật trích lọc đặc trưng lag, rolling, calendar và cấu hình siêu tham số của XGBoost/Random Forest)
+[Normal] Mô tả cơ chế tối ưu hoá năng lượng dựa trên dự báo.
+[Normal] •  Biểu diễn công thức tính điện năng E_total (Công thức 1) và hệ số xác định R² (Công thức 2) dưới dạng toán học chuẩn.
+[Normal] •  Mô tả quy tắc sa thải phụ tải dựa theo độ ưu tiên của thiết bị (Priority 3 -> Priority 2 -> Priority 1).
+[Normal] •  Dẫn chiếu tài liệu: [8], [9], [10], [11].
+[Normal] 3. KẾT QUẢ NGHIÊN CỨU VÀ THẢO LUẬN
+[Normal] 3.1. Kết quả thực nghiệm mô hình AI dự báo phụ tải ngắn hạn (Bổ sung: Đối chứng với mô hình baseline Persistence)
+[Normal] •  Đưa bảng so sánh chỉ số của 4 mô hình: Random Forest, XGBoost, LSTM, CNN-LSTM (MAE, RMSE, MAPE, R², Inference Time).
+[Normal] •  Phân tích vì sao XGBoost là mô hình tối ưu nhất cho bài toán này (R² = 0.958, MAPE = 55.81%). Giải thích khoa học về chỉ số MAPE của phụ tải sinh hoạt gia đình.
+[Normal] 3.2. Đánh giá độ trễ truyền thông hệ thống HEMS
+[Normal] •  Đưa bảng số liệu 10 lượt đo độ trễ RTT khép kín điều khiển.
+[Normal] •  So sánh và thảo luận độ trễ giữa mạng nội bộ LAN (130 - 180 ms) và mạng di động WAN/4G (1180 - 1320 ms).
+[Normal] 3.3. Thực nghiệm thuật toán sa thải phụ tải chủ động
+[Normal] •  Đưa bảng nhật ký 5 sự kiện tự động ngắt thiết bị của PLC khi công suất vượt quota.
+[Normal] •  Chứng minh thời gian phản ứng ngắt contactor vật lý cực nhanh của PLC (< 460 ms) đảm bảo bảo vệ lưới điện gia đình tức thời.
+[Normal] 4. KẾT LUẬN VÀ ĐỀ XUẤT (Bổ sung: Mục Hạn chế của đề tài bao gồm thời gian đo ngắn hạn, đo tổng đầu nguồn, chưa tối ưu theo giá điện thời gian thực) (Bổ sung: Định hình chức năng SMS ở mức thử nghiệm tích hợp Mock API/thiết kế mở rộng)
+[Normal] Tổng kết lại các kết quả chính đạt được của hệ thống HEMS công nghiệp. Đề xuất các cải tiến tương lai như khả năng tự động cập nhật dữ liệu huấn luyện AI (Auto-retrain) và tích hợp các bộ nghịch lưu năng lượng mặt trời (Solar Inverter).

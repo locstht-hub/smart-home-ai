@@ -1,32 +1,32 @@
 {
   "schemaVersion": 1,
-  "testedAtUtc": "2026-07-22T12:40:35.230418+00:00",
-  "commitSha": "fdbfece5a785f0d4671af78d246683f26c9b22d2",
+  "testedAtUtc": "2026-08-10T02:38:01.176290+00:00",
+  "commitSha": "b475e1e388bd2ac60b03997f43efdb31bb88c470",
   "workingTreeDirty": true,
   "runtime": {
     "platform": "Windows-11-10.0.26200-SP0",
-    "python": "3.12.10",
+    "python": "3.12.13",
     "node": "v24.14.0",
     "npm": "11.9.0",
     "libraries": {
-      "numpy": "2.3.3",
-      "pandas": "2.3.2",
-      "scikit-learn": "1.7.2",
-      "xgboost": "3.0.4",
-      "tensorflow": "2.21.0"
+      "numpy": "2.3.5",
+      "pandas": "3.0.1",
+      "scikit-learn": null,
+      "xgboost": null,
+      "tensorflow": null
     }
   },
   "suites": [
     {
       "suite": "verify",
       "command": "npm run verify",
-      "passed": 48,
-      "total": 52,
-      "status": "failed",
-      "exitCode": 1,
-      "elapsedSeconds": 560.982,
+      "passed": 60,
+      "total": 60,
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedSeconds": 68.194,
       "logPath": "research/results/software_evidence/verify.log",
-      "logSha256": "c199eec55c8afd3fc0a4b3faf23309d4ef8bb35dc0e1cd7df22e633be825695e"
+      "logSha256": "3816a621a9eadc7b6a6e49e68e3f697cd432a589d48d1ff46d3abb040b745840"
     },
     {
       "suite": "backend",
@@ -35,9 +35,9 @@
       "total": 16,
       "status": "passed",
       "exitCode": 0,
-      "elapsedSeconds": 142.465,
+      "elapsedSeconds": 22.192,
       "logPath": "research/results/software_evidence/backend.log",
-      "logSha256": "96974ad21ebc305b7cb2c3041e74c4144a0788216da2b12506a4806e634b6cc1"
+      "logSha256": "b3eee4ad1055a87200381242530f1ceb7ae4e1ce752bdbfeff753f1fcad51c09"
     },
     {
       "suite": "forecast",
@@ -46,9 +46,9 @@
       "total": 9,
       "status": "passed",
       "exitCode": 0,
-      "elapsedSeconds": 92.414,
+      "elapsedSeconds": 14.082,
       "logPath": "research/results/software_evidence/forecast.log",
-      "logSha256": "7ec647bb8045ac8dbfe2c631948addb2cdd29df456f2358e558c92063e364ba6"
+      "logSha256": "33beabc68d31619776e6b7dce3441d93d1fb605cba4806d098499b1ec77b336a"
     },
     {
       "suite": "research",
@@ -57,20 +57,20 @@
       "total": 7,
       "status": "passed",
       "exitCode": 0,
-      "elapsedSeconds": 38.367,
+      "elapsedSeconds": 3.24,
       "logPath": "research/results/software_evidence/research.log",
-      "logSha256": "850174f12fb72ab0c202b4265d5b5e9560aefdc7728b530885b2cc3cad8fedc0"
+      "logSha256": "68e3a0b161d1bc776f5610e6f0714060e48ce52af1666abc6f49ac3db21c4c4e"
     },
     {
       "suite": "frontend_contract",
       "command": "npm run test:frontend-contract",
-      "passed": 16,
+      "passed": 20,
       "total": 20,
-      "status": "failed",
-      "exitCode": 1,
-      "elapsedSeconds": 7.812,
+      "status": "passed",
+      "exitCode": 0,
+      "elapsedSeconds": 0.536,
       "logPath": "research/results/software_evidence/frontend_contract.log",
-      "logSha256": "3d3c22fc3fcbb97b58bfd6a0bee447ffbfc04c8d17cc68d88cd2cc465963e6d2"
+      "logSha256": "08f7c1ee0f6f91f92483b48b95271c88de537420595e58e7a8bf0dbb50818d53"
     },
     {
       "suite": "admin_audit",
@@ -79,9 +79,9 @@
       "total": 5,
       "status": "passed",
       "exitCode": 0,
-      "elapsedSeconds": 10.465,
+      "elapsedSeconds": 0.513,
       "logPath": "research/results/software_evidence/admin_audit.log",
-      "logSha256": "21626e5269478723023113b2388cf3d643e7bb7b2dd70214a5b7b107e46dbf1e"
+      "logSha256": "c03fe3e8a260ce2f0d642261dba1f6303f8816932e9faa3cb91c4f858c7188c4"
     },
     {
       "suite": "room_presentation",
@@ -90,9 +90,9 @@
       "total": 3,
       "status": "passed",
       "exitCode": 0,
-      "elapsedSeconds": 12.782,
+      "elapsedSeconds": 0.619,
       "logPath": "research/results/software_evidence/room_presentation.log",
-      "logSha256": "fda15ce80fc621ee558ea5b3142fae1ea3a96ea4540de6d1feb1199029d1dbb8"
+      "logSha256": "ea7ba32f6fa751d4553be7e1d09246f7ee62aa8c94e3632b8d6dd17c1b908495"
     }
   ],
   "claimPermissions": {
@@ -100,7 +100,7 @@
     "telemetryCredentialIsolation": true,
     "plcFeedbackAndFailClosed": true,
     "forecastArtifactContract": true,
-    "applicationStateContract": false,
-    "fullRepositoryVerification": false
+    "applicationStateContract": true,
+    "fullRepositoryVerification": true
   }
 }

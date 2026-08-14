@@ -1,4 +1,4 @@
-﻿import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { defaultRooms, Device, ActivityLog } from '../constants/data';
 import { useAuth } from './AuthContext';
@@ -38,6 +38,9 @@ interface DataContextType {
     canControlDevices: boolean;
     canManageInventory: boolean;
     isManualInventory: boolean;
+    isEmergencyStopped: boolean;
+    triggerEmergencyStop: () => Promise<{ success: boolean; message: string }>;
+    triggerEmergencyReset: () => Promise<{ success: boolean; message: string }>;
     refresh: () => Promise<void>;
     addRoom: (name: string) => Promise<{ success: boolean; error?: string }>;
     deleteRoom: (roomId: string) => Promise<{ success: boolean; error?: string }>;
@@ -120,7 +123,7 @@ const buildManualHouseDevices = (manualDevices: ManualDevice[]): HouseDevices =>
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
-    const { client, config, isConfigured } = useSmartHomeServer();
+    const { client, config, isConfigured, systemStatus, refreshSystemStatus } = useSmartHomeServer();
     const [devices, setDevices] = useState<HouseDevices>(buildFallbackHouseDevices());
     const [roomDefinitions, setRoomDefinitions] = useState<RoomDefinition[]>(
         defaultRooms.map(room => ({ id: room.id, name: room.name, source: 'default' })),
@@ -130,6 +133,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isServerControlled, setIsServerControlled] = useState(false);
     const [isManualInventory, setIsManualInventory] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
+    const isEmergencyStopped = Boolean(systemStatus?.emergencyStop);
     const canControlDevices = resolveCanControlDevices({
         role: user?.role === 'admin' ? 'owner' : user?.serverRole,
         canManageDevices: user?.role === 'admin' || user?.canManageDevices,
@@ -576,6 +580,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return success;
     }, [addLog, canControlDevices, client, isConfigured, isServerControlled, refresh, setAllDevicesState, updateLocalHouse]);
 
+    const triggerEmergencyStop = useCallback(async (): Promise<{ success: boolean; message: string }> => {
+        if (!canControlDevices) {
+            return { success: false, message: 'Bạn không có quyền điều khiển thiết bị.' };
+        }
+        try {
+            if (isConfigured && isServerControlled) {
+                const response = await client.emergencyStop();
+                await Promise.all([refresh(), refreshSystemStatus()]);
+                addLog('Dừng khẩn cấp (E-Stop)', 'Toàn bộ thiết bị');
+                return { success: true, message: response.message || 'Đã kích hoạt dừng khẩn cấp.' };
+            } else {
+                updateLocalHouse(house => {
+                    return Object.keys(house).reduce((acc, currentRoomId) => {
+                        acc[currentRoomId] = house[currentRoomId].map(device => ({ ...device, isOn: false }));
+                        return acc;
+                    }, {} as HouseDevices);
+                });
+                addLog('Dừng khẩn cấp cục bộ', 'Toàn bộ thiết bị');
+                return { success: true, message: 'Đã dừng khẩn cấp và ngắt toàn bộ thiết bị cục bộ.' };
+            }
+        } catch (error) {
+            console.error('Error triggering emergency stop:', error);
+            const message = error instanceof Error ? error.message : 'Không thể kích hoạt dừng khẩn cấp';
+            setServerError(message);
+            addLog('Lỗi kích hoạt dừng khẩn cấp');
+            return { success: false, message };
+        }
+    }, [addLog, canControlDevices, client, isConfigured, isServerControlled, refresh, refreshSystemStatus, updateLocalHouse]);
+
+    const triggerEmergencyReset = useCallback(async (): Promise<{ success: boolean; message: string }> => {
+        if (!canControlDevices) {
+            return { success: false, message: 'Bạn không có quyền điều khiển thiết bị.' };
+        }
+        try {
+            if (isConfigured && isServerControlled) {
+                const response = await client.emergencyReset();
+                await Promise.all([refresh(), refreshSystemStatus()]);
+                addLog('Khôi phục hệ thống (Reset E-Stop)');
+                return { success: true, message: response.message || 'Đã khôi phục hệ thống từ dừng khẩn cấp.' };
+            } else {
+                addLog('Khôi phục hệ thống cục bộ');
+                return { success: true, message: 'Đã khôi phục hệ thống.' };
+            }
+        } catch (error) {
+            console.error('Error resetting emergency stop:', error);
+            const message = error instanceof Error ? error.message : 'Không thể khôi phục hệ thống';
+            setServerError(message);
+            addLog('Lỗi khôi phục hệ thống');
+            return { success: false, message };
+        }
+    }, [addLog, canControlDevices, client, isConfigured, isServerControlled, refresh, refreshSystemStatus]);
+
     const getTotalPower = useCallback(() => {
         return Object.values(devices).reduce((total, roomDevices) => {
             return total + roomDevices.reduce((roomTotal, device) => roomTotal + (device.isOn ? device.power : 0), 0);
@@ -611,6 +667,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             canControlDevices,
             canManageInventory,
             isManualInventory,
+            isEmergencyStopped,
+            triggerEmergencyStop,
+            triggerEmergencyReset,
             refresh,
             addRoom,
             deleteRoom,

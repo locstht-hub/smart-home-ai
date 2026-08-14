@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { Device } from '../../constants/data';
-import { CreateManualDevicePayload, CreateManualRoomPayload, CreateMemberPayload, HomeActivityLog, HomeMember, HomeQuota, LoginResponse, ManualDevice, ManualRoom, PowerCurrentResponse, PowerHistoryResponse, PowerReading, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
+import { CreateManualDevicePayload, CreateManualRoomPayload, CreateMemberPayload, EmergencyStopResponse, HomeActivityLog, HomeMember, HomeQuota, LoginResponse, ManualDevice, ManualRoom, PowerCurrentResponse, PowerHistoryResponse, PowerReading, SmartHomeServerConfig, SystemStatusResponse } from '../../types/smartHomeServer';
 import { resolveDefaultLocalApiUrl } from './endpoints';
 import { resolveRequestTimeout } from './requestPolicy';
 import { describeApiFailure, describeHttpFailure, isAmbiguousMutationFailure } from './errors';
@@ -125,6 +125,20 @@ export class SmartHomeApiClient {
 
     async getSystemStatus(): Promise<SystemStatusResponse> {
         return this.request('/api/system/status');
+    }
+
+    async emergencyStop(): Promise<EmergencyStopResponse> {
+        return this.request<EmergencyStopResponse>(this.withHomeId('/api/system/emergency-stop'), {
+            method: 'POST',
+            body: JSON.stringify(this.config.homeId ? { homeId: this.config.homeId } : {}),
+        });
+    }
+
+    async emergencyReset(): Promise<EmergencyStopResponse> {
+        return this.request<EmergencyStopResponse>(this.withHomeId('/api/system/emergency-reset'), {
+            method: 'POST',
+            body: JSON.stringify(this.config.homeId ? { homeId: this.config.homeId } : {}),
+        });
     }
 
     async login(username: string, password: string): Promise<LoginResponse> {

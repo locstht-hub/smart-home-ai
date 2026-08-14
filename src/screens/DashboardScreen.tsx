@@ -16,7 +16,7 @@ const POWER_REFRESH_MS = 30000;
 export default function DashboardScreen({ navigation }: any) {
     const { confirm, confirmDialog } = useConfirmDialog();
     const { user } = useAuth();
-    const { rooms, getTotalPower, getActiveDeviceCount, turnAllOff, applyScene, serverError, isHomeSuspended, isServerControlled, canControlDevices } = useData();
+    const { rooms, getTotalPower, getActiveDeviceCount, turnAllOff, applyScene, serverError, isHomeSuspended, isServerControlled, canControlDevices, isEmergencyStopped, triggerEmergencyStop, triggerEmergencyReset } = useData();
     const { client, isConfigured, config, systemStatus } = useSmartHomeServer();
     const [now, setNow] = useState(new Date());
     const [powerCurrent, setPowerCurrent] = useState<PowerCurrentResponse | null>(null);
@@ -24,10 +24,10 @@ export default function DashboardScreen({ navigation }: any) {
     const [isQuotaModalVisible, setIsQuotaModalVisible] = useState(false);
     const [quotaInput, setQuotaInput] = useState('');
     const [isSubmittingQuota, setIsSubmittingQuota] = useState(false);
-    const [focusedQuickAction, setFocusedQuickAction] = useState<'all-off' | 'sleep' | 'away' | null>(null);
+    const [focusedQuickAction, setFocusedQuickAction] = useState<'all-off' | 'sleep' | 'away' | 'estop' | null>(null);
 
     const isOwner = user?.serverRole === 'owner';
-    const controlsDisabled = isHomeSuspended || !canControlDevices;
+    const controlsDisabled = isHomeSuspended || !canControlDevices || isEmergencyStopped;
 
     const pulseAnim = useRef(new Animated.Value(0.4)).current;
 
@@ -218,7 +218,38 @@ export default function DashboardScreen({ navigation }: any) {
                 </View>
             )}
 
-            {!isHomeSuspended && serverError && isServerControlled && (
+            {isEmergencyStopped && (
+                <View style={styles.emergencyBanner}>
+                    <View style={styles.emergencyBannerHeader}>
+                        <Ionicons name="warning" size={22} color="#ffffff" />
+                        <Text style={styles.emergencyBannerTitle}>DỪNG KHẨN CẤP ĐANG KÍCH HOẠT</Text>
+                    </View>
+                    <Text style={styles.emergencyBannerText}>
+                        Toàn bộ thiết bị đã bị ngắt an toàn. Mọi lệnh bật thiết bị mới đều bị khóa bảo vệ cho đến khi khôi phục hệ thống.
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.emergencyResetBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel="Khôi phục hệ thống từ dừng khẩn cấp"
+                        onPress={() => {
+                            confirm({
+                                title: 'Khôi phục hệ thống',
+                                message: 'Xác nhận khôi phục hệ thống từ trạng thái Dừng Khẩn Cấp (E-Stop)? Các thiết bị sẽ có thể được điều khiển trở lại.',
+                                confirmLabel: 'Khôi phục hệ thống',
+                                onConfirm: async () => {
+                                    const result = await triggerEmergencyReset();
+                                    if (!result.success) Alert.alert('Lỗi', result.message || 'Không thể khôi phục hệ thống.');
+                                },
+                            });
+                        }}
+                    >
+                        <Ionicons name="refresh-circle-outline" size={18} color="#991b1b" />
+                        <Text style={styles.emergencyResetBtnText}>Khôi phục hệ thống (Reset E-Stop)</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {!isHomeSuspended && serverError && isServerControlled && !isEmergencyStopped && (
                 <View style={styles.errorBanner}>
                     <Text style={styles.errorTitle}>{serverIssueTitle}</Text>
                     <Text style={styles.errorText}>{serverError}</Text>
@@ -406,6 +437,50 @@ export default function DashboardScreen({ navigation }: any) {
 
             <Text style={styles.sectionTitle}>Thao tác nhanh</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActions}>
+                <TouchableOpacity
+                    disabled={isHomeSuspended || !canControlDevices}
+                    style={[
+                        styles.actionBtn,
+                        isEmergencyStopped ? styles.emergencyActionBtnActive : styles.emergencyActionBtnNormal,
+                        (isHomeSuspended || !canControlDevices) && styles.actionBtnDisabled,
+                        focusedQuickAction === 'estop' && styles.focusRing,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={isEmergencyStopped ? "Khôi phục hệ thống từ dừng khẩn cấp" : "Dừng khẩn cấp toàn bộ hệ thống"}
+                    accessibilityState={{ disabled: isHomeSuspended || !canControlDevices }}
+                    onFocus={() => setFocusedQuickAction('estop')}
+                    onBlur={() => setFocusedQuickAction(null)}
+                    onPress={() => {
+                        if (isEmergencyStopped) {
+                            confirm({
+                                title: 'Khôi phục hệ thống',
+                                message: 'Xác nhận khôi phục hệ thống từ trạng thái Dừng Khẩn Cấp (E-Stop)? Các thiết bị sẽ có thể được điều khiển trở lại.',
+                                confirmLabel: 'Khôi phục',
+                                onConfirm: async () => {
+                                    const result = await triggerEmergencyReset();
+                                    if (!result.success) Alert.alert('Lỗi', result.message || 'Không thể khôi phục hệ thống.');
+                                },
+                            });
+                        } else {
+                            confirm({
+                                title: '🛑 DỪNG KHẨN CẤP (EMERGENCY STOP)',
+                                message: 'CẢNH BÁO: Gửi lệnh ưu tiên cao nhất ngắt TOÀN BỘ phụ tải và khóa hệ thống để xử lý sự cố? Hành động này sẽ được ghi vào nhật ký kiểm toán.',
+                                confirmLabel: 'DỪNG KHẨN CẤP',
+                                destructive: true,
+                                onConfirm: async () => {
+                                    const result = await triggerEmergencyStop();
+                                    if (!result.success) Alert.alert('Lỗi', result.message || 'Không thể dừng khẩn cấp.');
+                                },
+                            });
+                        }
+                    }}
+                >
+                    <Ionicons name={isEmergencyStopped ? "refresh-circle" : "warning"} size={18} color="#ffffff" />
+                    <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 13 }}>
+                        {isEmergencyStopped ? 'Khôi phục E-Stop' : 'Dừng khẩn cấp'}
+                    </Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity disabled={controlsDisabled} style={[styles.actionBtn, { borderColor: Colors.red[200], backgroundColor: Colors.red[50], flexDirection: 'row', alignItems: 'center', gap: 6 }, controlsDisabled && styles.actionBtnDisabled, focusedQuickAction === 'all-off' && styles.focusRing]} accessibilityRole="button" accessibilityLabel="Tắt tất cả thiết bị" accessibilityState={{ disabled: controlsDisabled }} onFocus={() => setFocusedQuickAction('all-off')} onBlur={() => setFocusedQuickAction(null)} onPress={() => {
                     confirm({
                         title: 'Tắt tất cả thiết bị',
@@ -559,6 +634,14 @@ const styles = StyleSheet.create({
     lockedBanner: { backgroundColor: '#fff4f2', borderWidth: 1, borderColor: '#fecaca', borderRadius: 18, padding: 14, marginBottom: 14 },
     lockedTitle: { fontSize: 15, fontWeight: '800', color: Colors.red[600], marginBottom: 4 },
     lockedText: { fontSize: 13, color: Colors.red[600], lineHeight: 18 },
+    emergencyBanner: { backgroundColor: '#991b1b', borderWidth: 2, borderColor: '#ef4444', borderRadius: 18, padding: 16, marginBottom: 14, shadowColor: '#dc2626', shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+    emergencyBannerHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+    emergencyBannerTitle: { fontSize: 16, fontWeight: '900', color: '#ffffff', letterSpacing: 0.5 },
+    emergencyBannerText: { fontSize: 13, color: '#fee2e2', lineHeight: 18, marginBottom: 12 },
+    emergencyResetBtn: { backgroundColor: '#ffffff', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+    emergencyResetBtnText: { color: '#991b1b', fontWeight: '800', fontSize: 13 },
+    emergencyActionBtnNormal: { backgroundColor: '#dc2626', borderColor: '#b91c1c', flexDirection: 'row', alignItems: 'center', gap: 6 },
+    emergencyActionBtnActive: { backgroundColor: '#059669', borderColor: '#047857', flexDirection: 'row', alignItems: 'center', gap: 6 },
     errorBanner: { backgroundColor: '#fff8e6', borderWidth: 1, borderColor: '#f5d991', borderRadius: 18, padding: 14, marginBottom: 14 },
     errorTitle: { fontSize: 15, fontWeight: '800', color: Colors.amber[700], marginBottom: 4 },
     errorText: { fontSize: 13, color: Colors.amber[700], lineHeight: 18 },

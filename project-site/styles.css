@@ -1022,6 +1022,135 @@ nav a:hover::after {
   font-size: 14px;
 }
 
+/* App and Web access */
+.experience-section {
+  background:
+    radial-gradient(circle at 15% 22%, rgba(20, 184, 166, 0.13), transparent 30%),
+    radial-gradient(circle at 88% 74%, rgba(15, 118, 110, 0.16), transparent 34%),
+    #07110f;
+  border-bottom: 1px solid var(--line);
+}
+
+.experience-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  max-width: 1040px;
+  margin: 42px auto 0;
+}
+
+.access-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.72fr);
+  grid-template-areas:
+    "copy qr"
+    "action qr";
+  gap: 24px;
+  align-items: center;
+  min-height: 390px;
+  padding: 30px;
+  overflow: hidden;
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  border-radius: 22px;
+  background: rgba(16, 37, 31, 0.84);
+  box-shadow: 0 24px 60px rgba(3, 18, 15, 0.34);
+}
+
+.access-card::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.08), transparent 44%);
+  content: "";
+}
+
+.web-access-card {
+  border-color: rgba(52, 211, 153, 0.28);
+  background: rgba(10, 31, 26, 0.9);
+}
+
+.access-copy {
+  position: relative;
+  z-index: 1;
+  grid-area: copy;
+}
+
+.access-label {
+  display: block;
+  margin-bottom: 12px;
+  color: #5eead4;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.access-card h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Outfit", sans-serif;
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.access-card p {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.qr-frame {
+  position: relative;
+  z-index: 1;
+  grid-area: qr;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid rgba(45, 212, 191, 0.22);
+  border-radius: 17px;
+  background: rgba(248, 250, 252, 0.98);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.85), 0 16px 38px rgba(3, 18, 15, 0.3);
+}
+
+.qr-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.qr-frame figcaption {
+  color: #31443d;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.access-link {
+  position: relative;
+  z-index: 1;
+  grid-area: action;
+  align-self: end;
+  width: fit-content;
+  min-height: 46px;
+}
+
+.access-link:active {
+  transform: translateY(1px) scale(0.98);
+}
+
 /* Status Grid & Cards */
 .status-section {
   background: #030712;
@@ -1598,6 +1727,11 @@ nav a:hover::after {
     grid-template-columns: 1fr;
   }
 
+  .experience-grid {
+    grid-template-columns: 1fr;
+    max-width: 720px;
+  }
+
   .hero-status-panel {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1737,6 +1871,26 @@ nav a:hover::after {
   .contact-grid,
   .hero-status-panel {
     grid-template-columns: 1fr;
+  }
+
+  .access-card {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "copy"
+      "qr"
+      "action";
+    min-height: auto;
+    padding: 24px;
+  }
+
+  .qr-frame {
+    width: min(320px, 100%);
+    justify-self: center;
+  }
+
+  .access-link {
+    justify-self: stretch;
+    width: 100%;
   }
 
   .forecast-chart,
