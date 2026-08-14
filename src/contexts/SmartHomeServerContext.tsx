@@ -146,6 +146,10 @@ export const SmartHomeServerProvider: React.FC<{ children: React.ReactNode }> = 
             return;
         }
         refreshSystemStatus().catch(() => undefined);
+        const timer = setInterval(() => {
+            refreshSystemStatus().catch(() => undefined);
+        }, 15000);
+        return () => clearInterval(timer);
     }, [config.apiToken, isConfigured, refreshSystemStatus]);
 
     const saveConfig = useCallback(async (nextConfig: SmartHomeServerConfig) => {
