@@ -73,7 +73,7 @@ def group_devices(devices: list[dict[str, Any]], states: dict[str, bool]) -> dic
         "living": [],
         "bedroom": [],
         "kitchen": [],
-        "garage": [],
+        "bathroom": [],
     }
 
     for item in devices:

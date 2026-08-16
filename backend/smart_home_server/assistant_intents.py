@@ -26,6 +26,7 @@ ROOM_ALIASES = {
     "living": ["phong khach", "khach", "living"],
     "bedroom": ["phong ngu", "ngu", "bedroom"],
     "kitchen": ["nha bep", "phong bep", "bep", "kitchen"],
+    "bathroom": ["nha ve sinh", "ve sinh", "phong tam", "toilet", "wc", "bathroom"],
     "garage": ["garage", "gara", "nha xe", "xe"],
 }
 

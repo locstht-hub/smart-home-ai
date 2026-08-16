@@ -53,43 +53,34 @@ export interface ActivityLog {
 }
 
 export const defaultRooms: Room[] = [
-    { id: 'living', name: 'Phòng khách', devices: 5, active: 3, power: 850, temp: 26, humidity: 60 },
-    { id: 'bedroom', name: 'Phòng ngủ', devices: 3, active: 1, power: 320, temp: 24, humidity: 55 },
-    { id: 'kitchen', name: 'Nhà bếp', devices: 5, active: 2, power: 680, temp: 28, humidity: 70 },
-    { id: 'garage', name: 'Garage', devices: 2, active: 0, power: 0, temp: 32, humidity: 45 },
+    { id: 'bedroom', name: 'Phòng ngủ', devices: 2, active: 0, power: 915, temp: 24, humidity: 55 },
+    { id: 'living', name: 'Phòng khách', devices: 2, active: 1, power: 1245, temp: 26, humidity: 60 },
+    { id: 'kitchen', name: 'Phòng bếp', devices: 1, active: 0, power: 35, temp: 28, humidity: 70 },
+    { id: 'bathroom', name: 'Nhà vệ sinh', devices: 1, active: 0, power: 20, temp: 27, humidity: 80 },
 ];
 
 export const defaultDevices: Record<string, Device[]> = {
-    living: [
-        { id: 'l1', name: 'Đèn chính', type: 'light', isOn: true, power: 45 },
-        { id: 'l2', name: 'Đèn hắt', type: 'light', isOn: false, power: 25 },
-        { id: 'f1', name: 'Quạt trần', type: 'fan', isOn: true, power: 80 },
-        { id: 'ac1', name: 'Máy lạnh', type: 'ac', isOn: false, power: 1200 },
-        { id: 'o1', name: 'Ổ cắm TV', type: 'outlet', isOn: true, power: 120 },
-    ],
     bedroom: [
-        { id: 'l3', name: 'Đèn ngủ', type: 'light', isOn: false, power: 15 },
-        { id: 'ac2', name: 'Máy lạnh', type: 'ac', isOn: true, power: 900 },
-        { id: 'o2', name: 'Ổ cắm sạc', type: 'outlet', isOn: true, power: 25 },
+        { id: 'bedroom_lamp1', name: 'Đèn phòng ngủ', type: 'light', isOn: false, power: 15 },
+        { id: 'bedroom_ac2', name: 'Máy lạnh phòng ngủ', type: 'ac', isOn: false, power: 900 },
+    ],
+    living: [
+        { id: 'living_lamp2', name: 'Đèn phòng khách', type: 'light', isOn: true, power: 45 },
+        { id: 'living_ac1', name: 'Máy lạnh phòng khách', type: 'ac', isOn: false, power: 1200 },
     ],
     kitchen: [
-        { id: 'l4', name: 'Đèn bếp', type: 'light', isOn: true, power: 35 },
-        { id: 'f2', name: 'Quạt hút', type: 'fan', isOn: true, power: 150 },
-        { id: 'o3', name: 'Tủ lạnh', type: 'outlet', isOn: true, power: 150 },
-        { id: 'o4', name: 'Lò vi sóng', type: 'outlet', isOn: false, power: 1200 },
-        { id: 'o5', name: 'Máy rửa bát', type: 'outlet', isOn: false, power: 1800 },
+        { id: 'kitchen_lamp3', name: 'Đèn phòng bếp', type: 'light', isOn: false, power: 35 },
     ],
-    garage: [
-        { id: 'l5', name: 'Đèn garage', type: 'light', isOn: false, power: 60 },
-        { id: 'o6', name: 'Cửa cuốn', type: 'outlet', isOn: false, power: 500 },
+    bathroom: [
+        { id: 'bathroom_lamp4', name: 'Đèn nhà vệ sinh', type: 'light', isOn: false, power: 20 },
     ],
 };
 
 export const buildEmptyHouseDevices = (): Record<string, Device[]> => ({
-    living: [],
     bedroom: [],
+    living: [],
     kitchen: [],
-    garage: [],
+    bathroom: [],
 });
 
 export const defaultAdmin: User = {
