@@ -16,7 +16,7 @@
 .progress-hero h1 {
   max-width: 980px;
   margin: 0;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: clamp(34px, 5.5vw, 62px);
   line-height: 1.15;
   font-weight: 900;
@@ -88,7 +88,7 @@
 }
 
 .status-panel strong {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 28px;
   color: #f8fafc;
 }
@@ -118,7 +118,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 19px;
   font-weight: 800;
   color: #f1f5f9;
@@ -152,7 +152,7 @@
 }
 
 .progress-item span {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-weight: 900;
   color: var(--cyan);
   font-size: 14px;
@@ -165,7 +165,7 @@
 
 .progress-item h3 {
   margin: 16px 0 10px;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 21px;
   font-weight: 700;
 }
@@ -195,7 +195,7 @@
 }
 
 .check-list strong {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 18px;
   display: flex;
   align-items: center;
@@ -243,7 +243,7 @@ code {
   background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15));
   border: 1px solid rgba(6, 182, 212, 0.3);
   color: var(--cyan);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-weight: 900;
   font-size: 15px;
 }
@@ -283,7 +283,7 @@ code {
 .summary-band p {
   max-width: 1120px;
   margin: 0;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: clamp(20px, 2.5vw, 30px);
   font-weight: 800;
   line-height: 1.3;
