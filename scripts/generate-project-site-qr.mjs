@@ -19,15 +19,17 @@ function setPixel(image, x, y, color) {
 function createDashboardQr() {
   const modules = toQR(dashboardUrl, 2);
   const matrixSize = Math.sqrt(modules.length);
-  const quietZone = 4;
-  const moduleSize = 12;
-  const imageSize = (matrixSize + quietZone * 2) * moduleSize;
-  const image = new PNG({ width: imageSize, height: imageSize });
+  const moduleSize = 8;
+  const qrPixSize = matrixSize * moduleSize;
+  const targetSize = 382;
+  const quietZoneX = Math.floor((targetSize - qrPixSize) / 2);
+  const quietZoneY = Math.floor((targetSize - qrPixSize) / 2);
+  const image = new PNG({ width: targetSize, height: targetSize });
   const white = [255, 255, 255];
   const ink = [7, 17, 15];
 
-  for (let y = 0; y < imageSize; y += 1) {
-    for (let x = 0; x < imageSize; x += 1) {
+  for (let y = 0; y < targetSize; y += 1) {
+    for (let x = 0; x < targetSize; x += 1) {
       setPixel(image, x, y, white);
     }
   }
@@ -35,8 +37,8 @@ function createDashboardQr() {
   for (let row = 0; row < matrixSize; row += 1) {
     for (let column = 0; column < matrixSize; column += 1) {
       if (!modules[row * matrixSize + column]) continue;
-      const startX = (column + quietZone) * moduleSize;
-      const startY = (row + quietZone) * moduleSize;
+      const startX = quietZoneX + column * moduleSize;
+      const startY = quietZoneY + row * moduleSize;
       for (let y = startY; y < startY + moduleSize; y += 1) {
         for (let x = startX; x < startX + moduleSize; x += 1) {
           setPixel(image, x, y, ink);
