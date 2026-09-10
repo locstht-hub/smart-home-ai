@@ -53,11 +53,18 @@ def send_telegram_alert(message: str, alert_type: str = "general", cooldown_seco
 
 def format_power_quota_alert(home_id: str, current_kwh: float, limit_kwh: float, pct: float) -> str:
     """Format a standard HEMS energy limit warning message."""
+    if pct >= 100.0:
+        title = "🔴 <b>CẢNH BÁO HEMS - ĐÃ VƯỢT HẠN MỨC (100% QUOTA)</b>"
+        action_tip = "🚨 <i>Hộ gia đình đã vượt quá hạn mức điện năng tháng! Vui lòng tắt các thiết bị công suất cao để tránh phát sinh chi phí.</i>"
+    else:
+        title = "🟡 <b>CẢNH BÁO HEMS - CHẠM NGƯỠNG CẢNH BÁO (SẮP ĐẠT HẠN MỨC)</b>"
+        action_tip = "💡 <i>Tiêu thụ điện năng đã chạm mức 80% hạn mức. Khuyến nghị giảm bớt các thiết bị không cần thiết.</i>"
+
     return (
-        f"⚠️ <b>CẢNH BÁO HEMS - VƯỢT HẠN MỨC ĐIỆN NĂNG</b>\n\n"
+        f"{title}\n\n"
         f"🏠 <b>Hộ gia đình:</b> {home_id}\n"
-        f"📊 <b>Tiêu thụ tháng:</b> <b>{current_kwh:.2f} kWh</b> / {limit_kwh:.1f} kWh ({pct:.1f}%)\n"
-        f"💡 <i>Vui lòng dùng ứng dụng Smart Home AI để kiểm tra và điều chỉnh các thiết bị công suất lớn.</i>"
+        f"📊 <b>Tiêu thụ tháng:</b> <b>{current_kwh:.2f} kWh</b> / {limit_kwh:.1f} kWh (<b>{pct:.1f}%</b>)\n"
+        f"{action_tip}"
     )
 
 def format_device_anomaly_alert(device_name: str, room_name: str, current_power: float, normal_power: float) -> str:

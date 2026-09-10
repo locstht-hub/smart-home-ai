@@ -23,6 +23,12 @@ type WebChatMessage = {
     meta?: string;
 };
 
+function describeAssistantReplySource(source: 'ai' | 'fallback' | 'rule', provider?: string) {
+    if (source === 'ai') return `Phản hồi AI${provider ? ` · ${provider}` : ''}`;
+    if (source === 'fallback') return 'Phản hồi dự phòng';
+    return 'Lệnh hệ thống';
+}
+
 export default function ChatScreen() {
     const { user } = useAuth();
     const { client, isConfigured, status } = useSmartHomeServer();
@@ -68,7 +74,7 @@ export default function ChatScreen() {
                 id: `assistant-${Date.now()}`,
                 role: 'assistant',
                 text: result.reply,
-                meta: `${result.endpoint === 'local' ? 'API nội bộ' : 'API đám mây'} · ${result.elapsedMs} ms`,
+                meta: `${describeAssistantReplySource(result.assistantSource, result.assistantProvider)} · ${result.endpoint === 'local' ? 'API nội bộ' : 'API đám mây'} · ${result.elapsedMs} ms`,
             }]);
             await refresh();
         } catch (sendError) {

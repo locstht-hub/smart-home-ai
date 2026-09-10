@@ -60,11 +60,11 @@
     "energy_kwh": { "name": "Total kWh", "address": 228, "type": "Real", "scale": 1.0, "min": 0, "max": 1000000 }
   },
   "devices": [
-    { "id": "bedroom_lamp1", "homeId": "home-demo-001", "roomId": "bedroom", "name": "Đèn phòng ngủ", "type": "light", "power": 15, "statusTag": "DB1.DBX1.4", "onCommandTag": "DB7.DBX0.0", "offCommandTag": "DB7.DBX0.1" },
-    { "id": "bedroom_ac2", "homeId": "home-demo-001", "roomId": "bedroom", "name": "Máy lạnh phòng ngủ", "type": "ac", "power": 900, "statusTag": "DB1.DBX2.0", "onCommandTag": "DB7.DBX1.2", "offCommandTag": "DB7.DBX1.3" },
-    { "id": "living_lamp2", "homeId": "home-demo-001", "roomId": "living", "name": "Đèn phòng khách", "type": "light", "power": 45, "statusTag": "DB1.DBX1.5", "onCommandTag": "DB7.DBX0.2", "offCommandTag": "DB7.DBX0.3" },
-    { "id": "living_ac1", "homeId": "home-demo-001", "roomId": "living", "name": "Máy lạnh phòng khách", "type": "ac", "power": 1200, "statusTag": "DB1.DBX2.1", "onCommandTag": "DB7.DBX1.0", "offCommandTag": "DB7.DBX1.1" },
-    { "id": "kitchen_lamp3", "homeId": "home-demo-001", "roomId": "kitchen", "name": "Đèn phòng bếp", "type": "light", "power": 35, "statusTag": "DB1.DBX1.6", "onCommandTag": "DB7.DBX0.4", "offCommandTag": "DB7.DBX0.5" },
-    { "id": "bathroom_lamp4", "homeId": "home-demo-001", "roomId": "bathroom", "name": "Đèn nhà vệ sinh", "type": "light", "power": 20, "statusTag": "DB1.DBX1.7", "onCommandTag": "DB7.DBX0.6", "offCommandTag": "DB7.DBX0.7" }
+    { "id": "bedroom_lamp1", "homeId": "home-demo-001", "roomId": "bedroom", "name": "Đèn phòng ngủ", "type": "light", "power": 200, "statusTag": "DB1.DBX1.4", "onCommandTag": "DB7.DBX0.0", "offCommandTag": "DB7.DBX0.1" },
+    { "id": "bedroom_ac2", "homeId": "home-demo-001", "roomId": "bedroom", "name": "Máy lạnh phòng ngủ", "type": "ac", "power": 600, "statusTag": "DB1.DBX2.0", "onCommandTag": "DB7.DBX1.2", "offCommandTag": "DB7.DBX1.3" },
+    { "id": "living_lamp2", "homeId": "home-demo-001", "roomId": "living", "name": "Đèn phòng khách", "type": "light", "power": 200, "statusTag": "DB1.DBX1.5", "onCommandTag": "DB7.DBX0.2", "offCommandTag": "DB7.DBX0.3" },
+    { "id": "living_ac1", "homeId": "home-demo-001", "roomId": "living", "name": "Máy lạnh phòng khách", "type": "ac", "power": 600, "statusTag": "DB1.DBX2.1", "onCommandTag": "DB7.DBX1.0", "offCommandTag": "DB7.DBX1.1" },
+    { "id": "kitchen_lamp3", "homeId": "home-demo-001", "roomId": "kitchen", "name": "Đèn phòng bếp", "type": "light", "power": 200, "statusTag": "DB1.DBX1.6", "onCommandTag": "DB7.DBX0.4", "offCommandTag": "DB7.DBX0.5" },
+    { "id": "bathroom_lamp4", "homeId": "home-demo-001", "roomId": "bathroom", "name": "Đèn nhà vệ sinh", "type": "light", "power": 200, "statusTag": "DB1.DBX1.7", "onCommandTag": "DB7.DBX0.6", "offCommandTag": "DB7.DBX0.7" }
   ]
 }

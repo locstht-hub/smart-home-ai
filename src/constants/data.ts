@@ -53,26 +53,26 @@ export interface ActivityLog {
 }
 
 export const defaultRooms: Room[] = [
-    { id: 'bedroom', name: 'Phòng ngủ', devices: 2, active: 0, power: 915, temp: 24, humidity: 55 },
-    { id: 'living', name: 'Phòng khách', devices: 2, active: 1, power: 1245, temp: 26, humidity: 60 },
-    { id: 'kitchen', name: 'Phòng bếp', devices: 1, active: 0, power: 35, temp: 28, humidity: 70 },
-    { id: 'bathroom', name: 'Nhà vệ sinh', devices: 1, active: 0, power: 20, temp: 27, humidity: 80 },
+    { id: 'bedroom', name: 'Phòng ngủ', devices: 2, active: 0, power: 800, temp: 24, humidity: 55 },
+    { id: 'living', name: 'Phòng khách', devices: 2, active: 1, power: 800, temp: 26, humidity: 60 },
+    { id: 'kitchen', name: 'Phòng bếp', devices: 1, active: 0, power: 200, temp: 28, humidity: 70 },
+    { id: 'bathroom', name: 'Nhà vệ sinh', devices: 1, active: 0, power: 200, temp: 27, humidity: 80 },
 ];
 
 export const defaultDevices: Record<string, Device[]> = {
     bedroom: [
-        { id: 'bedroom_lamp1', name: 'Đèn phòng ngủ', type: 'light', isOn: false, power: 15 },
-        { id: 'bedroom_ac2', name: 'Máy lạnh phòng ngủ', type: 'ac', isOn: false, power: 900 },
+        { id: 'bedroom_lamp1', name: 'Đèn phòng ngủ', type: 'light', isOn: false, power: 200 },
+        { id: 'bedroom_ac2', name: 'Máy lạnh phòng ngủ', type: 'ac', isOn: false, power: 600 },
     ],
     living: [
-        { id: 'living_lamp2', name: 'Đèn phòng khách', type: 'light', isOn: true, power: 45 },
-        { id: 'living_ac1', name: 'Máy lạnh phòng khách', type: 'ac', isOn: false, power: 1200 },
+        { id: 'living_lamp2', name: 'Đèn phòng khách', type: 'light', isOn: true, power: 200 },
+        { id: 'living_ac1', name: 'Máy lạnh phòng khách', type: 'ac', isOn: false, power: 600 },
     ],
     kitchen: [
-        { id: 'kitchen_lamp3', name: 'Đèn phòng bếp', type: 'light', isOn: false, power: 35 },
+        { id: 'kitchen_lamp3', name: 'Đèn phòng bếp', type: 'light', isOn: false, power: 200 },
     ],
     bathroom: [
-        { id: 'bathroom_lamp4', name: 'Đèn nhà vệ sinh', type: 'light', isOn: false, power: 20 },
+        { id: 'bathroom_lamp4', name: 'Đèn nhà vệ sinh', type: 'light', isOn: false, power: 200 },
     ],
 };
 

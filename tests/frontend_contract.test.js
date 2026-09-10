@@ -17,6 +17,18 @@ test('authentication state uses server revocation and secure token storage', () 
   assert.doesNotMatch(client, /headers\['X-API-Token'\]\s*=/);
 });
 
+test('chat UI identifies AI, fallback, and rule-based replies', () => {
+  const client = read('src/services/smartHome/client.ts');
+  const mobileChat = read('src/screens/ChatScreen.tsx');
+  const webChat = read('src/screens/ChatScreen.web.tsx');
+
+  assert.match(client, /assistantSource/);
+  assert.match(mobileChat, /Phản hồi AI/);
+  assert.match(mobileChat, /Phản hồi dự phòng/);
+  assert.match(webChat, /Phản hồi AI/);
+  assert.match(webChat, /Phản hồi dự phòng/);
+});
+
 test('responsive sites retain explicit mobile overflow controls', () => {
   const adminCss = read('admin-site/styles.css');
   const projectCss = read('project-site/styles.css');
@@ -35,9 +47,36 @@ test('room cards resolve server room visuals and expose accessible labels', () =
   assert.match(dashboard, /accessibilityLabel=\{visual\.accessibilityLabel\}/);
 });
 
-test('Android release configuration avoids legacy high-risk permissions and supports release signing', () => {
-  const manifest = read('android/app/src/main/AndroidManifest.xml');
-  const gradle = read('android/app/build.gradle');
+test('tracked app configuration defines Android release security, version, and keyboard behavior', () => {
+  const appConfig = JSON.parse(read('app.json'));
+  const android = appConfig.expo.android;
+  assert.equal(appConfig.expo.version, '1.0.2');
+  assert.equal(android.versionCode, 3);
+  assert.equal(android.allowBackup, false);
+  assert.equal(android.softwareKeyboardLayoutMode, 'resize');
+  assert.ok(Array.isArray(android.blockedPermissions));
+  for (const permission of [
+    'android.permission.READ_EXTERNAL_STORAGE',
+    'android.permission.WRITE_EXTERNAL_STORAGE',
+    'android.permission.SYSTEM_ALERT_WINDOW',
+  ]) {
+    assert.ok(android.blockedPermissions.includes(permission), `${permission} must remain blocked`);
+  }
+});
+
+test('generated native Android artifacts retain release security and signing assertions when present', (t) => {
+  const artifactPaths = [
+    'android/app/src/main/AndroidManifest.xml',
+    'android/app/build.gradle',
+  ];
+  const missing = artifactPaths.filter((relativePath) => !fs.existsSync(path.join(root, relativePath)));
+  if (missing.length > 0) {
+    t.skip(`Generated native artifact(s) absent: ${missing.join(', ')}. Tracked app.json assertions remain mandatory.`);
+    return;
+  }
+
+  const manifest = read(artifactPaths[0]);
+  const gradle = read(artifactPaths[1]);
   assert.match(manifest, /READ_EXTERNAL_STORAGE" tools:node="remove"/);
   assert.match(manifest, /WRITE_EXTERNAL_STORAGE" tools:node="remove"/);
   assert.match(manifest, /SYSTEM_ALERT_WINDOW" tools:node="remove"/);
@@ -124,23 +163,23 @@ test('authentication screens expose calm inline feedback and accessible password
 
 test('authentication and chat inputs use one stable Android keyboard layout path', () => {
   const appConfig = JSON.parse(read('app.json'));
-  const manifest = read('android/app/src/main/AndroidManifest.xml');
   const login = read('src/screens/LoginScreen.tsx');
   const register = read('src/screens/RegisterScreen.tsx');
   const chat = read('src/screens/ChatScreen.tsx');
   const navigator = read('src/navigation/AppNavigator.tsx');
 
   assert.equal(appConfig.expo.android.softwareKeyboardLayoutMode, 'resize');
-  assert.match(manifest, /android:windowSoftInputMode="adjustResize"/);
   assert.match(login, /behavior=\{Platform\.OS === 'ios' \? 'padding' : undefined\}/);
   assert.match(register, /behavior=\{Platform\.OS === 'ios' \? 'padding' : undefined\}/);
-  assert.match(chat, /behavior=\{Platform\.OS === 'ios' \? 'padding' : undefined\}/);
+  assert.doesNotMatch(chat, /KeyboardAvoidingView/);
   assert.match(login, /keyboardShouldPersistTaps="handled"/);
   assert.match(login, /onFocus=\{\(\) => setFocusedField\('password'\)\}/);
   assert.doesNotMatch(login, /scrollToEnd|handlePasswordFocus/);
   assert.match(navigator, /tabBarHideOnKeyboard:\s*true/);
-  assert.match(chat, /isKeyboardInternallyHandled=\{false\}/);
-  assert.doesNotMatch(chat, /useBottomTabBarHeight|bottomOffset=/);
+  assert.match(chat, /isKeyboardInternallyHandled=\{true\}/);
+  assert.match(chat, /focusOnInputWhenOpeningKeyboard=\{false\}/);
+  assert.match(chat, /bottomOffset=\{0\}/);
+  assert.match(chat, /chatStage:\s*\{[^}]*overflow:\s*'hidden'/);
 });
 
 test('analysis, chat and administration screens use semantic icons and intentional empty states', () => {

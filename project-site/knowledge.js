@@ -10,7 +10,7 @@ window.PROJECT_KNOWLEDGE = {
     { label: "Dòng điện (I)", value: "I", note: "Giá trị dòng điện hiển thị theo đơn vị A" },
     { label: "Công suất (P)", value: "kW", note: "Công suất tức thời tại thời điểm đọc" },
     { label: "Điện năng (E)", value: "kWh", note: "Tổng điện năng tiêu thụ theo thời gian" },
-    { label: "Quota", value: "% hạn mức", note: "Cảnh báo khi dùng vượt mục tiêu" },
+    { label: "Quota", value: "% hạn mức", note: "Cảnh báo theo điện năng tích lũy; không tự cắt tải" },
     { label: "Forecast", value: "Xu hướng", note: "Ước lượng từ dữ liệu lịch sử" },
   ],
   workflow: [
@@ -93,8 +93,14 @@ window.PROJECT_KNOWLEDGE = {
     {
       question: "Dự án đã hoàn thiện tới đâu?",
       answer:
-        "Nền tảng phần mềm đã có app, backend, database, Forecast API, website và bộ dữ liệu assistant thử nghiệm. Phần cần ưu tiên tiếp theo là kiểm thử PLC/MFM384/tải thật và thu dữ liệu thực tế.",
+        "Xác minh phần mềm ngày 10/09/2026 đạt 42/42 kiểm thử backend/control, 22/22 frontend contract và 21/21 web dashboard; forecast contracts 7 Python + 2 Node, research HEAD 7, admin audit 5 và room presentation 3 đều đạt. QA native còn chờ vì chưa có thiết bị adb hoặc AVD; chưa ghi nhận cài APK hay triển khai server. Bản ghi 09/09 giữ 39/39 backend/control và Android JavaScript export 1509 modules. Sa thải tải tự động vẫn bị khóa, nên việc cần ưu tiên là kiểm thử PLC/MFM384/tải thật và thu dữ liệu thực tế.",
       keywords: ["tien do", "hoan thien", "da lam", "chua lam", "kiem thu"],
+    },
+    {
+      question: "Ba tầng tải và sa thải tự động đã hoạt động chưa?",
+      answer:
+        "Chưa. Ba tầng chỉ là thiết kế đề xuất: tầng 1 được bảo vệ, tầng 3 được xét trước và tầng 2 chỉ được xét sau khi quá tải kéo dài. Cổng an toàn AUTO_LOAD_SHEDDING_KW_SAFETY_READY vẫn bằng false; quota kWh không được dùng để tự cắt tải.",
+      keywords: ["ba tang", "tang tai", "sa thai", "load shedding", "priority tier", "quota"],
     },
   ],
 };

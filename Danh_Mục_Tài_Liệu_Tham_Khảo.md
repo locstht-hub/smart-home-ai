@@ -1,6 +1,22 @@
 # DANH MỤC TÀI LIỆU THAM KHẢO CHÍNH THỨC
 
-Đây là nguồn tham khảo chuẩn dùng chung cho bài báo và luận văn. Trích dẫn trong nội dung sử dụng số trong ngoặc vuông và danh mục được xếp theo thứ tự xuất hiện đầu tiên. Không đưa tài liệu vào danh mục nếu tài liệu đó không được trích dẫn trong nội dung.
+## Phân biệt danh mục bài TNU và luận văn — cập nhật 04/09/2026
+
+Bài TNU hiện dùng 20 nguồn theo IEEE trong `apply_evidence_safe_revisions.py`
+(biến `ieee_refs`) và hai bản thảo trong hồ sơ TNU. Đây là nguồn hiện hành cho
+thứ tự trích dẫn bài TNU, không lấy số thứ tự của danh mục Vancouver bên dưới.
+Hai nguồn bổ sung cho phân tích thăm dò:
+
+- [19] Newey và West (1987), Econometrica 55(3), 703–708,
+  DOI: https://doi.org/10.2307/1913610 — ước lượng HAC.
+- [20] Holm (1979), Scandinavian Journal of Statistics 6(2), 65–70,
+  https://www.jstor.org/stable/4615733 — hiệu chỉnh p-value đa so sánh.
+  Không chuyển mã JSTOR này thành DOI chưa xác minh.
+
+Danh mục Vancouver dưới đây giữ cho hồ sơ luận văn/bản trước; không được dùng
+để tự động thay danh mục IEEE của bài TNU. Không sửa tên đề tài luận văn đã
+đăng ký hoặc suy ra các nguồn cũ đều đã được trích dẫn trong bài TNU hiện hành.
+Trích dẫn phải xếp theo lần xuất hiện đầu tiên; không liệt kê nguồn không dùng.
 
 ## Danh mục Vancouver dùng cho bài báo
 

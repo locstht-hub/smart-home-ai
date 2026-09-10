@@ -265,10 +265,17 @@ export default function DashboardScreen({ navigation }: any) {
                             <Ionicons name="flash" size={15} color="rgba(255,255,255,0.9)" />
                             <Text style={styles.powerLabel}>Công suất hiện tại (kW)</Text>
                         </View>
-                        <View style={styles.realtimeBadge}>
-                            <Animated.View style={[styles.realtimeDot, { opacity: pulseAnim }]} />
-                            <Text style={styles.realtimeText}>Real-time</Text>
-                        </View>
+                        {measuredPowerKw !== null ? (
+                            <View style={styles.realtimeBadge}>
+                                <Animated.View style={[styles.realtimeDot, { opacity: pulseAnim }]} />
+                                <Text style={styles.realtimeText}>Real-time</Text>
+                            </View>
+                        ) : (
+                            <View style={[styles.realtimeBadge, { backgroundColor: 'rgba(251,191,36,0.14)', borderColor: 'rgba(251,191,36,0.28)' }]}>
+                                <View style={[styles.realtimeDot, { backgroundColor: '#f59e0b' }]} />
+                                <Text style={[styles.realtimeText, { color: '#fef3c7' }]}>Ước tính (Offline)</Text>
+                            </View>
+                        )}
                     </View>
                     <View style={styles.powerValueRow}>
                         <Text style={styles.powerValue}>{totalPowerKW}</Text>
@@ -276,7 +283,11 @@ export default function DashboardScreen({ navigation }: any) {
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
                         <Ionicons name="trending-up" size={14} color="rgba(255,255,255,0.8)" />
-                        <Text style={styles.powerSubtext}> {activeCount} thiết bị đang hoạt động</Text>
+                        <Text style={styles.powerSubtext}>
+                            {measuredPowerKw !== null
+                                ? ` ${activeCount} thiết bị đang hoạt động`
+                                : ` Ước tính từ ${activeCount} thiết bị cấu hình`}
+                        </Text>
                     </View>
                 </View>
             </LinearGradient>

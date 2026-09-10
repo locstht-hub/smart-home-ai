@@ -44,11 +44,15 @@
           </div>
           <div>
             <span>Benchmark offline</span>
-            <strong>Đã chạy</strong>
+            <strong>Bản ghi cục bộ</strong>
           </div>
           <div>
             <span>Chưa xác minh phần cứng</span>
             <strong>PLC / MFM384</strong>
+          </div>
+          <div>
+            <span>Kiểm tra phần mềm 10/09</span>
+            <strong>42/42 · 22/22 · 21/21 web</strong>
           </div>
         </div>
       </section>
@@ -98,12 +102,12 @@
           <article class="progress-item">
             <span>Docs</span>
             <h3>Tài liệu kỹ thuật</h3>
-            <p>Đã có README, tiến trình dự án, tài liệu phản biện, hướng dẫn PLC/server và bản thảo bài báo.</p>
+            <p>Đã có README, tiến trình dự án, tài liệu phản biện, hướng dẫn PLC/server và bản thảo nghiên cứu cục bộ.</p>
           </article>
           <article class="progress-item">
             <span>Git</span>
             <h3>Kho mã nguồn</h3>
-            <p>Dự án có cấu trúc mã nguồn cho app, backend, website, benchmark và tài liệu; trạng thái push/deploy cần kiểm tra riêng trên dịch vụ lưu trữ.</p>
+            <p>Dự án có cấu trúc mã nguồn cho app, backend, website, benchmark và tài liệu; trạng thái push/deploy cần kiểm tra riêng trên dịch vụ lưu trữ. Bản ghi 09/09 giữ export Android JavaScript 1509 modules.</p>
           </article>
         </div>
       </section>
@@ -129,6 +133,10 @@
           <div>
             <strong>Chưa có auto retrain model</strong>
             <p>Model hiện được train offline rồi Forecast API load artifact; chưa có pipeline tự động train lại bằng dữ liệu mới.</p>
+          </div>
+          <div>
+            <strong>Sa thải tải tự động đang khóa</strong>
+            <p>Ba tầng tải mới là thiết kế đề xuất; cổng <code>AUTO_LOAD_SHEDDING_KW_SAFETY_READY=False</code> vẫn giữ an toàn và quota kWh không tự cắt tải.</p>
           </div>
           <div>
             <strong>Trợ lý website chưa phải mô hình AI vận hành</strong>
@@ -179,7 +187,7 @@
 
       <section class="summary-band">
         <p>
-          Dự án đã có nền tảng phần mềm và kết quả benchmark dự báo offline. Chỉ sau khi thu log MFM384,
+          Dự án đã có nền tảng phần mềm và bản ghi benchmark dự báo offline. Chỉ sau khi thu log MFM384,
           kiểm tra PLC write/feedback và lặp thí nghiệm mới có thể đánh giá hệ thống vận hành trên phần cứng thực tế.
         </p>
       </section>

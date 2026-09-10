@@ -17,7 +17,11 @@ from flask import Flask, jsonify, request
 from assistant_runtime import assistant_config, run_assistant_provider
 from assistant_intents import parse_intent
 from auth_store import AuthStore
-
+from telegram_notifier import (
+    send_telegram_alert,
+    format_power_quota_alert,
+    format_device_anomaly_alert,
+)
 try:
     import snap7
     from snap7.util import get_bool, get_dword, get_real, set_bool
@@ -39,7 +43,7 @@ COLLECTOR_MAX_BACKOFF_SECONDS = 300
 # reviewed kW threshold, hysteresis, critical-load and recovery design exists.
 AUTO_LOAD_SHEDDING_KW_SAFETY_READY = False
 
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
 
 
 def load_config() -> dict[str, Any]:
@@ -915,6 +919,7 @@ def create_app() -> Flask:
                 home_id=str(home["id"]),
                 metadata={"source": saved["source"], "power_kw": saved["power_kw"]},
             )
+            check_and_notify_quota_status(str(home["id"]))
             check_and_execute_load_shedding(str(home["id"]))
 
         return {"ok": True, "readings": len(saved_ids), "homeIds": [home["id"] for home in homes], "readingIds": saved_ids}
@@ -1131,8 +1136,26 @@ def create_app() -> Flask:
             metadata={"source": saved["source"], "power_kw": saved["power_kw"]},
         )
         if saved:
+            check_and_notify_quota_status(home_id)
             check_and_execute_load_shedding(home_id)
         return saved
+
+    def check_and_notify_quota_status(home_id: str) -> None:
+        try:
+            quota = auth_store.get_home_quota_status(home_id)
+            limit = float(quota.get("energyLimitKwh") or 0)
+            current = float(quota.get("currentMonthEnergyKwh") or 0)
+            if limit > 0:
+                pct = (current / limit) * 100.0
+                if pct >= 80.0:
+                    alert_type = f"quota_{home_id}_exceeded" if pct >= 100.0 else f"quota_{home_id}_near"
+                    msg = format_power_quota_alert(home_id, current, limit, pct)
+                    sent = send_telegram_alert(msg, alert_type=alert_type, cooldown_seconds=300)
+                    if sent:
+                        app.logger.info("Telegram quota alert sent for home %s (%.1f%%)", home_id, pct)
+        except Exception as exc:
+            app.logger.warning("Quota notification error: %s", exc)
+
 
     def check_and_execute_load_shedding(home_id: str) -> None:
         if not auto_load_shedding_enabled:
@@ -2224,6 +2247,7 @@ def create_app() -> Flask:
                 metadata={"source": saved["source"], "power_kw": saved["power_kw"]},
             )
             if saved:
+                check_and_notify_quota_status(home_id)
                 check_and_execute_load_shedding(home_id)
             return jsonify({"ok": True, "reading": saved}), 201
         except Exception as exc:
@@ -2498,6 +2522,7 @@ def create_app() -> Flask:
         )
 
         def chat_json(payload: dict[str, Any]) -> Any:
+            payload.setdefault("assistantSource", "rule")
             if "reply" in payload:
                 payload = {**payload, "reply": polish_assistant_reply(payload["reply"])}
             return jsonify(payload)
@@ -2506,6 +2531,52 @@ def create_app() -> Flask:
             return chat_json({"reply": "Bạn hãy nhập lệnh cần điều khiển hoặc câu hỏi về điện năng."})
 
         intent = parse_intent(text, devices)
+
+        if intent["intent"] == "clarify":
+            clarify_reply = {
+                "mixed_control_actions": "Mình chưa thực hiện vì câu lệnh có cả bật và tắt. Vui lòng gửi một thao tác mỗi lần.",
+                "negated_control": "Mình chưa thực hiện lệnh này vì câu yêu cầu có phủ định. Vui lòng nói rõ bật hoặc tắt thiết bị.",
+                "question_control": "Mình chưa thực hiện vì đây là câu hỏi về điều khiển. Vui lòng gửi rõ lệnh bật hoặc tắt.",
+                "no_matching_device": "Mình chưa thực hiện vì không tìm thấy thiết bị phù hợp với yêu cầu.",
+                "unknown_state_target": "Mình chưa thực hiện vì không xác định được thiết bị cần đọc trạng thái.",
+            }.get(
+                str(intent.get("reason")),
+                "Mình chưa thực hiện vì yêu cầu điều khiển chưa đủ rõ. Vui lòng nêu thiết bị và lệnh bật hoặc tắt.",
+            )
+            return chat_json(
+                {
+                    "intent": intent,
+                    "reply": clarify_reply,
+                }
+            )
+
+        if intent["intent"] == "get_device_state":
+            device = next((item for item in devices if str(item["id"]) == str(intent["device_id"])), None)
+            if not device:
+                return chat_json({"intent": intent, "reply": "Không tìm thấy thiết bị để đọc trạng thái."})
+            if not physical_device_access_allowed(access, device):
+                return (
+                    jsonify(
+                        {
+                            "ok": False,
+                            "error": "Physical device is not assigned to this home",
+                            "reason": "device_scope_denied",
+                            "intent": intent,
+                        }
+                    ),
+                    403,
+                )
+            try:
+                states, state_source, state_error = read_states_with_source()
+            except Exception:
+                return chat_json({"intent": intent, "reply": f"Chưa xác định được trạng thái của {device['name']}."})
+            if state_source not in {"mock", "plc-s7-1200"} or state_error:
+                return chat_json({"intent": intent, "reply": f"Chưa xác định được trạng thái của {device['name']}."})
+            state = states.get(str(device["id"]))
+            if state is None:
+                return chat_json({"intent": intent, "reply": f"Chưa xác định được trạng thái của {device['name']}."})
+            state_label = "bật" if state else "tắt"
+            return chat_json({"intent": intent, "reply": f"{device['name']} đang {state_label}."})
 
         if intent["intent"] == "get_power_current":
             power, status = unpack_view_result(power_current())
@@ -2531,6 +2602,20 @@ def create_app() -> Flask:
                 return chat_json({"intent": intent, "reply": f"Không thể bật tất cả thiết bị: {result.get('error', 'server lỗi')}", "error": result})
             return chat_json({"intent": intent, "reply": "Đã gửi lệnh bật tất cả thiết bị."})
 
+        if intent["intent"] == "explain_scene":
+            scene_explanations = {
+                "sleep": "Chế độ ngủ tắt đèn và quạt, không tắt thiết bị khác.",
+                "work": "Chế độ vắng nhà tắt tất cả thiết bị.",
+                "morning": "Chế độ buổi sáng bật tất cả thiết bị.",
+                "weekend": "Chế độ cuối tuần bật tất cả thiết bị.",
+            }
+            return chat_json(
+                {
+                    "intent": intent,
+                    "reply": scene_explanations.get(intent.get("scene"), "Đây là một chế độ thiết bị của hệ thống."),
+                }
+            )
+
         if intent["intent"] == "apply_scene":
             control_access = require_active_home_access(manage_devices=True)
             if not isinstance(control_access, dict):
@@ -2553,6 +2638,25 @@ def create_app() -> Flask:
             if not result["ok"]:
                 return chat_json({"intent": intent, "reply": f"Không thể {action} {intent.get('device_name', intent['device_id'])}: {result.get('error', 'server lỗi')}", "error": result})
             return chat_json({"intent": intent, "reply": f"Đã gửi lệnh {action} {intent.get('device_name', intent['device_id'])}."})
+
+        if intent["intent"] == "set_devices":
+            control_access = require_active_home_access(manage_devices=True)
+            if not isinstance(control_access, dict):
+                return control_access
+            selected_ids = {str(device_id) for device_id in intent.get("device_ids", [])}
+            selected_devices = [device for device in devices if str(device.get("id")) in selected_ids]
+            affected = 0
+            errors: list[dict[str, Any]] = []
+            for device in selected_devices:
+                result = execute_device_command(control_access, device, bool(intent["is_on"]))
+                if result["ok"]:
+                    affected += 1
+                else:
+                    errors.append(result)
+            action = "bật" if intent["is_on"] else "tắt"
+            if errors:
+                return chat_json({"intent": intent, "reply": f"Đã gửi lệnh {action} cho {affected} thiết bị; {len(errors)} thiết bị lỗi: {errors[0].get('error', 'server lỗi')}", "errors": errors})
+            return chat_json({"intent": intent, "reply": f"Đã gửi lệnh {action} cho {affected} thiết bị."})
 
         if intent["intent"] == "set_filtered_devices":
             control_access = require_active_home_access(manage_devices=True)
@@ -2579,9 +2683,6 @@ def create_app() -> Flask:
             total = sum(len(items) for items in grouped.values())
             return chat_json({"intent": intent, "reply": f"Hệ thống đang có {total} thiết bị trong 4 khu vực."})
 
-        if intent["intent"] == "get_forecast":
-            return chat_json({"intent": intent, "reply": "Chức năng dự báo sẽ đọc Forecast API sau khi có dữ liệu lịch sử từ PLC."})
-
         context = build_assistant_context(access)
         provider_result = run_assistant_provider(text, context, config)
         audit(
@@ -2600,6 +2701,11 @@ def create_app() -> Flask:
             "reply": provider_result["reply"],
             "assistantProvider": provider_result.get("provider"),
             "assistantProviderOk": provider_result.get("ok"),
+            "assistantSource": (
+                "ai"
+                if provider_result.get("ok") and provider_result.get("provider") in {"gemini", "openai", "local_lora"}
+                else "fallback"
+            ),
         }
         if provider_result.get("error"):
             response["assistantProviderError"] = provider_result["error"]
@@ -2611,6 +2717,7 @@ def create_app() -> Flask:
         collector_thread.start()
 
     return app
+
 
 
 if __name__ == "__main__":

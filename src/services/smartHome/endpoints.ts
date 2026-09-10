@@ -1,4 +1,4 @@
-const DEFAULT_LAN_API_URL = 'http://172.16.50.47:5001';
+const DEFAULT_LAN_API_URL = 'http://172.16.50.27:5001';
 
 export function resolveDefaultLocalApiUrl(platform: string, override?: string): string {
     const explicitUrl = override?.trim();

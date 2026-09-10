@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, PermissionsAndroid, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, PermissionsAndroid, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
     Bubble,
     Composer,
@@ -132,7 +132,7 @@ export default function ChatScreen() {
         };
     }, []);
 
-    const pushBotReply = useCallback((text: string, metadata?: { endpoint: string; elapsedMs: number }) => {
+    const pushBotReply = useCallback((text: string, metadata?: { endpoint: string; elapsedMs: number; assistantSource: 'ai' | 'fallback' | 'rule'; assistantProvider?: string }) => {
         const botReply: any = {
             _id: `bot-${Date.now()}`,
             text,
@@ -189,6 +189,8 @@ export default function ChatScreen() {
             pushBotReply(replyText, {
                 endpoint: result.endpoint,
                 elapsedMs: result.elapsedMs,
+                assistantSource: result.assistantSource,
+                assistantProvider: result.assistantProvider,
             });
         } catch (error) {
             console.error('Error processing Smart Home server chat:', error);
@@ -369,11 +371,6 @@ export default function ChatScreen() {
 
             <View style={styles.chatStage}>
                 <AmbientTechBackground variant="chat" />
-                <KeyboardAvoidingView
-                    style={{ flex: 1 }}
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-                >
                     <GiftedChat
                     messages={messages}
                     onSend={onSend}
@@ -382,8 +379,9 @@ export default function ChatScreen() {
                         name: user?.name || 'Bạn',
                         avatar: APP_AVATAR,
                     }}
-                    isKeyboardInternallyHandled={false}
+                    isKeyboardInternallyHandled={true}
                     focusOnInputWhenOpeningKeyboard={false}
+                    bottomOffset={0}
                     placeholder="Nhập nội dung chat ở đây..."
                     alwaysShowSend
                     minInputToolbarHeight={54}
@@ -465,9 +463,14 @@ export default function ChatScreen() {
                     renderCustomView={(props) => {
                         const message = props.currentMessage as any;
                         if (message && message.metadata) {
-                            const { endpoint, elapsedMs } = message.metadata;
+                            const { endpoint, elapsedMs, assistantSource, assistantProvider } = message.metadata;
                             const isLocal = endpoint === 'local';
                             const label = isLocal ? 'Local API' : 'Cloud API';
+                            const sourceLabel = assistantSource === 'ai'
+                                ? `Phản hồi AI${assistantProvider ? ` · ${assistantProvider}` : ''}`
+                                : assistantSource === 'fallback'
+                                    ? 'Phản hồi dự phòng'
+                                    : 'Lệnh hệ thống';
                             const time = (elapsedMs / 1000).toFixed(1);
                             return (
                                 <View style={styles.metadataContainer}>
@@ -480,7 +483,7 @@ export default function ChatScreen() {
                                             styles.metadataBadgeText,
                                             isLocal ? styles.metadataBadgeTextLocal : styles.metadataBadgeTextCloud
                                         ]}>
-                                            {label} • {time}s
+                                            {sourceLabel} • {label} • {time}s
                                         </Text>
                                     </View>
                                 </View>
@@ -522,7 +525,6 @@ export default function ChatScreen() {
                         keyboardShouldPersistTaps: 'handled',
                     }}
                     />
-                </KeyboardAvoidingView>
             </View>
         </View>
     );
@@ -530,7 +532,7 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#edf3f0' },
-    chatStage: { flex: 1, position: 'relative' },
+    chatStage: { flex: 1, position: 'relative', overflow: 'hidden' },
     header: {
         flexDirection: 'row',
         alignItems: 'center',

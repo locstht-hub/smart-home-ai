@@ -114,24 +114,24 @@ test('local web testing can explicitly select the loopback API without weakening
 
 test('local web defaults to the loopback backend while native keeps the configured LAN endpoint', () => {
   assert.equal(resolveDefaultLocalApiUrl('web', undefined), 'http://127.0.0.1:5001');
-  assert.equal(resolveDefaultLocalApiUrl('android', undefined), 'http://172.16.50.47:5001');
+  assert.equal(resolveDefaultLocalApiUrl('android', undefined), 'http://172.16.50.27:5001');
   assert.equal(resolveDefaultLocalApiUrl('web', ' http://10.0.0.8:5001 '), 'http://10.0.0.8:5001');
 });
 
 test('web migrates the obsolete project LAN address saved by earlier builds', () => {
   assert.equal(
-    normalizeSavedLocalApiUrl('web', 'http://172.16.50.47:5001', 'http://127.0.0.1:5001'),
+    normalizeSavedLocalApiUrl('web', 'http://172.16.50.27:5001', 'http://127.0.0.1:5001'),
     'http://127.0.0.1:5001',
   );
   assert.equal(
-    normalizeSavedLocalApiUrl('android', 'http://172.16.50.47:5001', 'http://127.0.0.1:5001'),
-    'http://172.16.50.47:5001',
+    normalizeSavedLocalApiUrl('android', 'http://172.16.50.27:5001', 'http://127.0.0.1:5001'),
+    'http://172.16.50.27:5001',
   );
 });
 
-test('backend runtime CORS permits the standard local web origins', () => {
-  const runtimeConfig = JSON.parse(read('backend/smart_home_server/config.json'));
-  const allowedOrigins = runtimeConfig.security?.allowedOrigins ?? [];
+test('backend example CORS config declares the standard local web origins', () => {
+  const exampleConfig = JSON.parse(read('backend/smart_home_server/config.example.json'));
+  const allowedOrigins = exampleConfig.security?.allowedOrigins ?? [];
   assert.ok(allowedOrigins.includes('http://localhost:8081'));
   assert.ok(allowedOrigins.includes('http://127.0.0.1:8081'));
 });

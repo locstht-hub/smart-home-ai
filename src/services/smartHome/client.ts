@@ -14,13 +14,20 @@ interface ChatResponse {
     reply?: string;
     text?: string;
     message?: string;
+    assistantSource?: 'ai' | 'fallback' | 'rule';
+    assistantProvider?: string;
+    assistantProviderOk?: boolean;
 }
+
+export type AssistantReplySource = 'ai' | 'fallback' | 'rule';
 
 export interface ChatResult {
     reply: string;
     elapsedMs: number;
     endpoint: 'local' | 'cloud';
     baseUrl: string;
+    assistantSource: AssistantReplySource;
+    assistantProvider?: string;
 }
 
 export interface DeviceControlResponse {
@@ -102,6 +109,14 @@ function polishChatReply(value: string): string {
         text = text.split(from).join(to);
     }
     return text;
+}
+
+function resolveAssistantReplySource(response: ChatResponse): AssistantReplySource {
+    if (response.assistantSource === 'ai' || response.assistantSource === 'fallback' || response.assistantSource === 'rule') {
+        return response.assistantSource;
+    }
+    if (response.assistantProviderOk === false) return 'fallback';
+    return response.assistantProvider ? 'ai' : 'rule';
 }
 
 export class SmartHomeApiClient {
@@ -345,6 +360,8 @@ export class SmartHomeApiClient {
             elapsedMs: Date.now() - startedAt,
             endpoint: this.isLocalBaseUrl(result.baseUrl) ? 'local' : 'cloud',
             baseUrl: result.baseUrl,
+            assistantSource: resolveAssistantReplySource(response),
+            assistantProvider: response.assistantProvider,
         };
     }
 

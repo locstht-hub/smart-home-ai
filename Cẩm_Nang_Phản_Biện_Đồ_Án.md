@@ -2,7 +2,88 @@
 
 Tài liệu này chỉ giữ các câu hỏi có giá trị khi bảo vệ đồ án. Mục tiêu là trả lời ngắn gọn, đúng kỹ thuật, không nói quá khả năng hiện tại của hệ thống.
 
+## Trạng thái phần mềm hiện hành — 10/09/2026
+
+Backend/control suite đạt **42/42**, frontend contract đạt **22/22**, web
+dashboard đạt **21/21**; forecast contracts đạt **7 Python + 2 Node**, research
+HEAD đạt **7**, admin audit đạt **5** và room presentation đạt **3**. `npm run
+lint` và Python compilation đạt. Một native-artifact check được bỏ qua vì chưa
+có thiết bị/AVD; QA trên thiết bị thật còn chờ (`adb` không thấy thiết bị, không
+có AVD), chưa ghi nhận cài APK hoặc triển khai server. Sa thải tải tự động vẫn bị
+khóa bởi `AUTO_LOAD_SHEDDING_KW_SAFETY_READY=False`; ba tầng tải chỉ là đề xuất.
+
+Bản ghi phần mềm ngày **09/09/2026** được giữ để truy vết: backend/control
+**39/39**, frontend **22/22**, lint và Android JavaScript export **1509 modules**.
+Lượt 10/09 thay thế số backend; export 1509 là bằng chứng lịch sử. Astra vẫn
+đang xem xét index đã sửa, nên chưa gọi đây là phê duyệt cuối.
+
+## Hồ sơ nghiên cứu cục bộ ngày 04/09/2026 — lịch sử, không phải trạng thái runtime
+
+Các đoạn và số liệu dưới đây được giữ để truy vết bản ghi nghiên cứu cục bộ ngày
+04/09/2026. Lượt đồng bộ ngày 09–10/09/2026 không chạy lại nghiên cứu, không thay
+mô hình phục vụ ứng dụng và không gửi lệnh phần cứng. Báo cáo, metrics và bản
+thảo nghiên cứu ngày 04/09 nằm ngoài phạm vi push app + main docs; không suy ra
+từ các liên kết này rằng remote repository có đủ toàn bộ bằng chứng.
+
+Tên bài được ghi trong hồ sơ: **Xây dựng mô hình giám sát, điều khiển từ xa và dự báo phụ tải hộ gia đình tích hợp IoT**. Tên tiếng Anh: **An IoT-integrated prototype for residential load monitoring, remote control and forecasting**. Đây là tên bài báo, không tự động thay đổi tên đồ án đã đăng ký.
+
+Theo hồ sơ đó, đợt bổ sung baseline OLS, ablation và phân tích thống kê đã
+chạy ngày 04/09/2026 trên dữ liệu UCI lưu cục bộ (14:03:21–14:32:14 UTC,
+khoảng 28 phút 53 giây chạy tính toán). Nguồn được ghi là
+`research/results/forecast_extension_20260904/metrics.json`; 168 tệp NPZ và
+12 kết quả HAC được ghi là đã đối soát, cùng 20 test nghiên cứu. Các số này là
+bản ghi nghiên cứu, không phải lượt chạy mới của lần đồng bộ này.
+
+Các phép thử không kết nối PLC/MFM384, không gửi lệnh đóng/cắt, không đo lại LAN/4G và không thay mô hình đang phục vụ ứng dụng. Nội dung phần mềm bên dưới mô tả thiết kế hoặc mốc kiểm thử trước đây, không phải chứng nhận trạng thái runtime hiện tại. Tình trạng dàn trang/PDF được ghi riêng trong `research/LAYOUT_QA_20260904.md`, không suy ra từ việc thí nghiệm hoàn tất.
+
+### Kết quả cần nhớ khi phản biện
+
+MAE và RMSE tính bằng kW, trung bình trên ba fold; RF/XGBoost có ba seed mỗi fold, các baseline xác định có một lượt mỗi fold. MAPE dùng sàn mẫu số 0,2 kW.
+
+| Mô hình đầy đủ | MAE | RMSE | MAPE (%) | R² |
+|---|---:|---:|---:|---:|
+| Persistence | 0,694527 | 0,933305 | 99,846 | −0,806809 |
+| Seasonal Naive 24 giờ | 0,514873 | 0,756456 | 66,653 | −0,191510 |
+| Seasonal Naive 168 giờ | 0,543852 | 0,784249 | 75,072 | −0,285104 |
+| OLS | 0,433809 | 0,593665 | 57,648 | 0,258900 |
+| RF | 0,421925 | 0,575155 | 58,120 | 0,308413 |
+| XGBoost | 0,422275 | 0,572849 | 58,587 | 0,312770 |
+
+OLS có MAPE thấp hơn RF/XGBoost dù MAE/RMSE cao hơn; không nói RF/XGBoost thắng ở mọi chỉ tiêu. RF được chọn theo MAE validation trong nhóm mô hình đầy đủ, không phải chọn cấu hình sau khi nhìn test.
+
+| Ablation (số đặc trưng) | RF MAE/RMSE | XGBoost MAE/RMSE |
+|---|---:|---:|
+| Base (86): bỏ lịch và thống kê cửa sổ | 0,432339 / 0,586567 | 0,436179 / 0,586499 |
+| Base + rolling (129): bỏ lịch | 0,436769 / 0,588430 | 0,440688 / 0,589298 |
+| Base + calendar (102): bỏ thống kê cửa sổ | 0,416899 / 0,573175 | 0,417199 / 0,571785 |
+| Đầy đủ (145) | 0,421925 / 0,575155 | 0,422275 / 0,572849 |
+
+Nhóm lịch có 16 biến; nhóm thống kê cửa sổ có 43 biến, gồm rolling/EWM và trung bình cùng giờ bảy ngày; base giữ các biến đo hiện tại, lag và biến dẫn xuất còn lại. Bỏ lịch làm MAE tăng; bỏ nhóm thống kê cửa sổ làm MAE giảm khoảng 0,005025 kW với RF và 0,005076 kW với XGBoost. Đây là kết quả mô tả, **không thay cấu hình chính hoặc model app bằng biến thể 102 đặc trưng theo điểm test**; chưa kiểm định riêng các chênh lệch ablation.
+
+HAC chính dùng độ trễ thực theo giờ 168, nhân Bartlett và tâm hóa riêng từng fold. Loss tại mỗi mốc là sai số tuyệt đối trung bình 24 chân trời, sau đó trung bình loss riêng của ba seed (không lấy sai số của một ensemble dự báo). Có 5.169 mốc test; Holm điều chỉnh ba so sánh trong mỗi băng thông. Khoảng tin cậy dưới đây là khoảng 95% theo từng so sánh, không phải khoảng đồng thời đã hiệu chỉnh Holm.
+
+| So sánh (trái trừ phải) | Δ MAE (kW) | Khoảng tin cậy 95% | p Holm |
+|---|---:|---|---:|
+| XGBoost − RF | +0,000350 | [−0,004784; 0,005485] | 0,893617 |
+| RF − OLS | −0,011885 | [−0,017231; −0,006538] | 0,000039589 |
+| XGBoost − OLS | −0,011534 | [−0,017696; −0,005373] | 0,000486880 |
+
+Trong phân tích thăm dò này, RF và XGBoost có loss trung bình thấp hơn OLS, nhưng chưa có bằng chứng khác biệt giữa RF và XGBoost. Kết luận theo ngưỡng 0,05 không đổi ở các độ trễ kiểm tra 24, 48 và 336 giờ. Điều này không chứng minh hai mô hình tương đương, không đánh giá bất định do lấy mẫu hộ gia đình hoặc huấn luyện lại và không bảo đảm tính chuyển giao sang Việt Nam.
+
 ---
+
+## Trạng thái phần mềm cần dùng khi phản biện (10/09/2026)
+
+- Backend/control suite: **42/42** kiểm thử đạt; web dashboard: **21/21**.
+- Forecast contracts: **7 Python + 2 Node**; research HEAD: **7**; admin audit:
+  **5**; room presentation: **3**; các nhóm này đều đạt.
+- Frontend contract: **22/22** kiểm thử đạt; `npm run lint` và Python compilation đạt.
+- QA trên thiết bị thật còn chờ: `adb` không thấy thiết bị và không có AVD khả dụng. Báo cáo này không ghi nhận cài APK hoặc triển khai server.
+- Đây là bằng chứng cho mã nguồn và các hợp đồng phần mềm. Không dùng để thay thế phép đo PLC/MFM384, đóng cắt contactor, độ trễ vật lý hoặc điều kiện phát hành production.
+
+Lượt 09/09 vẫn là bằng chứng lịch sử cho lint và Android JavaScript export
+**1509 modules**; không diễn giải export đó như APK đã được QA. Astra review của
+lượt sửa 10/09 chưa có kết luận cuối.
 
 ## 1. Kiến trúc tổng thể
 
@@ -47,6 +128,17 @@ App -> Backend API -> PLC -> Relay/Contactor -> Tải
 Khi triển khai thật, có thể chuyển backend lên VPS hoặc dùng Edge Gateway tại từng nhà gửi dữ liệu lên cloud.
 
 ---
+
+### Câu hỏi 3b: Nếu mở rộng triển khai hệ thống cho nhiều ngôi nhà hoặc chung cư thì cần những thành phần gì?
+
+**Trả lời:** Dạ thưa Thầy/Cô, hệ thống được thiết kế theo kiến trúc **Đa người thuê (Multi-tenant Edge-Cloud)**.
+1. **Tại mỗi ngôi nhà (Local/Edge Layer):** Chỉ cần lắp đặt 1 tủ điện đo lường và điều khiển tại chỗ (Edge) gồm PLC Siemens S7-1200, đồng hồ đo điện đa năng Selec MFM384 (giao tiếp Modbus RTU qua RS485), các contactor đóng cắt tải và kết nối mạng (LAN/Wifi/4G). Mỗi nhà được gán một mã định danh duy nhất (`home_id`).
+2. **Hạ tầng Trung tâm dùng chung (Cloud Layer):** Có thể quản lý tập trung cơ sở dữ liệu, phân quyền RBAC (`system_admin`, `owner`, `member`), dự báo và cảnh báo. Khóa `home_id` cùng kiểm tra quyền ở backend hỗ trợ phân tách dữ liệu; chỉ riêng khóa ngoại không bảo đảm an toàn tuyệt đối.
+
+Đây là định hướng mở rộng. Chưa có phép thử tải và triển khai nhiều hộ để khẳng định phục vụ hàng trăm căn hộ đồng thời.
+
+---
+
 
 ## 2. PLC, phần cứng và đồng bộ trạng thái
 
@@ -161,14 +253,14 @@ Tủ điện nên có:
 
 ### Câu hỏi 10: AI dự báo phụ tải có thật sự cần thiết không?
 
-**Trả lời:** Có, vì HEMS không chỉ giám sát hiện tại mà còn cần dự đoán xu hướng tiêu thụ. Forecast giúp:
+**Trả lời:** Dự báo bổ sung thông tin về phụ tải tương lai cho giám sát hiện tại. Trong prototype, kết quả 24 giờ được hiển thị để tham khảo; cảnh báo quota hiện dùng điện năng tích lũy đã đo, không dùng đầu ra dự báo. Những khả năng có thể nghiên cứu tiếp gồm:
 
 1. Ước lượng phụ tải 24 giờ tới.
 2. Cảnh báo nguy cơ vượt hạn mức.
 3. Gợi ý thời điểm nên giảm tải.
 4. Làm nền cho tối ưu chi phí điện sau này.
 
-Trong prototype, XGBoost phù hợp vì chạy nhanh, nhẹ và dễ triển khai API. LSTM/CNN-LSTM là hướng mở rộng cho chuỗi thời gian khi có nhiều dữ liệu thật hơn.
+XGBoost và RF được đánh giá bằng cùng giao thức; thời gian suy luận theo lô không phải độ trễ API hay bằng chứng điều khiển thời gian thực. LSTM/CNN-LSTM là hướng mở rộng, chưa phải kết quả của bài này.
 
 ---
 
@@ -222,12 +314,12 @@ LLM không nên tự bịa số `kW/kWh`. Khi có dữ liệu thật từ PLC/MF
 
 ### Câu hỏi 12c: Dữ liệu huấn luyện mô hình AI từ tập dữ liệu UCI có thật sự mang tính thuyết phục về mặt nghiên cứu không?
 
-**Trả lời:** Rất thuyết phục về mặt thuật toán và nghiên cứu khoa học. Sự thuyết phục nằm ở phương pháp kết hợp 2 trụ cột (Dual-Approach):
+**Trả lời:** UCI tạo cơ sở benchmark có thể tái lập, nhưng mức thuyết phục còn phụ thuộc cách chia thời gian, baseline và giới hạn kết luận. Cần tách hai loại bằng chứng:
 
-1. **Vai trò của UCI:** UCI Individual Household Electric Power Consumption là tập dữ liệu công khai dài hạn, phù hợp để xây pipeline và so sánh mô hình. Bộ chạy chuẩn hiện tại sử dụng 507.970 dòng thô sau bước nạp/lọc của pipeline. UCI giúp benchmark có thể tái lập nhưng không loại bỏ sai số và không chứng minh mô hình phù hợp với hộ gia đình tại Cần Thơ.
+1. **Vai trò của UCI:** UCI Individual Household Electric Power Consumption là tập dữ liệu công khai dài hạn. Giao thức TNU hiện tại dùng cửa sổ 730 ngày, dự báo 24 giờ, ba fold theo thời gian và ba seed cho RF/XGBoost; các nhãn tương lai ở tập trước phải kết thúc trước mốc bắt đầu tập sau. Không lấy quy mô hoặc điểm số của lượt benchmark cũ để mô tả lượt hiện tại. UCI không chứng minh mô hình phù hợp với hộ gia đình tại Cần Thơ.
 2. **Phương pháp kết hợp 2 trụ cột (Dual-Approach) cho luận văn:**
-   - **Trụ cột 1 (Thuật toán AI):** Sử dụng dữ liệu UCI để huấn luyện và đánh giá định lượng năng lực của các mô hình Machine Learning (XGBoost, Random Forest) qua các chỉ số chuẩn ($MAE, RMSE, R^2 = 0.945$).
-   - **Trụ cột 2 (Phần cứng thực tế):** Sử dụng mô hình phần cứng PLC S7-1200 + MFM384 để kiểm thử thực nghiệm khả năng truyền thông thời gian thực, điều khiển khép kín và đo đạc thực tế.
+   - **Trụ cột 1 (Dự báo):** Đánh giá MAE, RMSE, MAPE và R² từ đúng file kết quả hoàn tất, kèm baseline và ablation; không gán sẵn một mức R² hoặc “độ chính xác”.
+   - **Trụ cột 2 (Tích hợp):** Nhật ký LAN/4G chứng minh độ trễ phản hồi API ở các lượt đo đã lưu. Bằng chứng đó không tự chứng minh độ trễ tiếp điểm, độ chính xác đồng hồ hoặc độ tin cậy cảnh báo.
 
 ---
 
@@ -298,6 +390,33 @@ Tự động cắt tải là hướng phát triển tiếp theo. Nếu làm th�
 
 ---
 
+### Câu hỏi 15a: Vì sao thiết kế ba tầng tải chưa được triển khai?
+
+**Trả lời:** Ba tầng hiện chỉ là thiết kế đề xuất, vì đường cắt tải tự động chưa
+đạt cổng an toàn. Quy tắc dự kiến là: **Tầng 1 được bảo vệ khỏi thuật toán sa
+thải; Tầng 2 chỉ được xét khi quá tải kéo dài; Tầng 3 là nhóm được xét đầu tiên**.
+Danh sách tải, ngưỡng và quyền chỉnh sửa phải được duyệt theo từng tủ điện.
+
+Mã hiện tại giữ `AUTO_LOAD_SHEDDING_KW_SAFETY_READY=False`; chưa có schema/UI
+`priority_tier` hay ánh xạ PLC dành riêng cho ba tầng. Vòng lặp quota kWh cũ
+không được dùng để bật sa thải. Khi có thiết kế được duyệt, trình tự an toàn
+đề xuất là: đọc kW/A tức thời từ telemetry mới; chỉ khi quá tải kéo dài mới xét
+Tầng 3; đọc feedback và đo lại; dừng khi công suất về vùng cho phép; chỉ sau
+đó, nếu chính sách cho phép và quá tải vẫn kéo dài, mới xét Tầng 2. Cần có
+hysteresis, cooldown và quy tắc phục hồi rõ ràng. Telemetry cũ hoặc mất feedback
+phải dừng việc phát lệnh mới; khôi phục tải phải theo chính sách được duyệt.
+
+---
+
+### Câu hỏi 15b: Hạn mức kWh khác ngưỡng kW/A như thế nào?
+
+**Trả lời:** `kWh` là điện năng tích lũy theo thời gian, phù hợp cho quota,
+chi phí và cảnh báo mức đã dùng. `kW` là công suất tức thời, còn `A` là dòng
+điện tức thời, phù hợp để đánh giá tải và bảo vệ theo thiết kế điện. Vì vậy
+quota kWh hiện chỉ tạo thông tin/cảnh báo; không dùng nó làm tín hiệu cắt tải
+khẩn cấp. Ngưỡng kW/A và thiết bị bảo vệ hiện trường phải được thiết kế, hiệu
+chuẩn và thử riêng; mô hình dự báo cũng không tự thay thế chúng.
+
 ## 5. Hướng phát triển thực tế
 
 ### Câu hỏi 16: Sau thời điểm hiện tại nên làm gì trước?
@@ -315,9 +434,13 @@ Không nên phát triển thêm quá nhiều giao diện hoặc AI Assistant tr�
 
 ---
 
-### Câu hỏi 17: Vì sao chatbot runtime tạm thời dùng Gemini API, còn LoRA/Unsloth để hướng phát triển?
+### Câu hỏi 17: Vì sao tách chatbot khỏi đường điều khiển, và provider nào được dùng?
 
-**Trả lời:** Trong giai đoạn demo, hệ thống ưu tiên độ ổn định của luồng điều khiển PLC và khả năng phản hồi của giao diện. Chatbot được tách thành một dịch vụ tư vấn; backend có thể cấu hình nhà cung cấp `Gemini`, `mock` hoặc `local_lora` mà không cho mô hình ngôn ngữ quyền ghi trực tiếp xuống PLC.
+**Trả lời:** Trong giai đoạn demo, hệ thống ưu tiên tách đường điều khiển
+thiết bị khỏi dịch vụ tư vấn. Backend có thể cấu hình provider `mock`, `gemini`,
+`openai` hoặc `local_lora`; provider thực tế phụ thuộc file cấu hình và biến môi
+trường tại máy chạy. Không mặc định hoặc khẳng định Gemini đang hoạt động, và
+provider/network chưa phải bằng chứng chất lượng AI hay độ trễ vận hành.
 
 Kho mã hiện có dữ liệu và kịch bản phục vụ hướng fine-tune LoRA/Unsloth, nhưng chưa có bộ bằng chứng chuẩn gồm artifact mô hình, log huấn luyện, cấu hình phần cứng, thời gian suy luận và kết quả đánh giá có thể tái lập. Vì vậy khi phản biện **không tuyên bố LoRA đã huấn luyện thành công hoặc đạt 98,6%** nếu chưa xuất trình đủ các bằng chứng này.
 
@@ -325,19 +448,30 @@ Kiến trúc hiện tại tách rõ hai nhóm tác vụ:
 
 ```text
 Lệnh điều khiển thiết bị -> rule/backend trực tiếp -> kiểm tra quyền/quota -> PLC
-Câu hỏi tư vấn/giải thích -> assistant provider -> Gemini/mock/local_lora
+Câu hỏi tư vấn/giải thích -> assistant provider cấu hình được -> mock/LLM/local_lora
 ```
 
 Nhờ vậy lệnh bật/tắt thiết bị không phụ thuộc vào LLM. Nếu AI chậm, lỗi mạng hoặc hết quota API, phần điều khiển PLC vẫn hoạt động theo rule backend. Đây là điểm quan trọng để đảm bảo an toàn và độ tin cậy khi demo với phần cứng thật.
 
 Hướng phát triển sau này:
 
-1. Dùng Gemini API khi cần bản demo phản hồi ổn định và có kết nối mạng.
+1. Chọn provider có cấu hình và mạng phù hợp khi cần bản demo; không gọi đó là mặc định của dự án.
 2. Dùng `mock` cho kiểm thử hợp đồng phần mềm, không xem là bằng chứng chất lượng AI.
 3. Chỉ công bố `local_lora` sau khi có artifact và báo cáo đánh giá tái lập.
 4. Backend chỉ đổi `assistant.provider`; ứng dụng không cần thay đổi luồng điều khiển thiết bị.
 
-Kết luận: Gemini API là lựa chọn runtime cho phần hỏi đáp; LoRA/Unsloth hiện là hướng nghiên cứu. Cả hai đều độc lập với đường điều khiển an toàn.
+Kết luận: provider hỏi đáp là cấu hình độc lập với đường điều khiển an toàn;
+LoRA/Unsloth hiện là hướng nghiên cứu. Không suy ra provider nào đã được triển
+khai production từ việc mã có hỗ trợ lựa chọn đó.
+
+### Câu hỏi 17a: Nếu câu hỏi trong chat mơ hồ thì hệ thống có tự gửi lệnh không?
+
+**Trả lời:** Không. Chỉ intent điều khiển có thiết bị và trạng thái rõ ràng,
+được kiểm tra quyền và phạm vi nhà mới đi vào đường lệnh. Câu hỏi trạng thái,
+giải thích hoặc câu mơ hồ được trả lời theo rule/provider hoặc yêu cầu người
+dùng nói rõ hơn; không được coi là lệnh PLC. Provider ngôn ngữ không có quyền
+ghi trực tiếp xuống PLC, và phản hồi chat không phải bằng chứng thiết bị đã đổi
+trạng thái.
 
 ---
 
@@ -423,16 +557,27 @@ Muốn đánh giá từng tải thật, cần gắn kênh đo hoặc tag PLC ri�
 
 ### Câu hỏi 21: Sau bản thảo ngày 12/7, phần mềm đã hoàn thiện thêm những gì?
 
-**Trả lời:** Có thể trình bày các phần đã có trong mã. Backend, forecast, research, admin audit và helper ánh xạ phòng đã vượt các bộ test riêng; cổng frontend tổng hiện đạt 16/20 nên không nói toàn bộ giao diện đã kiểm thử hoàn tất:
+**Trả lời:** Có thể trình bày các phần đã có trong mã và kết quả xác minh ngày
+10/09/2026. Backend/control suite đạt **42/42**, frontend contract đạt
+**22/22**, web dashboard đạt **21/21**, forecast contracts đạt **7 Python + 2
+Node**, research HEAD đạt **7**, admin audit đạt **5** và room presentation đạt
+**3**; `npm run lint` và Python compilation cũng đạt. Đây là kiểm thử mã nguồn;
+QA trên thiết bị thật vẫn chờ vì không có thiết bị `adb` hoặc AVD khả dụng.
 
 1. Token người dùng được lưu bằng SecureStore; đăng xuất phía server có thu hồi phiên; API người dùng chỉ nhận Bearer token.
 2. Phân quyền theo `home_id`, tách credential thu thập telemetry và giới hạn đăng nhập.
 3. I/O PLC được tuần tự hóa; trạng thái thiết bị lấy từ đường feedback độc lập; scene trả kết quả theo từng thiết bị và xử lý lỗi một phần.
 4. Collector có backoff; dữ liệu mock không được ghi như dữ liệu thật trong chế độ tự động.
 5. Forecast API kiểm tra checksum/kích thước artifact, giới hạn request, từ chối timestamp sai và trả `501` cho retrain chưa triển khai.
-6. App có trạng thái chờ/thành công/lỗi rõ hơn, nhãn trợ năng, lỗi đăng nhập tại chỗ và ẩn/hiện mật khẩu. Bốn regression frontend còn phải sửa: tích hợp helper hình phòng/nhãn trợ năng, tiếng Việt có dấu, một đường xử lý bàn phím Android thống nhất và AppTheme dùng chung trong RoomsScreen.
+6. App có trạng thái chờ/thành công/lỗi rõ hơn, nhãn trợ năng, lỗi đăng nhập tại chỗ, ẩn/hiện mật khẩu và đường xử lý bàn phím đã được bao phủ trong frontend contract hiện tại.
 
 Đây là bằng chứng phần mềm; không dùng nó để thay thế số đo PLC/MFM384 hoặc latency phần cứng.
+
+Mốc **16/20** và bốn regression thuộc lượt kiểm tra ngày 16/07/2026, chỉ giữ
+ở phần lịch sử của `PROJECT_STATUS_CURRENT.md`; không dùng thay cho kết quả
+22/22 hiện tại. Báo cáo 09/09 và follow-up 10/09 đều không ghi nhận cài APK hay
+triển khai server. Bản ghi 09/09 giữ Android JavaScript export **1509 modules**;
+đó là bằng chứng lịch sử, không phải QA native.
 
 ---
 
@@ -455,7 +600,12 @@ Luận văn nên có sơ đồ tuần tự, ảnh ghép 4 trạng thái `loading
 
 ### Câu hỏi 23: Có thể nói APK hiện tại đã sẵn sàng phát hành không?
 
-**Trả lời:** Có thể nói đã tạo và xác minh APK phục vụ thử nghiệm, nhưng chưa gọi là bản phát hành production nếu còn dùng khóa ký debug, chưa kiểm thử thiết bị mục tiêu và chưa hoàn tất cấu hình HTTPS/domain production. Phải tách “build thành công” khỏi “đủ điều kiện phân phối”.
+**Trả lời:** Không nên nói APK đã được xác minh trong lượt 10/09. Bằng chứng
+hiện có là các contract, lint và Python compilation; `adb` không có thiết bị và
+không có AVD khả dụng, nên QA native còn chờ. Bản ghi 09/09 có Android
+JavaScript bundle export **1509 modules**, nhưng đó không phải APK QA. Chưa ghi
+nhận cài APK hoặc triển khai server. Release signing, kiểm thử thiết bị mục tiêu
+và cấu hình HTTPS/domain production vẫn là các cổng riêng.
 
 ---
 
@@ -473,40 +623,92 @@ Luận văn nên có sơ đồ tuần tự, ảnh ghép 4 trạng thái `loading
 
 ---
 
-### Câu hỏi 26: Hệ thống đã có SMS hoặc push notification chưa?
+### Câu hỏi 26: Hệ thống đã có cơ chế cảnh báo tự động ra bên ngoài chưa (Zalo / Telegram / Notification)?
 
-**Trả lời:** Chưa có bằng chứng mã nguồn và kiểm thử đủ để công bố SMS/push đã triển khai. Hiện có thể trình bày cảnh báo quota trong ứng dụng; SMS/push là hướng mở rộng. Khi triển khai cần quản lý sự đồng ý của người dùng, rate limit, chi phí, bảo mật credential và kiểm thử gửi nhận.
+**Trả lời:** Backend có logic kiểm tra hạn mức và các provider/kênh gửi tin có
+thể cấu hình. Bài TNU chỉ trình bày minh họa Telegram ở ngưỡng 80% và 100% của
+hạn mức thử nghiệm 0,10 kWh. Cảnh báo dựa trên điện năng tích lũy, không phải
+dự báo AI; không kích hoạt sa thải phụ tải trong phạm vi đã kiểm chứng. Zalo,
+SMS và push chưa có bằng chứng delivery được đo và không được giới thiệu như
+chức năng đã phát hành.
 
----
-
-### Câu hỏi 27: Hệ thống có tự động ngắt tải khi vượt quota hoặc ngưỡng công suất không?
-
-**Trả lời:** Không. Phiên bản hiện tại khóa cứng tự động sa thải tải bằng cờ an toàn trong mã, kể cả khi biến môi trường yêu cầu bật. Quota dùng để giám sát và cảnh báo. Muốn nghiên cứu tự động cắt tải phải có phân loại tải, interlock, manual override, feedback contactor, quy trình E-stop/recovery và dữ liệu thử nghiệm thật được phê duyệt.
-
----
-
-### Câu hỏi 28: Mô hình AI dự báo có trực tiếp ra lệnh đóng cắt thiết bị không?
-
-**Trả lời:** Không. Forecast chỉ cung cấp thông tin tham khảo; đường điều khiển thiết bị tách khỏi mô hình. Endpoint retrain thật hiện trả `HTTP 501`, tránh tạo cảm giác mô hình đã tự học lại trong production.
+Ảnh minh họa và mã tích hợp không đủ chứng minh gửi tin tức thời, tỷ lệ thành công 100% hoặc toàn bộ chức năng Zalo. Các endpoint/thử nghiệm xác thực kênh không thay thế phép đo delivery. Muốn báo cáo độ tin cậy cần đo lặp có timestamp, định nghĩa thời điểm bắt đầu/kết thúc, số lần thất bại và thời gian chống gửi lặp. Đợt thí nghiệm UCI này không thực hiện phép đo cảnh báo.
 
 ---
 
-### Câu hỏi 29: Kết quả dự báo hiện tại đã đủ mạnh chưa?
+### Câu hỏi 27: Khi vượt ngưỡng quá tải thì có kích hoạt Dừng khẩn cấp (Emergency Stop) không, hay chỉ thông báo?
 
-**Trả lời:** Kết quả chuẩn hiện tại là benchmark trên dữ liệu UCI, chưa phải dữ liệu MFM384 tại Cần Thơ. XGBoost đạt MAE `0,4855 kW`, RMSE `0,6475 kW`, MAPE `66,24%` và R² `0,2219`; tốt hơn Seasonal Naive 24h khoảng `9,8%` theo MAE nhưng chỉ hơn Random Forest khoảng `1,2%`. Vì vậy đây là bằng chứng khả thi ban đầu, chưa đủ để tuyên bố mô hình vượt trội hoặc tổng quát cho ngôi nhà thật.
+**Trả lời:** Cần phân biệt rõ giữa 2 khái niệm kỹ thuật điện:
 
-Để thuyết phục hơn cần thêm dữ liệu địa phương, ít nhất 5 rolling folds với nhiều seed, sai số theo từng horizon, đồ thị actual-vs-predicted, khoảng dự báo, kiểm định so sánh mô hình và phân tích drift/ablation.
+1. **Vượt Hạn Mức Điện Năng Tháng (Over-Quota):**
+   * Xử lý theo thiết kế minh họa: **CHỈ THÔNG BÁO qua các kênh được cấu hình (App + Telegram) và ĐỀ XUẤT cắt giảm/dịch chuyển tải (Human-in-the-loop).** Delivery Telegram chưa được đo và không được trình bày như đã bảo đảm.
+   * Lý do: Hạn mức tiền điện là bài toán chi phí. Tự ý ngắt điện sinh hoạt cưỡng bức có thể gây mất an toàn (tắt tủ lạnh, tắt máy thở, tắt đèn ban đêm); mọi thao tác cắt tải phải theo chính sách và liên động đã duyệt.
+
+2. **Quá Tải Dòng Điện / Chập Cháy Nguy Hiểm ($I > I_{\text{đm}}$ hoặc $P > P_{\text{max}}$):**
+   * Xử lý: Phải có thiết kế bảo vệ điện phù hợp bằng thiết bị bảo vệ và liên động tại hiện trường; không dựa vào cảnh báo cloud hoặc AI. Không gán thời gian tác động dưới 50 ms cho tủ điện khi chưa có thông số thiết bị, thiết kế phối hợp bảo vệ và phép đo tương ứng. PLC thông thường hoặc nút E-stop không tự thay thế thiết bị bảo vệ quá dòng.
 
 ---
 
-### Câu hỏi 30: Ba hình hiện tại trong luận văn/bài báo đã đủ thuyết phục chưa?
+### Câu hỏi 28: Tại sao dùng bộ dữ liệu UCI của Pháp để huấn luyện AI? Có phù hợp với Việt Nam không?
 
-**Trả lời:** Chưa. Sơ đồ kiến trúc, pipeline bằng chứng và biểu đồ MAE/RMSE là nền tảng tốt nhưng chưa chứng minh hệ thống hoạt động end-to-end. Nên bổ sung:
+**Trả lời:**
+1. **Lý do dùng UCI thay vì đo ngắn ngày tại phòng lab:** Dữ liệu dài hạn cho phép đánh giá nhiều chu kỳ và thời đoạn khác nhau. Vài giờ demo không đủ để đánh giá dự báo 24 giờ một cách đáng tin cậy; không có một yêu cầu phổ quát rằng mọi mô hình đều bắt buộc cần đúng 6 tháng đến 2 năm.
+2. **Xuất xứ & Quy mô:** Bộ dữ liệu UCI (*Individual Household Electric Power Consumption*) đo liên tục suốt gần 4 năm (hơn 2.075.000 bản ghi) tại ngoại ô Paris, Pháp.
+3. **Tính phù hợp với Việt Nam:**
+   * Không suy ra tính chuyển giao từ điện áp hoặc giả định giờ sinh hoạt giống nhau. Khí hậu, thiết bị, hành vi và số hộ đều có thể khác.
+   * Benchmark công khai giúp kiểm tra phương pháp và so sánh trong cùng dữ liệu/giao thức, không tự tạo ra so sánh công bằng với mọi công trình khác.
+   * Cần thu dữ liệu địa phương đủ dài và đánh giá ngoài mẫu trước khi kết luận phù hợp với hộ gia đình Việt Nam.
 
-1. Sơ đồ tuần tự command-feedback, tách rõ luồng điều khiển và telemetry.
-2. Ảnh ghép trạng thái app `loading/success/error/timeout`.
-3. Đồ thị actual-vs-predicted theo thời gian và sai số theo horizon.
-4. Boxplot/ECDF latency thật khi có đủ ca đo PLC/MFM384.
-5. Bảng evidence gate ghi rõ mục nào là software test, public benchmark hay real hardware.
+---
 
-Không dùng hình placeholder latency như một kết quả thực nghiệm.
+### Câu hỏi 29: Kết quả thực nghiệm phần cứng thực tế đo đạc được là bao nhiêu?
+
+**Trả lời:** Hồ sơ TNU nghiên cứu cục bộ dùng độ trễ phản hồi API của hai lượt
+đo đã đối soát; đây không phải kết quả của lượt xác minh phần mềm 09/09 hoặc
+10/09, cũng không phải độ trễ tiếp điểm phần cứng:
+* **Độ trễ truyền thông API:**
+  * Mạng nội bộ Wi-Fi (LAN): Trung vị **$1.403,63\text{ ms}$** ($N=49$, P95 = $2.454,55\text{ ms}$).
+  * Mạng di động 4G (WAN): Trung vị **$4.382,21\text{ ms}$** ($N=49$, P95 = $5.959,67\text{ ms}$).
+
+Mỗi điều kiện có 50 phép thử, 49 phản hồi hợp lệ. LAN loại một mẫu mock-fallback; 4G loại một timeout. Lượt 4G trước đó có 50 lỗi HTTP 403 do cấu hình xác thực, vẫn giữ log nhưng không đưa vào thống kê độ trễ. Tỷ lệ 49/50 chỉ thuộc từng lượt được phân tích, không đại diện cả ba lượt.
+
+Không sử dụng các con số tiếp điểm/điện lưới từng ghi trong bản cẩm nang cũ nếu chưa đối soát được nguồn đo, tiêu chí và chuỗi timestamp. Ảnh giao diện có nhãn 332/333 ms cũng không thay thế phân bố độ trễ tiếp điểm vật lý.
+
+---
+
+### Câu hỏi 30: Khi nhấn nút vật lý ngoài tủ điện thì trên App có cập nhật không?
+
+**Trả lời:** Mã có đường cập nhật trạng thái từ PLC về app, nhưng lượt xác minh
+09/09 và 10/09 không chạy thiết bị thật. Chỉ gọi là hoạt động sau khi có cấu hình và ca
+thử đã quan sát; không tuyên bố đồng bộ 100% hoặc tức thời trong mọi điều kiện.
+1. Khi nhấn nút cơ ngoài tủ, tín hiệu vào ngõ vào DI của PLC, PLC đảo bit trạng thái ngõ ra DO / Data Block (`DB1`).
+2. Server Python liên tục đọc dữ liệu thật từ PLC qua thư viện Snap7.
+3. Ứng dụng có cơ chế polling và kéo làm mới. Thời điểm hiển thị còn phụ thuộc chu kỳ đọc, mạng và trạng thái backend; công suất định mức từng thiết bị không phải số đo riêng từng tải. Muốn khẳng định độ trễ đồng bộ cần đo riêng toàn chuỗi nút vật lý–tiếp điểm–PLC–API–app.
+
+---
+
+## 8. Hỏi đáp về đợt bổ sung thực nghiệm TNU-JST
+
+### Câu hỏi 31: Baseline OLS bổ sung để làm gì?
+
+**Trả lời:** OLS là hồi quy tuyến tính bình phương tối thiểu, làm mốc so sánh đơn giản có học từ dữ liệu. Nó được đánh giá trên cùng dữ liệu, mốc train/validation/test và chân trời 24 giờ như RF/XGBoost. Nếu OLS tốt hơn hoặc xấp xỉ, phải báo cáo như vậy; mô hình phức tạp không mặc nhiên tốt hơn. Không chọn lại cấu hình theo điểm test để giữ lợi thế cho RF/XGBoost.
+
+### Câu hỏi 32: Ablation có phải chứng minh đặc trưng nào cũng hữu ích không?
+
+**Trả lời:** Không. Ablation giữ nguyên giao thức, lần lượt bỏ nhóm đặc trưng theo thiết kế đã ghi trong cấu hình, rồi huấn luyện lại và so sánh. Bỏ một nhóm mà sai số giảm là kết quả cần báo cáo, không phải lý do loại lượt chạy. Tác dụng phụ thuộc mô hình, nhóm còn lại và thời đoạn; đây không phải bằng chứng quan hệ nhân quả. Ablation theo nhóm cũng không đồng nghĩa đã có SHAP hoặc bảng xếp hạng tầm quan trọng từng đặc trưng.
+
+### Câu hỏi 33: Tại sao dùng HAC và hiệu chỉnh Holm thay vì kiểm định 9 điểm MAE?
+
+**Trả lời:** Các seed dùng chung thời đoạn test, còn sai số chuỗi thời gian có thể tự tương quan; chín điểm MAE không phải chín mẫu độc lập. Phân tích dùng chênh lệch loss ghép cặp tại cùng thời điểm dự báo, xử lý seed theo giao thức và ước lượng sai số chuẩn HAC (Newey–West). Holm điều chỉnh cho nhóm so sánh đã xác định. Phải nêu loss, độ trễ HAC, cách ghép fold/seed và phân tích độ nhạy, không chọn độ trễ sau khi nhìn p để có kết quả đẹp.
+
+Đây là phân tích **thăm dò trên dữ liệu đã từng được xem xét**, không phải kiểm định xác nhận trên tập ngoài mẫu mới. `p < 0,05` không chứng minh mô hình tốt hơn ở mọi nhà; `p >= 0,05` không chứng minh tương đương. Nếu máy làm tròn p thành 0, không nói xác suất sai bằng 0 hoặc chắc chắn 100%; cần báo ngưỡng phù hợp, độ lớn chênh lệch và khoảng tin cậy kèm giới hạn phương pháp.
+
+### Câu hỏi 34: Bằng chứng lưu ở đâu và có tác động phần cứng không?
+
+**Trả lời:** Kết quả mở rộng đã hoàn tất trong `research/results/forecast_extension_20260904/`: `metrics.json` tổng hợp, 168 tệp `predictions/*.npz` lưu đầu ra số theo lượt chạy và `prediction_manifest.json` đối chiếu các tệp. `research/verify_forecast_extension.py` tính lại chỉ tiêu và 12 kết quả HAC từ NPZ; `research/FORECAST_EXTENSION_PROTOCOL.md` mô tả giao thức. NPZ không phải ảnh minh họa hay dữ liệu mô phỏng phần cứng.
+
+Các phép thử chạy offline trên UCI, không gọi PLC/MFM384, không gửi cảnh báo, không đổi mô hình/artifact phục vụ app. Kết quả benchmark không tự động trở thành mô hình triển khai. Muốn cập nhật app cần quy trình triển khai và kiểm thử riêng.
+
+### Câu hỏi 35: Làm xong ba mục này có nghĩa hoàn thành toàn bộ Strategy không?
+
+**Trả lời:** Không. Chúng gia cố đối chứng, đánh giá nhóm đặc trưng và phân tích sai số dự báo. Đo lặp cảnh báo, độ trễ tiếp điểm, đánh giá nhiều hộ, hiệu quả tiết kiệm điện và vòng điều khiển dùng dự báo vẫn là những việc khác. Bài được định vị là prototype tích hợp trong phòng lab; không chấm điểm chắc chắn hoặc bảo đảm tạp chí chấp nhận.

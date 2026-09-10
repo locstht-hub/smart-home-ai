@@ -345,8 +345,10 @@ export default function AnalysisScreen() {
                 <View style={styles.aiCardCircle2} />
                 <View style={{ zIndex: 1 }}>
                     <View style={styles.aiStatusRow}>
-                        <View style={styles.aiDot} />
-                        <Text style={styles.aiStatusText}>Forecast provider đã sẵn sàng</Text>
+                        <View style={[styles.aiDot, (forecastSource === 'mock_fallback' || !!error) && { backgroundColor: '#f59e0b' }]} />
+                        <Text style={styles.aiStatusText}>
+                            {forecastSource === 'real_history' && !error ? 'Forecast provider đã sẵn sàng' : 'Chế độ mô phỏng dự phòng'}
+                        </Text>
                     </View>
                     <View style={styles.aiMetrics}>
                         <View>

@@ -12,12 +12,30 @@ PROJECT_STATUS_CURRENT.md
 
 Mốc mới nhất đã có:
 
+- Xác minh phần mềm ngày 10/09/2026: backend/control suite **42/42**, frontend
+  contract **22/22** và web dashboard **21/21**; forecast contracts **7 Python +
+  2 Node**, research HEAD **7**, admin audit **5** và room presentation **3**
+  đều đạt. `npm run lint` và Python compilation cũng đạt.
+- Bản ghi ngày 09/09/2026 được giữ để truy vết: backend/control **39/39**,
+  frontend **22/22**, lint và Android JavaScript export **1509 modules**.
+- QA native còn chờ vì không có thiết bị `adb` hoặc AVD khả dụng; chưa ghi nhận
+  cài APK hay triển khai server. Sa thải tải tự động vẫn bị khóa bởi
+  `AUTO_LOAD_SHEDDING_KW_SAFETY_READY=False`. Astra đã duyệt index đã sửa ngày 10/09; không còn lỗi đáng kể trong phạm vi rà soát.
 - Backend Flask vẫn là lớp API trung tâm.
 - Supabase/PostgreSQL đã được thêm để lưu dữ liệu tập trung.
 - Schema Supabase đã có `users`, `homes`, `home_members`, `audit_logs`, `power_readings`, `rooms`, `devices`, `device_events`.
 - Admin site đã đăng nhập được, xem nhà/tài khoản/nhật ký, và quản lý thủ công phòng/thiết bị.
 - Mobile RoomsScreen đã nối với API rooms/devices thủ công.
 - Dự án đang ở mức prototype/luận văn, phù hợp để demo và tiếp tục kiểm thử phần cứng.
+
+Đọc [bản đồ tài liệu hiện hành](docs/CANONICAL_DOCUMENT_MAP.md) để biết nguồn
+ưu tiên cho từng nhóm thông tin. Báo cáo xác minh phần mềm nằm tại
+`outputs/chatbot-fix-20260909/VERIFICATION.md`; cẩm nang phản biện và dàn ý
+luận văn chỉ mô tả thiết kế, giới hạn và kế hoạch kiểm thử.
+
+Các metrics, báo cáo và bản thảo nghiên cứu ngày 04/09/2026 là bản ghi cục bộ
+được giữ để truy vết. Lượt đồng bộ app + main docs không xuất bản các hồ sơ đó
+và không phải là khẳng định bài báo đã được nhận hoặc công bố.
 
 ## Thành phần
 
